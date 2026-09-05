@@ -1,14 +1,49 @@
 {
   "$schema": "./plugin-schema.json",
   "version": 1,
-  "updated_at": "2026-09-05T22:00:00Z",
+  "updated_at": "2026-09-05T21:14:41.921Z",
   "plugins": [
+    {
+      "id": "com.peekit.3d-viewer",
+      "name": "3D Model Viewer",
+      "version": "1.0.0",
+      "author": "Kobalt",
+      "description": "Interactive 3D model previewer for STL, OBJ, GLTF, GLB, and PLY files with WebGL rendering, orbit controls, turntable and wireframe modes",
+      "extensions": [
+        ".stl",
+        ".obj",
+        ".gltf",
+        ".glb",
+        ".ply"
+      ],
+      "entry": "index.html",
+      "min_peekit_version": "1.0.0",
+      "download_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.3d-viewer.zip",
+      "icon": "file",
+      "homepage": "https://github.com/kobaltgit/peekit-plugins"
+    },
+    {
+      "id": "com.peekit.docx-viewer",
+      "name": "Word Document Viewer",
+      "version": "1.0.0",
+      "author": "PeekIt Team",
+      "description": "Fast offline viewer for Word documents (DOCX, DOC) with realistic page layout, styles, and tables",
+      "extensions": [
+        ".docx",
+        ".doc"
+      ],
+      "entry": "index.html",
+      "min_peekit_version": "1.0.0",
+      "download_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.docx-viewer.zip",
+      "icon": "file-text",
+      "homepage": "https://github.com/kobaltgit/peekit-plugins"
+    },
     {
       "id": "com.peekit.font-viewer",
       "name": "Font Viewer",
       "version": "1.0.0",
       "author": "Kobalt",
-      "description": "Интерактивный предварительный просмотр шрифтов с кастомными панграммами и глифами",
+      "description": "Interactive typography and glyph previewer for TTF, OTF, WOFF, and WOFF2 files",
       "extensions": [
         ".ttf",
         ".otf",
@@ -18,25 +53,42 @@
       "entry": "index.html",
       "min_peekit_version": "1.0.0",
       "download_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.font-viewer.zip",
-      "checksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "icon": "icon.svg",
+      "icon": "file",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     },
     {
-      "id": "com.peekit.stl-viewer",
-      "name": "3D STL/OBJ Viewer",
+      "id": "com.peekit.sheet-viewer",
+      "name": "Spreadsheet Viewer",
       "version": "1.0.0",
-      "author": "Kobalt & Community",
-      "description": "Аппаратный 3D-просмотр STL и OBJ моделей на Three.js/WebGL с вращением и сеткой",
+      "author": "PeekIt Team",
+      "description": "Fast offline viewer for Excel spreadsheets (XLSX, XLS), CSV, TSV and OpenDocument sheets",
       "extensions": [
-        ".stl",
-        ".obj"
+        ".xlsx",
+        ".xls",
+        ".csv",
+        ".tsv",
+        ".ods"
       ],
       "entry": "index.html",
       "min_peekit_version": "1.0.0",
-      "download_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.stl-viewer.zip",
-      "checksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "icon": "icon.svg",
+      "download_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.sheet-viewer.zip",
+      "icon": "table",
+      "homepage": "https://github.com/kobaltgit/peekit-plugins"
+    },
+    {
+      "id": "com.peekit.slides-viewer",
+      "name": "PowerPoint Presentation Viewer",
+      "version": "1.0.0",
+      "author": "PeekIt Team",
+      "description": "Fast offline viewer for PowerPoint presentations (PPTX, PPT) with slide thumbnails, keyboard navigation, and zoom",
+      "extensions": [
+        ".pptx",
+        ".ppt"
+      ],
+      "entry": "index.html",
+      "min_peekit_version": "1.0.0",
+      "download_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.slides-viewer.zip",
+      "icon": "tv",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     }
   ]
