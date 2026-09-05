@@ -1,5 +1,12 @@
 # 🧩 PeekIt Plugins Ecosystem
 
+[![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-0078D4?logo=windows&logoColor=white)](https://github.com/kobaltgit/peekit)
+[![Ecosystem](https://img.shields.io/badge/Ecosystem-Kobalt%20Tools-blueviolet)](https://github.com/kobaltgit)
+[![Host App](https://img.shields.io/badge/PeekIt-Quick%20Preview-blue)](https://github.com/kobaltgit/peekit)
+[![Format](https://img.shields.io/badge/Format-.pkit-brightgreen)](PLUGIN_DEVELOPMENT_GUIDE.md)
+[![Sandbox](https://img.shields.io/badge/Sandbox-WebView2%20IFrame-orange)](SECURITY.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Официальный репозиторий экосистемы плагинов для **[PeekIt](https://github.com/kobaltgit/peekit)** — ультрабыстрого инструмента предварительного просмотра файлов по клавише **Space (Пробел)** в Windows 10 & 11.
 
 ---
@@ -71,6 +78,13 @@ node pack_plugin.cjs --all
 
 ---
 
+## 🤝 Участие в разработке
+
+Инструкции по добавлению новых плагинов, созданию Pull Request и стандартам кода описаны в **[CONTRIBUTING.md](CONTRIBUTING.md)**.  
+Вопросы безопасности и изолированной среды описаны в **[SECURITY.md](SECURITY.md)**.
+
+---
+
 ## 📄 Лицензия
 
-Все официальные плагины и шаблоны распространяются под свободной лицензией **MIT**.
+Все официальные плагины и шаблоны распространяются под свободной лицензией **[MIT](LICENSE)**. © 2026 Kobalt Tools / PeekIt.
