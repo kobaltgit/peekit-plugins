@@ -5,3 +5,6 @@ build/
 *.log
 .vscode/
 .idea/
+.dart_tool/
+website/build/
+website/.dart_tool/

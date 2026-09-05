@@ -1,6 +1,7 @@
 # 🧩 PeekIt Plugins Ecosystem
 
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-0078D4?logo=windows&logoColor=white)](https://github.com/kobaltgit/peekit)
+[![Website](https://img.shields.io/badge/Website-Marketplace-success?logo=flutter)](https://kobaltgit.github.io/peekit-plugins/)
 [![Ecosystem](https://img.shields.io/badge/Ecosystem-Kobalt%20Tools-blueviolet)](https://github.com/kobaltgit)
 [![Host App](https://img.shields.io/badge/PeekIt-Quick%20Preview-blue)](https://github.com/kobaltgit/peekit)
 [![Format](https://img.shields.io/badge/Format-.pkit-brightgreen)](PLUGIN_DEVELOPMENT_GUIDE.md)

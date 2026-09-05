@@ -1,0 +1,95 @@
+{
+  "$schema": "./plugin-schema.json",
+  "version": 1,
+  "updated_at": "2026-09-05T21:14:41.921Z",
+  "plugins": [
+    {
+      "id": "com.peekit.3d-viewer",
+      "name": "3D Model Viewer",
+      "version": "1.0.0",
+      "author": "Kobalt",
+      "description": "Interactive 3D model previewer for STL, OBJ, GLTF, GLB, and PLY files with WebGL rendering, orbit controls, turntable and wireframe modes",
+      "extensions": [
+        ".stl",
+        ".obj",
+        ".gltf",
+        ".glb",
+        ".ply"
+      ],
+      "entry": "index.html",
+      "min_peekit_version": "1.0.0",
+      "download_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.3d-viewer.zip",
+      "icon": "file",
+      "homepage": "https://github.com/kobaltgit/peekit-plugins"
+    },
+    {
+      "id": "com.peekit.docx-viewer",
+      "name": "Word Document Viewer",
+      "version": "1.0.0",
+      "author": "PeekIt Team",
+      "description": "Fast offline viewer for Word documents (DOCX, DOC) with realistic page layout, styles, and tables",
+      "extensions": [
+        ".docx",
+        ".doc"
+      ],
+      "entry": "index.html",
+      "min_peekit_version": "1.0.0",
+      "download_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.docx-viewer.zip",
+      "icon": "file-text",
+      "homepage": "https://github.com/kobaltgit/peekit-plugins"
+    },
+    {
+      "id": "com.peekit.font-viewer",
+      "name": "Font Viewer",
+      "version": "1.0.0",
+      "author": "Kobalt",
+      "description": "Interactive typography and glyph previewer for TTF, OTF, WOFF, and WOFF2 files",
+      "extensions": [
+        ".ttf",
+        ".otf",
+        ".woff",
+        ".woff2"
+      ],
+      "entry": "index.html",
+      "min_peekit_version": "1.0.0",
+      "download_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.font-viewer.zip",
+      "icon": "file",
+      "homepage": "https://github.com/kobaltgit/peekit-plugins"
+    },
+    {
+      "id": "com.peekit.sheet-viewer",
+      "name": "Spreadsheet Viewer",
+      "version": "1.0.0",
+      "author": "PeekIt Team",
+      "description": "Fast offline viewer for Excel spreadsheets (XLSX, XLS), CSV, TSV and OpenDocument sheets",
+      "extensions": [
+        ".xlsx",
+        ".xls",
+        ".csv",
+        ".tsv",
+        ".ods"
+      ],
+      "entry": "index.html",
+      "min_peekit_version": "1.0.0",
+      "download_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.sheet-viewer.zip",
+      "icon": "table",
+      "homepage": "https://github.com/kobaltgit/peekit-plugins"
+    },
+    {
+      "id": "com.peekit.slides-viewer",
+      "name": "PowerPoint Presentation Viewer",
+      "version": "1.0.0",
+      "author": "PeekIt Team",
+      "description": "Fast offline viewer for PowerPoint presentations (PPTX, PPT) with slide thumbnails, keyboard navigation, and zoom",
+      "extensions": [
+        ".pptx",
+        ".ppt"
+      ],
+      "entry": "index.html",
+      "min_peekit_version": "1.0.0",
+      "download_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.slides-viewer.zip",
+      "icon": "tv",
+      "homepage": "https://github.com/kobaltgit/peekit-plugins"
+    }
+  ]
+}
