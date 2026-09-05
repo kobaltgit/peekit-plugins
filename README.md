@@ -40,6 +40,9 @@
 
 ```text
 peekit-plugins/
+├── .agents/                     # Конфигурация AI-агентов и навыков (Antigravity)
+│   ├── agents/                  # Субагент peekit_plugin_creator
+│   └── skills/                  # Навык peekit-plugin-creator
 ├── plugins/                     # Исходный код официальных плагинов
 │   ├── peekit-plugin-3d/        # 3D модели (STL, OBJ, GLTF, PLY)
 │   ├── peekit-plugin-ai/        # Adobe Illustrator (.ai)
@@ -54,6 +57,29 @@ peekit-plugins/
 ├── PLUGIN_DEVELOPMENT_GUIDE.md  # Полное руководство разработчика плагинов
 └── README.md                    # Этот документ
 ```
+
+---
+
+## 🤖 Разработка с помощью AI (Antigravity Agent & Skill)
+
+В репозиторий встроен готовый AI-ассистент и навык для разработчиков плагинов, настроенный под [Google Antigravity](https://antigravity.google):
+
+* **Субагент**: [`.agents/agents/peekit_plugin_creator.md`](.agents/agents/peekit_plugin_creator.md)
+* **Навык (Skill)**: [`.agents/skills/peekit-plugin-creator/SKILL.md`](.agents/skills/peekit-plugin-creator/SKILL.md)
+
+### Что умеет агент:
+1. **Знает специфику песочницы WebView2**: учитывает изоляцию `asset.localhost`, строгий офлайн (self-contained) и требования к инлайнингу сторонних JS/CSS библиотек прямо в `index.html`.
+2. **Реализует IPC-протокол PeekIt**: генерирует корректную обработку сообщений `PEEKIT_INIT`, `PEEKIT_REQUEST_DATA`, `PEEKIT_DATA_RESPONSE`, `PEEKIT_READY` и поддержку темной/светлой темы.
+3. **Автоматизирует сборку и публикацию**:
+   * Создаёт плагин из шаблона с валидным `manifest.json`.
+   * Упаковывает плагин в `.pkit` и обновляет `registry.json` (`node pack_plugin.cjs`).
+   * Синхронизирует артефакты с каталогом маркетплейса (`website/`) и валидирует тесты (`flutter analyze`, `flutter test`).
+
+### Как использовать:
+При открытии репозитория в Antigravity агент подключится автоматически. Вы можете:
+* Запустить субагента командой в чате: `/agent peekit_plugin_creator`
+* Либо дать агенту естественную задачу, например:
+  > *"Создай плагин для просмотра файлов формата .xyz на базе библиотеки XYZ.js, собери .pkit и обнови маркетплейс"*
 
 ---
 
