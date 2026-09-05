@@ -117,8 +117,8 @@ class RegistryService {
       icon: 'image',
       homepage: 'https://github.com/kobaltgit/peekit-plugins',
       category: 'Graphics',
-      sizeKb: '521.7 KB',
-      sha256: '50534ccda6ef471d9fa6012c1a523a3082abb507c0a56c37db7f7503e831789c',
+      sizeKb: '523.3 KB',
+      sha256: 'f23df7a681704a437786d417f6355c8c8cce1e3be114bb6da6e5a731ad99c69f',
     ),
   ];
 }

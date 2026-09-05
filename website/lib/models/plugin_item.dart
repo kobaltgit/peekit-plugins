@@ -68,8 +68,8 @@ class PluginItem {
       sha = 'a2d31c039f2e5a397858c49e1be281aa00a12e2c2fbf5dfd07ca2f458ca64147';
     } else if (id.contains('ai')) {
       cat = 'Graphics';
-      size = '521.7 KB';
-      sha = '50534ccda6ef471d9fa6012c1a523a3082abb507c0a56c37db7f7503e831789c';
+      size = '523.3 KB';
+      sha = 'f23df7a681704a437786d417f6355c8c8cce1e3be114bb6da6e5a731ad99c69f';
     }
 
     return PluginItem(
