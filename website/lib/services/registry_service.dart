@@ -104,5 +104,21 @@ class RegistryService {
       sizeKb: '67.5 KB',
       sha256: 'a2d31c039f2e5a397858c49e1be281aa00a12e2c2fbf5dfd07ca2f458ca64147',
     ),
+    const PluginItem(
+      id: 'com.peekit.ai-viewer',
+      name: 'Adobe Illustrator Viewer',
+      version: '1.0.0',
+      author: 'Kobalt',
+      description: 'High-fidelity vector previewer for Adobe Illustrator (.ai) files with multi-artboard navigation, zoom controls, and metadata inspection.',
+      extensions: ['.ai'],
+      entry: 'index.html',
+      minPeekitVersion: '1.0.0',
+      downloadUrl: 'https://github.com/kobaltgit/peekit-plugins/releases/latest/download/com.peekit.ai-viewer-1.0.0.pkit',
+      icon: 'image',
+      homepage: 'https://github.com/kobaltgit/peekit-plugins',
+      category: 'Graphics',
+      sizeKb: '521.7 KB',
+      sha256: '50534ccda6ef471d9fa6012c1a523a3082abb507c0a56c37db7f7503e831789c',
+    ),
   ];
 }

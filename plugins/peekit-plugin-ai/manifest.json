@@ -1,0 +1,14 @@
+{
+  "id": "com.peekit.ai-viewer",
+  "name": "Adobe Illustrator Viewer",
+  "version": "1.0.0",
+  "author": "Kobalt",
+  "description": "High-fidelity vector previewer for Adobe Illustrator (.ai) files with multi-artboard navigation, zoom controls, and metadata inspection",
+  "extensions": [
+    ".ai"
+  ],
+  "entry": "index.html",
+  "min_peekit_version": "1.0.0",
+  "icon": "image",
+  "homepage": "https://github.com/kobaltgit/peekit-plugins"
+}

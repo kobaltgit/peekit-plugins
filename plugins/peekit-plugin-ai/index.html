@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PeekIt Adobe Illustrator Viewer</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --bg-toolbar: rgba(15, 23, 42, 0.88);
+      --bg-subtle: rgba(255, 255, 255, 0.06);
+      --bg-hover: rgba(255, 255, 255, 0.12);
+      --border: rgba(255, 255, 255, 0.12);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #ff9a00; /* Adobe Illustrator Orange */
+      --accent-hover: #ea580c;
+      --checker-1: #1e293b;
+      --checker-2: #0f172a;
+      --artboard-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+      --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    [data-theme="light"] {
+      --bg: #f1f5f9;
+      --bg-toolbar: rgba(255, 255, 255, 0.92);
+      --bg-subtle: rgba(0, 0, 0, 0.05);
+      --bg-hover: rgba(0, 0, 0, 0.09);
+      --border: rgba(0, 0, 0, 0.12);
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --accent: #ea580c;
+      --accent-hover: #c2410c;
+      --checker-1: #e2e8f0;
+      --checker-2: #ffffff;
+      --artboard-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-family);
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    /* Toolbar Header */
+    header {
+      height: 48px;
+      background: var(--bg-toolbar);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      z-index: 20;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      min-width: 0;
+    }
+
+    .ai-badge {
+      background: #ff9a00;
+      color: #1a0800;
+      font-weight: 900;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 5px;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+
+    .file-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text);
+      max-width: 260px;
+    }
+
+    .meta-tag {
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--bg-subtle);
+      padding: 2px 8px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .toolbar-center, .toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-tool {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text);
+      padding: 5px 9px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-tool:hover:not(:disabled) {
+      background: var(--bg-hover);
+      border-color: var(--border);
+    }
+
+    .btn-tool:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .btn-tool.active {
+      background: rgba(255, 154, 0, 0.15);
+      border-color: rgba(255, 154, 0, 0.4);
+      color: var(--accent);
+    }
+
+    .zoom-text {
+      font-size: 12px;
+      font-family: var(--font-mono);
+      min-width: 48px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    .artboard-indicator {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      padding: 0 4px;
+    }
+
+    /* Main Viewport */
+    #viewport-container {
+      flex: 1;
+      overflow: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      position: relative;
+    }
+
+    /* Checkerboard background for vector transparency */
+    .bg-checker {
+      background-image: linear-gradient(45deg, var(--checker-1) 25%, transparent 25%),
+                        linear-gradient(-45deg, var(--checker-1) 25%, transparent 25%),
+                        linear-gradient(45deg, transparent 75%, var(--checker-1) 75%),
+                        linear-gradient(-45deg, transparent 75%, var(--checker-1) 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+      background-color: var(--checker-2);
+    }
+
+    .bg-white {
+      background: #ffffff !important;
+    }
+
+    .bg-dark {
+      background: #0f172a !important;
+    }
+
+    #artboard-wrapper {
+      position: relative;
+      box-shadow: var(--artboard-shadow);
+      border-radius: 4px;
+      transform-origin: center center;
+      transition: transform 0.1s ease-out;
+      background: #ffffff;
+      line-height: 0;
+    }
+
+    #artboard-canvas {
+      display: block;
+      border-radius: 4px;
+    }
+
+    /* Loading Overlay */
+    #loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 30;
+      transition: opacity 0.25s ease;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255, 154, 0, 0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    #error-box {
+      display: none;
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      padding: 16px 24px;
+      border-radius: 12px;
+      max-width: 480px;
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+  </style>
+  <script src="pdf.min.js"></script>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="ai-badge">Ai</span>
+      <span class="file-title" id="fileTitle">Illustrator Artwork</span>
+      <span class="meta-tag" id="modeTag">Vector</span>
+    </div>
+
+    <!-- Artboard Navigation -->
+    <div class="toolbar-center">
+      <button class="btn-tool" id="btnPrevArtboard" title="Предыдущий артборд" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <span class="artboard-indicator" id="artboardIndicator">1 / 1</span>
+      <button class="btn-tool" id="btnNextArtboard" title="Следующий артборд" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+
+    <!-- Zoom & Canvas Controls -->
+    <div class="toolbar-right">
+      <button class="btn-tool" id="btnZoomOut" title="Уменьшить (Ctrl -)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <span class="zoom-text" id="zoomText">100%</span>
+      <button class="btn-tool" id="btnZoomIn" title="Увеличить (Ctrl +)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button class="btn-tool" id="btnFit" title="Вписать в окно">Вписать</button>
+      <button class="btn-tool active" id="btnChecker" title="Сетка прозрачности (Checkerboard)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V3M3 15h18M15 21V3"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div id="viewport-container" class="bg-checker">
+    <div id="artboard-wrapper">
+      <canvas id="artboard-canvas"></canvas>
+    </div>
+
+    <!-- Loading screen -->
+    <div id="loading-overlay">
+      <div class="spinner"></div>
+      <div class="loading-text" id="loadingText">Чтение векторного документа Adobe Illustrator...</div>
+      <div id="error-box"></div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      // Configure local pdf.js worker
+      if (typeof pdfjsLib !== 'undefined') {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
+      }
+
+      const fileTitle = document.getElementById('fileTitle');
+      const modeTag = document.getElementById('modeTag');
+      const artboardIndicator = document.getElementById('artboardIndicator');
+      const btnPrev = document.getElementById('btnPrevArtboard');
+      const btnNext = document.getElementById('btnNextArtboard');
+      const btnZoomIn = document.getElementById('btnZoomIn');
+      const btnZoomOut = document.getElementById('btnZoomOut');
+      const btnFit = document.getElementById('btnFit');
+      const btnChecker = document.getElementById('btnChecker');
+      const zoomText = document.getElementById('zoomText');
+      const viewport = document.getElementById('viewport-container');
+      const canvas = document.getElementById('artboard-canvas');
+      const loadingOverlay = document.getElementById('loading-overlay');
+      const loadingText = document.getElementById('loadingText');
+      const errorBox = document.getElementById('error-box');
+
+      let currentPdfDoc = null;
+      let currentArtboard = 1;
+      let totalArtboards = 1;
+      let currentScale = 1.0;
+      let isRendering = false;
+      let renderTask = null;
+      let checkerMode = true;
+
+      // Extract PDF stream from .ai buffer
+      function extractPdfFromAi(buffer) {
+        const u8 = new Uint8Array(buffer);
+        const len = u8.length;
+
+        // 1. Direct PDF check at offset 0: %PDF-
+        if (u8[0] === 0x25 && u8[1] === 0x50 && u8[2] === 0x44 && u8[3] === 0x46) {
+          return buffer;
+        }
+
+        // 2. Search for %PDF- signature within the first 1 MB
+        const searchLimit = Math.min(len - 5, 1024 * 1024);
+        for (let i = 0; i < searchLimit; i++) {
+          if (u8[i] === 0x25 && u8[i + 1] === 0x50 && u8[i + 2] === 0x44 && u8[i + 3] === 0x46 && u8[i + 4] === 0x2D) {
+            return buffer.slice(i);
+          }
+        }
+
+        return null;
+      }
+
+      // Fallback: parse PostScript thumbnail if present (AI8 and earlier)
+      function extractPsThumbnail(buffer) {
+        const decoder = new TextDecoder('latin1');
+        const headerText = decoder.decode(buffer.slice(0, Math.min(buffer.byteLength, 500000)));
+
+        const thumbMatch = headerText.match(/%%BeginThumbnail:\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/);
+        if (thumbMatch) {
+          const w = parseInt(thumbMatch[1], 10);
+          const h = parseInt(thumbMatch[2], 10);
+          const startIdx = headerText.indexOf(thumbMatch[0]);
+          const endIdx = headerText.indexOf('%%EndThumbnail', startIdx);
+          if (startIdx !== -1 && endIdx !== -1) {
+            const hexBlock = headerText.slice(startIdx + thumbMatch[0].length, endIdx);
+            const hexClean = hexBlock.replace(/[^0-9A-Fa-f]/g, '');
+            return { width: w, height: h, hex: hexClean };
+          }
+        }
+        return null;
+      }
+
+      async function renderArtboard() {
+        if (!currentPdfDoc || isRendering) return;
+        isRendering = true;
+
+        try {
+          if (renderTask) {
+            renderTask.cancel();
+          }
+
+          const page = await currentPdfDoc.getPage(currentArtboard);
+          const dpr = window.devicePixelRatio || 1;
+          const viewportInfo = page.getViewport({ scale: currentScale * dpr });
+
+          canvas.width = Math.floor(viewportInfo.width);
+          canvas.height = Math.floor(viewportInfo.height);
+          canvas.style.width = Math.floor(viewportInfo.width / dpr) + 'px';
+          canvas.style.height = Math.floor(viewportInfo.height / dpr) + 'px';
+
+          const ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          renderTask = page.render({
+            canvasContext: ctx,
+            viewport: viewportInfo,
+          });
+
+          await renderTask.promise;
+          zoomText.textContent = Math.round(currentScale * 100) + '%';
+          artboardIndicator.textContent = `${currentArtboard} / ${totalArtboards}`;
+          btnPrev.disabled = currentArtboard <= 1;
+          btnNext.disabled = currentArtboard >= totalArtboards;
+        } catch (err) {
+          if (err?.name !== 'RenderingCancelledException') {
+            console.error('Artboard render error:', err);
+          }
+        } finally {
+          isRendering = false;
+        }
+      }
+
+      async function fitToWindow() {
+        if (!currentPdfDoc) return;
+        const page = await currentPdfDoc.getPage(currentArtboard);
+        const baseViewport = page.getViewport({ scale: 1.0 });
+
+        const availW = viewport.clientWidth - 64;
+        const availH = viewport.clientHeight - 64;
+
+        const scaleW = availW / baseViewport.width;
+        const scaleH = availH / baseViewport.height;
+        currentScale = Math.min(scaleW, scaleH, 2.5);
+        if (currentScale < 0.2) currentScale = 0.2;
+
+        await renderArtboard();
+      }
+
+      async function loadAiBuffer(rawBuffer) {
+        try {
+          loadingOverlay.style.display = 'flex';
+          loadingText.textContent = 'Обработка векторных артбордов...';
+          errorBox.style.display = 'none';
+
+          const pdfBuffer = extractPdfFromAi(rawBuffer);
+
+          if (pdfBuffer) {
+            modeTag.textContent = 'PDF Vector 60 FPS';
+            const loadingTask = pdfjsLib.getDocument({
+              data: new Uint8Array(pdfBuffer),
+              cMapPacked: true,
+            });
+
+            currentPdfDoc = await loadingTask.promise;
+            totalArtboards = currentPdfDoc.numPages;
+            currentArtboard = 1;
+
+            await fitToWindow();
+            loadingOverlay.style.display = 'none';
+          } else {
+            // Check for PostScript Thumbnail
+            const thumb = extractPsThumbnail(rawBuffer);
+            if (thumb && thumb.hex.length >= thumb.width * thumb.height * 2) {
+              modeTag.textContent = 'PS Thumbnail';
+              canvas.width = thumb.width;
+              canvas.height = thumb.height;
+              canvas.style.width = thumb.width + 'px';
+              canvas.style.height = thumb.height + 'px';
+
+              const ctx = canvas.getContext('2d');
+              const imgData = ctx.createImageData(thumb.width, thumb.height);
+              for (let i = 0; i < thumb.width * thumb.height; i++) {
+                const val = parseInt(thumb.hex.substr(i * 2, 2), 16) || 255;
+                imgData.data[i * 4] = val;
+                imgData.data[i * 4 + 1] = val;
+                imgData.data[i * 4 + 2] = val;
+                imgData.data[i * 4 + 3] = 255;
+              }
+              ctx.putImageData(imgData, 0, 0);
+              loadingOverlay.style.display = 'none';
+            } else {
+              throw new Error('Файл Adobe Illustrator сохранён без PDF-совместимости (Create PDF Compatible File) и без встроенного превью.');
+            }
+          }
+        } catch (err) {
+          console.error('Failed to load .ai file:', err);
+          loadingText.style.display = 'none';
+          errorBox.textContent = err.message || 'Ошибка загрузки .ai файла';
+          errorBox.style.display = 'block';
+          window.parent.postMessage({
+            type: 'PEEKIT_ERROR',
+            payload: { message: err.message }
+          }, '*');
+        }
+      }
+
+      // UI Handlers
+      btnZoomIn.onclick = () => {
+        currentScale = Math.min(4.0, currentScale + 0.25);
+        renderArtboard();
+      };
+
+      btnZoomOut.onclick = () => {
+        currentScale = Math.max(0.2, currentScale - 0.25);
+        renderArtboard();
+      };
+
+      btnFit.onclick = () => fitToWindow();
+
+      btnPrev.onclick = () => {
+        if (currentArtboard > 1) {
+          currentArtboard--;
+          renderArtboard();
+        }
+      };
+
+      btnNext.onclick = () => {
+        if (currentArtboard < totalArtboards) {
+          currentArtboard++;
+          renderArtboard();
+        }
+      };
+
+      btnChecker.onclick = () => {
+        checkerMode = !checkerMode;
+        btnChecker.classList.toggle('active', checkerMode);
+        viewport.classList.toggle('bg-checker', checkerMode);
+        viewport.classList.toggle('bg-dark', !checkerMode);
+      };
+
+      // Mouse Wheel Zoom
+      viewport.addEventListener('wheel', (e) => {
+        if (e.ctrlKey) {
+          e.preventDefault();
+          if (e.deltaY < 0) {
+            currentScale = Math.min(4.0, currentScale + 0.15);
+          } else {
+            currentScale = Math.max(0.2, currentScale - 0.15);
+          }
+          renderArtboard();
+        }
+      }, { passive: false });
+
+      // Window Resize
+      window.addEventListener('resize', () => {
+        if (currentPdfDoc) fitToWindow();
+      });
+
+      // PeekIt IPC Handshake
+      window.addEventListener('message', (event) => {
+        const msg = event.data;
+        if (!msg || typeof msg !== 'object') return;
+
+        switch (msg.type) {
+          case 'PEEKIT_INIT': {
+            if (msg.payload?.fileName) {
+              fileTitle.textContent = msg.payload.fileName;
+            }
+            if (msg.payload?.theme) {
+              document.documentElement.setAttribute('data-theme', msg.payload.theme);
+            }
+            window.parent.postMessage({ type: 'PEEKIT_REQUEST_DATA' }, '*');
+            break;
+          }
+
+          case 'PEEKIT_DATA_RESPONSE': {
+            const rawData = msg.payload?.data !== undefined ? msg.payload.data : msg.payload;
+            if (rawData instanceof ArrayBuffer) {
+              loadAiBuffer(rawData);
+            } else if (ArrayBuffer.isView(rawData)) {
+              loadAiBuffer(rawData.buffer.slice(rawData.byteOffset, rawData.byteOffset + rawData.byteLength));
+            } else if (Array.isArray(rawData)) {
+              loadAiBuffer(new Uint8Array(rawData).buffer);
+            }
+            break;
+          }
+
+          case 'PEEKIT_THEME_CHANGED': {
+            if (msg.payload?.theme) {
+              document.documentElement.setAttribute('data-theme', msg.payload.theme);
+            }
+            break;
+          }
+        }
+      });
+
+      // Announce ready to host
+      const readyTimer = setInterval(() => {
+        window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
+      }, 100);
+      window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
+    })();
+  </script>
+</body>
+</html>

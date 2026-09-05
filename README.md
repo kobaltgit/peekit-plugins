@@ -32,6 +32,7 @@
 | **📄 Word Document Viewer** | `com.peekit.docx-viewer` | `.docx`, `.doc` | Просмотр Word-документов: печатный лист A4, таблицы, изображения, ночной режим |
 | **📊 Spreadsheet Viewer** | `com.peekit.sheet-viewer` | `.xlsx`, `.xls`, `.csv`, `.tsv`, `.ods` | Сетка Excel с формулами, вкладки листов, живой поиск и фильтрация ячеек |
 | **📽️ Presentation Viewer** | `com.peekit.slides-viewer` | `.pptx`, `.ppt` | Слайд-шоу PowerPoint, навигация стрелками клавиатуры, боковая лента миниатюр |
+| **🖌️ Adobe Illustrator Viewer** | `com.peekit.ai-viewer` | `.ai` | Векторный рендеринг Illustrator, артборды, масштабирование и шахматная подложка |
 
 ---
 
@@ -41,6 +42,7 @@
 peekit-plugins/
 ├── plugins/                     # Исходный код официальных плагинов
 │   ├── peekit-plugin-3d/        # 3D модели (STL, OBJ, GLTF, PLY)
+│   ├── peekit-plugin-ai/        # Adobe Illustrator (.ai)
 │   ├── peekit-plugin-docx/      # Word документы (DOCX, DOC)
 │   ├── peekit-plugin-font/      # Шрифты (TTF, OTF, WOFF, WOFF2)
 │   ├── peekit-plugin-sheet/     # Электронные таблицы (XLSX, XLS, CSV)

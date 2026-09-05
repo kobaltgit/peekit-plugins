@@ -28,6 +28,8 @@ class PluginCard extends StatelessWidget {
         return Icons.table_chart_rounded;
       case 'Presentations':
         return Icons.slideshow_rounded;
+      case 'Graphics':
+        return Icons.draw_rounded;
       default:
         return Icons.extension_rounded;
     }
@@ -45,6 +47,8 @@ class PluginCard extends StatelessWidget {
         return AppTheme.accentEmerald;
       case 'Presentations':
         return AppTheme.accentAmber;
+      case 'Graphics':
+        return const Color(0xFFFF9A00);
       default:
         return AppTheme.accentIndigo;
     }

@@ -66,6 +66,10 @@ class PluginItem {
       cat = 'Presentations';
       size = '67.5 KB';
       sha = 'a2d31c039f2e5a397858c49e1be281aa00a12e2c2fbf5dfd07ca2f458ca64147';
+    } else if (id.contains('ai')) {
+      cat = 'Graphics';
+      size = '521.7 KB';
+      sha = '50534ccda6ef471d9fa6012c1a523a3082abb507c0a56c37db7f7503e831789c';
     }
 
     return PluginItem(

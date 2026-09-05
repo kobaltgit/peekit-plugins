@@ -1,7 +1,7 @@
 {
   "$schema": "./plugin-schema.json",
   "version": 1,
-  "updated_at": "2026-09-05T22:35:29.329Z",
+  "updated_at": "2026-09-05T22:47:29.892Z",
   "plugins": [
     {
       "id": "com.peekit.3d-viewer",
@@ -21,7 +21,7 @@
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.3d-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.3d-viewer-1.0.0.pkit",
       "size_kb": "368.8",
-      "sha256": "a28239271ab1fba23910f215068dfc2533bf6879ea7bb6898dbe94cf9f4897dd",
+      "sha256": "856c0da2234985a3bea3c4fbcda346669a43afb529719b3a7cd7473c58ae6f56",
       "icon": "file",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     },
@@ -40,7 +40,7 @@
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.docx-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.docx-viewer-1.0.0.pkit",
       "size_kb": "100.0",
-      "sha256": "70da9c561b28c91a40a1f2be268a98620f20df0cc79d6f508a030ec59835bdc9",
+      "sha256": "0b5b9f15f58e3489cda487797df024c08ae3cd3f930d307713ee8b63ef2de66f",
       "icon": "file-text",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     },
@@ -61,7 +61,7 @@
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.font-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.font-viewer-1.0.0.pkit",
       "size_kb": "101.5",
-      "sha256": "8ea161fddaff10273e5b1120f5cb239faf685a69748c7f86133024ba6cb2f8af",
+      "sha256": "effca85de7bc42d3533af6346e61a4527ae2da17292e5eb6d62807e030671176",
       "icon": "file",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     },
@@ -83,7 +83,7 @@
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.sheet-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.sheet-viewer-1.0.0.pkit",
       "size_kb": "659.8",
-      "sha256": "3bd8ace4ceb8880290dbffa520f562b59b2be844d4fcf7ee8baa7d4a586c9038",
+      "sha256": "24b53d47ea7c47888d92430da13347f0df11afac7da34cac9a1fba9c67c79d5c",
       "icon": "table",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     },
@@ -102,8 +102,26 @@
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.slides-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.slides-viewer-1.0.0.pkit",
       "size_kb": "67.5",
-      "sha256": "39765295643914bcf385f6d7812e144a1c346f825266b064e187ad7798836f83",
+      "sha256": "afcb54e86064bb38f80ae8899cec4f684fc9373dc19cc6cbe4ec612ed8b9581d",
       "icon": "tv",
+      "homepage": "https://github.com/kobaltgit/peekit-plugins"
+    },
+    {
+      "id": "com.peekit.ai-viewer",
+      "name": "Adobe Illustrator Viewer",
+      "version": "1.0.0",
+      "author": "Kobalt",
+      "description": "High-fidelity vector previewer for Adobe Illustrator (.ai) files with multi-artboard navigation, zoom controls, and metadata inspection",
+      "extensions": [
+        ".ai"
+      ],
+      "entry": "index.html",
+      "min_peekit_version": "1.0.0",
+      "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.ai-viewer-1.0.0.pkit",
+      "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.ai-viewer-1.0.0.pkit",
+      "size_kb": "521.7",
+      "sha256": "0b0ef7db728de6a1f458a185def08d908abd9032eb2b0ff8037b53794396aee7",
+      "icon": "image",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     }
   ]

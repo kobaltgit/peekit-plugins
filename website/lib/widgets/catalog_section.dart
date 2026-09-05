@@ -28,6 +28,7 @@ class _CatalogSectionState extends State<CatalogSection> {
     'Spreadsheets',
     'Fonts',
     'Presentations',
+    'Graphics',
   ];
 
   @override
@@ -67,6 +68,8 @@ class _CatalogSectionState extends State<CatalogSection> {
         return WebsiteI18n.get('cat_fonts', widget.locale);
       case 'Presentations':
         return WebsiteI18n.get('cat_slides', widget.locale);
+      case 'Graphics':
+        return WebsiteI18n.get('cat_graphics', widget.locale);
       default:
         return cat;
     }
