@@ -1,0 +1,43 @@
+{
+  "$schema": "./plugin-schema.json",
+  "version": 1,
+  "updated_at": "2026-09-05T22:00:00Z",
+  "plugins": [
+    {
+      "id": "com.peekit.font-viewer",
+      "name": "Font Viewer",
+      "version": "1.0.0",
+      "author": "Kobalt",
+      "description": "Интерактивный предварительный просмотр шрифтов с кастомными панграммами и глифами",
+      "extensions": [
+        ".ttf",
+        ".otf",
+        ".woff",
+        ".woff2"
+      ],
+      "entry": "index.html",
+      "min_peekit_version": "1.0.0",
+      "download_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.font-viewer.zip",
+      "checksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "icon": "icon.svg",
+      "homepage": "https://github.com/kobaltgit/peekit-plugins"
+    },
+    {
+      "id": "com.peekit.stl-viewer",
+      "name": "3D STL/OBJ Viewer",
+      "version": "1.0.0",
+      "author": "Kobalt & Community",
+      "description": "Аппаратный 3D-просмотр STL и OBJ моделей на Three.js/WebGL с вращением и сеткой",
+      "extensions": [
+        ".stl",
+        ".obj"
+      ],
+      "entry": "index.html",
+      "min_peekit_version": "1.0.0",
+      "download_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.stl-viewer.zip",
+      "checksum_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "icon": "icon.svg",
+      "homepage": "https://github.com/kobaltgit/peekit-plugins"
+    }
+  ]
+}

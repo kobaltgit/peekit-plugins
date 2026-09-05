@@ -1,0 +1,24 @@
+{
+  "$schema": "../../plugin-schema.json",
+  "id": "com.peekit.font-viewer",
+  "name": "Font Viewer",
+  "version": "1.0.0",
+  "author": "Kobalt",
+  "description": "Интерактивный просмотр шрифтов TTF, OTF, WOFF, WOFF2 с настройкой кегля, панграммами и таблицей глифов",
+  "extensions": [
+    ".ttf",
+    ".otf",
+    ".woff",
+    ".woff2"
+  ],
+  "entry": "index.html",
+  "min_peekit_version": "1.0.0",
+  "permissions": [
+    "read_file"
+  ],
+  "icon": "icon.svg",
+  "default_dimensions": {
+    "width": 960,
+    "height": 680
+  }
+}

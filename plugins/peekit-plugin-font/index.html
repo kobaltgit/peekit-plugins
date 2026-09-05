@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PeekIt Font Viewer</title>
+  <style>
+    :root {
+      --bg-window: #0f172a;
+      --bg-card: #1e293b;
+      --bg-subtle: rgba(255, 255, 255, 0.05);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --border: rgba(255, 255, 255, 0.1);
+      --border-hover: rgba(255, 255, 255, 0.2);
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    [data-theme="light"] {
+      --bg-window: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-subtle: rgba(0, 0, 0, 0.04);
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --accent: #0284c7;
+      --border: rgba(0, 0, 0, 0.1);
+      --border-hover: rgba(0, 0, 0, 0.2);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: var(--font-family);
+      background: var(--bg-window);
+      color: var(--text-main);
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 16px 20px;
+      gap: 16px;
+    }
+
+    .header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
+
+    .font-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .font-name {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .font-badge {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      color: var(--accent);
+      font-family: monospace;
+    }
+
+    .controls-bar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .slider-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    input[type="range"] {
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+
+    .font-size-label {
+      min-width: 42px;
+      font-family: monospace;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .preview-scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding-right: 4px;
+    }
+
+    .preview-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+    }
+
+    .card-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      letter-spacing: 0.05em;
+    }
+
+    .custom-input {
+      width: 100%;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--text-main);
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.15s ease;
+      margin-bottom: 12px;
+    }
+
+    .custom-input:focus {
+      border-color: var(--accent);
+    }
+
+    .sample-text {
+      font-family: 'PreviewLoadedFont', sans-serif;
+      word-break: break-word;
+      line-height: 1.4;
+      transition: font-size 0.1s ease;
+    }
+
+    .glyphs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .glyph-box {
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: 'PreviewLoadedFont', sans-serif;
+      font-size: 18px;
+      transition: all 0.15s ease;
+    }
+
+    .glyph-box:hover {
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.15);
+      transform: scale(1.1);
+    }
+
+    .spinner-loader {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 12px;
+      color: var(--text-muted);
+    }
+
+    .spin {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: rotating 0.8s linear infinite;
+    }
+
+    @keyframes rotating {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="app">
+    <div class="spinner-loader" id="loader">
+      <div class="spin"></div>
+      <p>Загрузка шрифта...</p>
+    </div>
+
+    <div id="content" style="display: none; flex-direction: column; height: 100%; gap: 16px;">
+      <header class="header-bar">
+        <div class="font-info">
+          <span class="font-name" id="fontTitle">Font.ttf</span>
+          <span class="font-badge" id="fontSizeBadge">0 KB</span>
+        </div>
+        <div class="controls-bar">
+          <div class="slider-group">
+            <span>Кегль:</span>
+            <input type="range" id="sizeSlider" min="12" max="96" value="32">
+            <span class="font-size-label" id="sizeLabel">32px</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="preview-scroll-area">
+        <div class="preview-card">
+          <div class="card-label">Интерактивный ввод</div>
+          <input type="text" id="interactiveInput" class="custom-input" value="Съешь же ещё этих мягких французских булок, да выпей чаю." placeholder="Введите текст для проверки...">
+          <div class="sample-text" id="interactiveOutput" style="font-size: 32px;">
+            Съешь же ещё этих мягких французских булок, да выпей чаю.
+          </div>
+        </div>
+
+        <div class="preview-card">
+          <div class="card-label">Панграммы и алфавит</div>
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div>
+              <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Кириллица (Заглавные и строчные):</p>
+              <p class="sample-text scalable-sample" style="font-size: 22px;">АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ</p>
+              <p class="sample-text scalable-sample" style="font-size: 22px;">абвгдеёжзийклмнопрстуфхцчшщъыьэюя</p>
+            </div>
+            <div>
+              <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Латиница (English):</p>
+              <p class="sample-text scalable-sample" style="font-size: 22px;">The quick brown fox jumps over the lazy dog.</p>
+            </div>
+            <div>
+              <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Цифры и спецсимволы:</p>
+              <p class="sample-text scalable-sample" style="font-size: 22px;">0123456789 !@#$%^&*()_+-=[]{}|;:&apos;&quot;,&lt;.&gt;/?</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="preview-card">
+          <div class="card-label">Таблица глифов</div>
+          <div class="glyphs-grid" id="glyphsContainer"></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const isInsideHost = window.self !== window.top;
+    const loader = document.getElementById('loader');
+    const content = document.getElementById('content');
+    const fontTitle = document.getElementById('fontTitle');
+    const fontSizeBadge = document.getElementById('fontSizeBadge');
+    const sizeSlider = document.getElementById('sizeSlider');
+    const sizeLabel = document.getElementById('sizeLabel');
+    const interactiveInput = document.getElementById('interactiveInput');
+    const interactiveOutput = document.getElementById('interactiveOutput');
+    const glyphsContainer = document.getElementById('glyphsContainer');
+
+    // Наполнение глифов
+    const glyphChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя0123456789!@#$%^&*()";
+    for (const char of glyphChars) {
+      const box = document.createElement('div');
+      box.className = 'glyph-box';
+      box.textContent = char;
+      glyphsContainer.appendChild(box);
+    }
+
+    sizeSlider.addEventListener('input', (e) => {
+      const val = e.target.value + 'px';
+      sizeLabel.textContent = val;
+      interactiveOutput.style.fontSize = val;
+    });
+
+    interactiveInput.addEventListener('input', (e) => {
+      interactiveOutput.textContent = e.target.value || ' ';
+    });
+
+    async function applyFontData(arrayBuffer, fileName, fileSize) {
+      try {
+        fontTitle.textContent = fileName;
+        fontSizeBadge.textContent = (fileSize / 1024).toFixed(1) + ' KB';
+
+        const font = new FontFace('PreviewLoadedFont', arrayBuffer);
+        const loadedFont = await font.load();
+        document.fonts.add(loadedFont);
+
+        loader.style.display = 'none';
+        content.style.display = 'flex';
+      } catch (err) {
+        loader.innerHTML = `<p style="color: #ef4444;">Ошибка парсинга шрифта: ${err.message}</p>`;
+      }
+    }
+
+    window.addEventListener('message', async (e) => {
+      const data = e.data;
+      if (!data) return;
+
+      if (data.type === 'PEEKIT_INIT') {
+        const meta = data.payload;
+        document.documentElement.setAttribute('data-theme', meta.theme || 'dark');
+        // Запрашиваем бинарный буфер шрифта
+        window.parent.postMessage({ type: 'PEEKIT_REQUEST_DATA' }, '*');
+      } else if (data.type === 'PEEKIT_DATA_RESPONSE' && data.payload) {
+        const meta = data.meta || { fileName: fontTitle.textContent, fileSize: data.payload.byteLength };
+        await applyFontData(data.payload, meta.fileName, meta.fileSize);
+      } else if (data.type === 'PEEKIT_THEME_CHANGED') {
+        document.documentElement.setAttribute('data-theme', data.payload.theme);
+      }
+    });
+
+    // Оповещаем хост
+    if (isInsideHost) {
+      window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
+    } else {
+      // Браузерный демо-режим для автономного тестирования
+      setTimeout(() => {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        loader.style.display = 'none';
+        content.style.display = 'flex';
+        fontTitle.textContent = 'System Fallback Font.ttf';
+        fontSizeBadge.textContent = 'Demo Mode';
+      }, 400);
+    }
+  </script>
+</body>
+</html>

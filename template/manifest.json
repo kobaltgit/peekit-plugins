@@ -1,0 +1,21 @@
+{
+  "$schema": "../plugin-schema.json",
+  "id": "com.peekit.starter-template",
+  "name": "PeekIt Plugin Starter",
+  "version": "1.0.0",
+  "author": "Your Name",
+  "description": "Starter template for building PeekIt plugins",
+  "extensions": [
+    ".sample"
+  ],
+  "entry": "index.html",
+  "min_peekit_version": "1.0.0",
+  "permissions": [
+    "read_file"
+  ],
+  "icon": "icon.svg",
+  "default_dimensions": {
+    "width": 800,
+    "height": 600
+  }
+}

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PeekIt Plugin</title>
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+  <div id="app" class="plugin-container">
+    <div class="loader-state" id="loader">
+      <div class="spinner"></div>
+      <p>Загрузка данных плагина...</p>
+    </div>
+
+    <div class="content-state hidden" id="content">
+      <header class="plugin-header">
+        <h1 id="file-title">Файл не выбран</h1>
+        <span class="badge" id="file-meta">0 KB</span>
+      </header>
+      <main class="plugin-body" id="viewer">
+        <p>Здесь будет отображен ваш кастомный контент.</p>
+      </main>
+    </div>
+  </div>
+  <script type="module" src="./src/main.ts"></script>
+</body>
+</html>
