@@ -39,6 +39,7 @@ class PluginItem {
 
     final id = json['id'] as String? ?? '';
     final name = json['name'] as String? ?? '';
+    final version = json['version'] as String? ?? '1.0.0';
 
     // Infer category and packaging details based on ID
     String cat = 'Other';
@@ -77,13 +78,13 @@ class PluginItem {
       entry: json['entry'] as String? ?? 'index.html',
       minPeekitVersion: json['min_peekit_version'] as String? ?? '1.0.0',
       downloadUrl: json['download_url'] as String? ??
-          'https://github.com/kobaltgit/peekit-plugins/releases/latest/download/$id.pkit',
+          'https://kobaltgit.github.io/peekit-plugins/plugins/$id-$version.pkit',
       icon: json['icon'] as String? ?? 'box',
       homepage: json['homepage'] as String? ??
           'https://github.com/kobaltgit/peekit-plugins',
       category: cat,
-      sizeKb: size,
-      sha256: sha,
+      sizeKb: json['size_kb'] != null ? '${json['size_kb']} KB' : size,
+      sha256: (json['sha256'] as String?) ?? sha,
     );
   }
 }
