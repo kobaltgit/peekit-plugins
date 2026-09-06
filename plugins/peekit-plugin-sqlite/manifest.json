@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/kobaltgit/peekit-plugins/main/plugin-schema.json",
+  "id": "com.peekit.sqlite-viewer",
+  "name": "SQLite Database Viewer",
+  "version": "1.0.0",
+  "author": "Kobalt",
+  "description": "Fast offline database explorer for SQLite (.db, .sqlite, .sqlite3) with table browser, data pagination, search, schema inspector, and SQL query sandbox",
+  "extensions": [
+    ".db",
+    ".sqlite",
+    ".sqlite3",
+    ".db3",
+    ".s3db",
+    ".sl3"
+  ],
+  "entry": "index.html",
+  "min_peekit_version": "1.0.0",
+  "category": "Utilities",
+  "icon": "icon.svg",
+  "homepage": "https://github.com/kobaltgit/peekit-plugins",
+  "default_dimensions": {
+    "width": 900,
+    "height": 620
+  }
+}
