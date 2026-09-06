@@ -1,7 +1,7 @@
 {
   "$schema": "./plugin-schema.json",
   "version": 1,
-  "updated_at": "2026-09-06T20:44:56.325Z",
+  "updated_at": "2026-09-06T20:56:31.701Z",
   "plugins": [
     {
       "id": "com.peekit.3d-viewer",
@@ -211,8 +211,8 @@
       "min_peekit_version": "1.0.0",
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.dds-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.dds-viewer-1.0.0.pkit",
-      "size_kb": "10.5",
-      "sha256": "0e7e7c67e13832e6bf8eeb16836b42589464cf20a2371f7558fbe2ad09e9e78f",
+      "size_kb": "10.6",
+      "sha256": "410f709391d553587c458375c1fdff224e139be019c8aab92964b94345af2f2c",
       "icon": "icon.svg",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     }

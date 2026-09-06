@@ -384,21 +384,36 @@
           clearInterval(readyInterval);
           readyInterval = null;
         }
-        if (msg.theme && msg.theme.accentColor) {
-          document.documentElement.style.setProperty('--accent', msg.theme.accentColor);
+        const theme = msg.payload?.theme || msg.theme;
+        if (theme && theme.accentColor) {
+          document.documentElement.style.setProperty('--accent', theme.accentColor);
         }
         // Request binary data from PeekIt
-        window.parent.postMessage({ type: 'PEEKIT_REQUEST_DATA', responseType: 'binary' }, '*');
+        window.parent.postMessage({ type: 'PEEKIT_REQUEST_DATA' }, '*');
+        return;
+      }
+
+      if (msg.type === 'PEEKIT_THEME_CHANGED') {
+        const theme = msg.payload?.theme || msg.theme;
+        if (theme && theme.accentColor) {
+          document.documentElement.style.setProperty('--accent', theme.accentColor);
+        }
         return;
       }
 
       if (msg.type === 'PEEKIT_DATA_RESPONSE') {
-        if (msg.error) {
-          showError('Load Error', msg.error);
+        const error = msg.payload?.error || msg.error;
+        if (error) {
+          showError('Load Error', error);
+          return;
+        }
+        const rawData = msg.payload?.data !== undefined ? msg.payload.data : (msg.payload !== undefined ? msg.payload : msg.data);
+        if (!rawData) {
+          showError('Load Error', 'No data received from host');
           return;
         }
         try {
-          parseAndRenderDDS(msg.data);
+          parseAndRenderDDS(rawData);
         } catch (err) {
           showError('DDS Decoding Failed', err.message || String(err));
         }
@@ -435,23 +450,27 @@
 
     function parseAndRenderDDS(raw) {
       // Normalize raw data to Uint8Array & DataView
-      let uint8;
+      let uint8 = null;
       if (raw instanceof Uint8Array) {
         uint8 = raw;
+      } else if (raw instanceof ArrayBuffer) {
+        uint8 = new Uint8Array(raw);
       } else if (ArrayBuffer.isView(raw)) {
         uint8 = new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength);
-      } else if (raw instanceof ArrayBuffer) {
+      } else if (Array.isArray(raw)) {
         uint8 = new Uint8Array(raw);
       } else if (typeof raw === 'string') {
         const bin = atob(raw);
         uint8 = new Uint8Array(bin.length);
         for (let i = 0; i < bin.length; i++) uint8[i] = bin.charCodeAt(i);
-      } else {
-        uint8 = new Uint8Array(raw);
+      } else if (raw && typeof raw === 'object') {
+        const keys = Object.keys(raw);
+        uint8 = new Uint8Array(keys.length);
+        for (let i = 0; i < keys.length; i++) uint8[i] = raw[i];
       }
 
-      if (uint8.byteLength < 128) {
-        throw new Error('File too small to be a valid DDS texture');
+      if (!uint8 || uint8.byteLength < 128) {
+        throw new Error('File data missing or too small to be a valid DDS texture (' + (uint8 ? uint8.byteLength : 0) + ' bytes)');
       }
 
       const buf = uint8.buffer.slice(uint8.byteOffset, uint8.byteOffset + uint8.byteLength);
