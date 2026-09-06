@@ -1,7 +1,7 @@
 {
   "$schema": "./plugin-schema.json",
   "version": 1,
-  "updated_at": "2026-09-06T21:23:49.679Z",
+  "updated_at": "2026-09-06T21:30:13.242Z",
   "plugins": [
     {
       "id": "com.peekit.3d-viewer",
@@ -234,8 +234,8 @@
       "min_peekit_version": "1.0.0",
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.sqlite-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.sqlite-viewer-1.0.0.pkit",
-      "size_kb": "452.6",
-      "sha256": "480b952dd6b245945b4fe70644b090b89fcd074960d5f74499f793ebfa2bf8d5",
+      "size_kb": "894.9",
+      "sha256": "84d3f5d3aab90013635a03319f8e33ebf4f16b4e6e5151725af1dd34b367bb4a",
       "icon": "icon.svg",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     }
