@@ -519,6 +519,10 @@
       let checkerPattern = null;
       let lastThemeIsDark = true;
 
+      let initReceived = false;
+      let lastLoadedPath = null;
+      let isRequestPending = false;
+
       function createCheckerPattern(isLight) {
         const pc = document.createElement('canvas');
         pc.width = 24;
@@ -539,7 +543,6 @@
         const vh = viewport.clientHeight;
         if (!vw || !vh) return;
 
-        // Ensure canvas pixel dimensions match viewport
         if (viewportCanvas.width !== vw || viewportCanvas.height !== vh) {
           viewportCanvas.width = vw;
           viewportCanvas.height = vh;
@@ -548,13 +551,11 @@
         const ctx = viewportCanvas.getContext('2d');
         ctx.clearRect(0, 0, vw, vh);
 
-        // Compute destination rectangle
         const dw = imgWidth * scale;
         const dh = imgHeight * scale;
         const dx = (vw - dw) / 2 + panX;
         const dy = (vh - dh) / 2 + panY;
 
-        // Draw transparency checkerboard within image bounds
         const isLight = document.body.classList.contains('light');
         if (!checkerPattern || isLight === lastThemeIsDark) {
           lastThemeIsDark = !isLight;
@@ -564,7 +565,6 @@
         ctx.fillStyle = checkerPattern;
         ctx.fillRect(dx, dy, dw, dh);
 
-        // Draw drop shadow and composite image
         ctx.save();
         ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
         ctx.shadowBlur = 24;
@@ -572,7 +572,6 @@
         ctx.drawImage(sourceCanvas, dx, dy, dw, dh);
         ctx.restore();
 
-        // Subtle border around image
         ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.12)';
         ctx.lineWidth = 1;
         ctx.strokeRect(dx, dy, dw, dh);
@@ -746,12 +745,20 @@
             throw new Error('Библиотека ag-psd не инициализирована');
           }
 
-          // Read PSD with memory optimizations
+          // Release previous source canvas from memory
+          if (sourceCanvas) {
+            sourceCanvas.width = 1;
+            sourceCanvas.height = 1;
+            sourceCanvas = null;
+          }
+
+          // Read PSD with strict memory optimizations
           let psd = window.agPsd.readPsd(buffer, {
             skipLayerImageData: true,
             skipThumbnail: true,
             skipLinkedFilesData: true
           });
+          buffer = null; // Release input buffer reference immediately
 
           if (!psd) {
             throw new Error('Не удалось прочитать структуру PSD');
@@ -785,25 +792,27 @@
           }
           sourceCanvas = psd.canvas;
 
-          // Release heavy references so GC can collect buffer and AST
+          // Nullify heavy AST references so GC can collect buffer
           psd = null;
-          buffer = null;
 
           loader.classList.add('hidden');
           fitToWindow();
-
-          // Signal ready
-          window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
         } catch (err) {
           console.error('[PSD Viewer Error]', err);
           showError(err.message || 'Ошибка парсинга PSD');
         }
       }
 
-      // Heartbeat PEEKIT_READY
-      let readyTimer = setInterval(() => {
+      // Send PEEKIT_READY with strict debouncing (max 3 attempts, 300ms apart)
+      let readyAttempts = 0;
+      const readyInterval = setInterval(() => {
+        if (initReceived || readyAttempts >= 3) {
+          clearInterval(readyInterval);
+          return;
+        }
+        readyAttempts++;
         window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
-      }, 50);
+      }, 300);
       window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
 
       // PeekIt IPC Handshake
@@ -813,10 +822,9 @@
 
         switch (msg.type) {
           case 'PEEKIT_INIT': {
-            if (readyTimer) {
-              clearInterval(readyTimer);
-              readyTimer = null;
-            }
+            initReceived = true;
+            clearInterval(readyInterval);
+
             const payload = msg.payload || msg;
             if (payload.theme) {
               const isLight = payload.theme === 'light' || (typeof payload.theme === 'object' && payload.theme.isDark === false);
@@ -824,7 +832,19 @@
               checkerPattern = null;
               scheduleRender();
             }
-            // Request binary file data
+
+            // Deduplicate data requests for the same file
+            const currentPath = payload.filePath || payload.fileName;
+            if (currentPath && currentPath === lastLoadedPath && (isRequestPending || sourceCanvas)) {
+              return;
+            }
+            lastLoadedPath = currentPath;
+            isRequestPending = true;
+
+            // Reset UI for new file
+            loader.classList.remove('hidden');
+            errorBox.classList.remove('show');
+
             window.parent.postMessage({ type: 'PEEKIT_REQUEST_DATA' }, '*');
             break;
           }
@@ -841,6 +861,7 @@
           }
 
           case 'PEEKIT_DATA_RESPONSE': {
+            isRequestPending = false;
             const rawData = msg.payload?.data !== undefined ? msg.payload.data : (msg.payload !== undefined ? msg.payload : msg.data);
             const error = msg.payload?.error || msg.error;
 
@@ -860,7 +881,9 @@
             } else if (ArrayBuffer.isView(rawData)) {
               buffer = rawData.buffer.slice(rawData.byteOffset, rawData.byteOffset + rawData.byteLength);
             } else if (Array.isArray(rawData)) {
-              buffer = new Uint8Array(rawData).buffer;
+              const u8 = new Uint8Array(rawData);
+              rawData.length = 0; // Release huge number array from memory immediately
+              buffer = u8.buffer;
             } else if (typeof rawData === 'string') {
               const bin = atob(rawData);
               const bytes = new Uint8Array(bin.length);

@@ -1,7 +1,7 @@
 {
   "$schema": "./plugin-schema.json",
   "version": 1,
-  "updated_at": "2026-09-06T02:20:27.004Z",
+  "updated_at": "2026-09-06T02:30:23.282Z",
   "plugins": [
     {
       "id": "com.peekit.3d-viewer",
@@ -21,7 +21,7 @@
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.3d-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.3d-viewer-1.0.0.pkit",
       "size_kb": "368.8",
-      "sha256": "c5ee146391e004c8db69f9d029d5b6c6432ce0de37691b12f224978f7f5a80b0",
+      "sha256": "34bec1308a7afaf3af95e2cc24503b5ffd71d912adb769d190c9b27b58cd521a",
       "icon": "file",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     },
@@ -40,7 +40,7 @@
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.docx-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.docx-viewer-1.0.0.pkit",
       "size_kb": "100.0",
-      "sha256": "2a6795f96285c495886065e8b394f25aae9f2062cade4322a00238b55735dd89",
+      "sha256": "d54d1190b76f15de69c492e4f6e4da71bc95189f0e8da05727d4221647a8961a",
       "icon": "file-text",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     },
@@ -61,7 +61,7 @@
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.font-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.font-viewer-1.0.0.pkit",
       "size_kb": "101.5",
-      "sha256": "220582d5918b0821dfcad18872871677407f963795cdd4f420a913466f448991",
+      "sha256": "45db8b70ce1f50667b264d5a70abc6bb47e79b1d053803bc0bdafb9b913597c6",
       "icon": "file",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     },
@@ -83,7 +83,7 @@
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.sheet-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.sheet-viewer-1.0.0.pkit",
       "size_kb": "659.8",
-      "sha256": "c1f3bb7b59f457255b64bc04ebdb6868cda0a631494f00bec662362445540d6b",
+      "sha256": "23ea414160e80fb075d87695c25b2e45f3ef03fef90577c74d3d7fb8b951ab14",
       "icon": "table",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     },
@@ -102,7 +102,7 @@
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.slides-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.slides-viewer-1.0.0.pkit",
       "size_kb": "67.5",
-      "sha256": "3b887d199c4db7a7b166dfab420c51c443118e78b2496a4f3117d2bf21245261",
+      "sha256": "d69e601e999e166eade65141f5abd1f4dc4b8e9fc13913a17758df90cfdac9ed",
       "icon": "tv",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     },
@@ -120,7 +120,7 @@
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.ai-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.ai-viewer-1.0.0.pkit",
       "size_kb": "523.3",
-      "sha256": "f23df7a681704a437786d417f6355c8c8cce1e3be114bb6da6e5a731ad99c69f",
+      "sha256": "78fa4ce4cada94b2e381eb9d6a1142d8abb0ac169a0d557c0f135dc613eee3b9",
       "icon": "image",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     },
@@ -137,8 +137,8 @@
       "min_peekit_version": "1.0.0",
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.psd-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.psd-viewer-1.0.0.pkit",
-      "size_kb": "101.0",
-      "sha256": "23105f26f1b6698bc67e859c4ae041a42a08d2210f93cc69cf73fd70ed61f7b7",
+      "size_kb": "101.2",
+      "sha256": "827895405dfef415e2e9663e949536bb6ef142d94ce609aecd6c6c8214b3f4a8",
       "icon": "image",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     }
