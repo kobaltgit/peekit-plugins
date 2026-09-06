@@ -24,8 +24,6 @@
       --btn-bg: rgba(255, 255, 255, 0.06);
       --btn-hover: rgba(255, 255, 255, 0.12);
       --btn-active: rgba(49, 168, 255, 0.25);
-      --check-bg: #1e1e24;
-      --check-pat: #292932;
       --item-hover: rgba(255, 255, 255, 0.05);
       --shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
     }
@@ -41,8 +39,6 @@
       --btn-bg: rgba(0, 0, 0, 0.05);
       --btn-hover: rgba(0, 0, 0, 0.09);
       --btn-active: rgba(0, 118, 214, 0.18);
-      --check-bg: #ffffff;
-      --check-pat: #e6e6ec;
       --item-hover: rgba(0, 0, 0, 0.04);
       --shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
     }
@@ -175,37 +171,19 @@
       position: relative;
       overflow: hidden;
       cursor: grab;
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
 
     #viewport.dragging {
       cursor: grabbing;
     }
 
-    /* Centered Canvas Container with Transparency Grid */
-    #canvas-wrap {
-      position: relative;
-      transform-origin: center center;
-      will-change: transform;
-      box-shadow: 0 14px 48px rgba(0, 0, 0, 0.6);
-      border-radius: 3px;
-      line-height: 0;
-      background-color: var(--check-bg);
-      background-image:
-        linear-gradient(45deg, var(--check-pat) 25%, transparent 25%),
-        linear-gradient(-45deg, var(--check-pat) 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, var(--check-pat) 75%),
-        linear-gradient(-45deg, transparent 75%, var(--check-pat) 75%);
-      background-size: 20px 20px;
-      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-    }
-
-    #main-canvas {
+    #viewport-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       display: block;
-      border-radius: 3px;
-      image-rendering: auto;
     }
 
     /* Layers Drawer */
@@ -432,11 +410,9 @@
       </div>
     </div>
 
-    <!-- Viewport -->
+    <!-- High Performance Virtual Viewport -->
     <div id="viewport">
-      <div id="canvas-wrap">
-        <canvas id="main-canvas"></canvas>
-      </div>
+      <canvas id="viewport-canvas"></canvas>
     </div>
 
     <!-- Layers Side Drawer -->
@@ -510,7 +486,7 @@
       };
 
       const viewport = document.getElementById('viewport');
-      const canvasWrap = document.getElementById('canvas-wrap');
+      const viewportCanvas = document.getElementById('viewport-canvas');
       const loader = document.getElementById('loader');
       const errorBox = document.getElementById('error-box');
       const errorMsg = document.getElementById('error-msg');
@@ -528,7 +504,7 @@
       const drawerLayerCount = document.getElementById('drawer-layer-count');
       const layersList = document.getElementById('layers-list');
 
-      let currentPsd = null;
+      let sourceCanvas = null;
       let scale = 1.0;
       let panX = 0;
       let panY = 0;
@@ -539,10 +515,75 @@
       let initialPanY = 0;
       let imgWidth = 0;
       let imgHeight = 0;
+      let animFrameId = null;
+      let checkerPattern = null;
+      let lastThemeIsDark = true;
 
-      function updateTransform() {
-        canvasWrap.style.transform = 'translate(' + panX + 'px, ' + panY + 'px) scale(' + scale + ')';
-        zoomVal.textContent = Math.round(scale * 100) + '%';
+      function createCheckerPattern(isLight) {
+        const pc = document.createElement('canvas');
+        pc.width = 24;
+        pc.height = 24;
+        const pctx = pc.getContext('2d');
+        pctx.fillStyle = isLight ? '#ffffff' : '#1e1e24';
+        pctx.fillRect(0, 0, 24, 24);
+        pctx.fillStyle = isLight ? '#e6e6ec' : '#292932';
+        pctx.fillRect(0, 0, 12, 12);
+        pctx.fillRect(12, 12, 12, 12);
+        const ctx = viewportCanvas.getContext('2d');
+        checkerPattern = ctx.createPattern(pc, 'repeat');
+      }
+
+      function renderFrame() {
+        if (!sourceCanvas) return;
+        const vw = viewport.clientWidth;
+        const vh = viewport.clientHeight;
+        if (!vw || !vh) return;
+
+        // Ensure canvas pixel dimensions match viewport
+        if (viewportCanvas.width !== vw || viewportCanvas.height !== vh) {
+          viewportCanvas.width = vw;
+          viewportCanvas.height = vh;
+        }
+
+        const ctx = viewportCanvas.getContext('2d');
+        ctx.clearRect(0, 0, vw, vh);
+
+        // Compute destination rectangle
+        const dw = imgWidth * scale;
+        const dh = imgHeight * scale;
+        const dx = (vw - dw) / 2 + panX;
+        const dy = (vh - dh) / 2 + panY;
+
+        // Draw transparency checkerboard within image bounds
+        const isLight = document.body.classList.contains('light');
+        if (!checkerPattern || isLight === lastThemeIsDark) {
+          lastThemeIsDark = !isLight;
+          createCheckerPattern(isLight);
+        }
+
+        ctx.fillStyle = checkerPattern;
+        ctx.fillRect(dx, dy, dw, dh);
+
+        // Draw drop shadow and composite image
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 24;
+        ctx.shadowOffsetY = 8;
+        ctx.drawImage(sourceCanvas, dx, dy, dw, dh);
+        ctx.restore();
+
+        // Subtle border around image
+        ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.12)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(dx, dy, dw, dh);
+      }
+
+      function scheduleRender() {
+        if (animFrameId) return;
+        animFrameId = requestAnimationFrame(() => {
+          animFrameId = null;
+          renderFrame();
+        });
       }
 
       function fitToWindow() {
@@ -553,18 +594,17 @@
         const vh = viewport.clientHeight - padY;
         if (vw <= 0 || vh <= 0) return;
 
-        const scaleX = vw / imgWidth;
-        const scaleY = vh / imgHeight;
-        scale = Math.min(scaleX, scaleY, 1.0); // Fit smoothly, don't upscale by default
-
+        scale = Math.min(vw / imgWidth, vh / imgHeight, 1.0);
         panX = 0;
-        panY = 16; // Slight downward offset to clear the top toolbar
-        updateTransform();
+        panY = 16;
+        zoomVal.textContent = Math.round(scale * 100) + '%';
+        scheduleRender();
       }
 
       function setZoom(newScale) {
         scale = Math.max(0.02, Math.min(newScale, 20.0));
-        updateTransform();
+        zoomVal.textContent = Math.round(scale * 100) + '%';
+        scheduleRender();
       }
 
       btnZoomIn.addEventListener('click', () => setZoom(scale * 1.25));
@@ -574,7 +614,8 @@
         scale = 1.0;
         panX = 0;
         panY = 16;
-        updateTransform();
+        zoomVal.textContent = '100%';
+        scheduleRender();
       });
 
       // Mouse drag pan
@@ -592,7 +633,7 @@
         if (!isDragging) return;
         panX = initialPanX + (e.clientX - startX);
         panY = initialPanY + (e.clientY - startY);
-        updateTransform();
+        scheduleRender();
       });
 
       window.addEventListener('mouseup', () => {
@@ -600,11 +641,22 @@
         viewport.classList.remove('dragging');
       });
 
-      // Mouse wheel zoom
+      // Mouse wheel zoom towards cursor
       viewport.addEventListener('wheel', (e) => {
         e.preventDefault();
         const factor = e.deltaY < 0 ? 1.15 : (1 / 1.15);
-        setZoom(scale * factor);
+        const newScale = Math.max(0.02, Math.min(scale * factor, 20.0));
+
+        const rect = viewport.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left - viewport.clientWidth / 2;
+        const mouseY = e.clientY - rect.top - viewport.clientHeight / 2;
+
+        panX = mouseX - (mouseX - panX) * (newScale / scale);
+        panY = mouseY - (mouseY - panY) * (newScale / scale);
+        scale = newScale;
+
+        zoomVal.textContent = Math.round(scale * 100) + '%';
+        scheduleRender();
       }, { passive: false });
 
       // Layers Drawer Toggle
@@ -630,6 +682,18 @@
         return count;
       }
 
+      function extractLayerSummary(layers) {
+        if (!layers || !layers.length) return [];
+        return layers.map(l => ({
+          name: l.name || 'Слой',
+          hidden: !!l.hidden,
+          opacity: l.opacity !== undefined ? l.opacity : 1,
+          blendMode: l.blendMode || 'normal',
+          isText: !!l.text,
+          children: l.children ? extractLayerSummary(l.children) : []
+        }));
+      }
+
       function renderLayersTree(layers, container, level = 0) {
         if (!layers || !layers.length) return;
 
@@ -651,7 +715,7 @@
           const typeIcon = '<div class="layer-icon">' +
             (isGroup
               ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>'
-              : layer.text
+              : layer.isText
                 ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>'
                 : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>') +
             '</div>';
@@ -682,47 +746,48 @@
             throw new Error('Библиотека ag-psd не инициализирована');
           }
 
-          currentPsd = window.agPsd.readPsd(buffer, {
+          // Read PSD with memory optimizations
+          let psd = window.agPsd.readPsd(buffer, {
             skipLayerImageData: true,
-            skipThumbnail: true
+            skipThumbnail: true,
+            skipLinkedFilesData: true
           });
 
-          if (!currentPsd) {
+          if (!psd) {
             throw new Error('Не удалось прочитать структуру PSD');
           }
 
-          imgWidth = currentPsd.width;
-          imgHeight = currentPsd.height;
+          imgWidth = psd.width;
+          imgHeight = psd.height;
 
           // Info bar
           metaRes.textContent = imgWidth + ' × ' + imgHeight;
-          const modeName = COLOR_MODES[currentPsd.colorMode] || 'RGB';
-          const depth = currentPsd.bitsPerChannel ? currentPsd.bitsPerChannel + '-bit' : '8-bit';
+          const modeName = COLOR_MODES[psd.colorMode] || 'RGB';
+          const depth = psd.bitsPerChannel ? psd.bitsPerChannel + '-bit' : '8-bit';
           metaMode.textContent = modeName + ' ' + depth;
 
-          const totalLayers = countLayers(currentPsd.children);
+          const totalLayers = countLayers(psd.children);
           metaLayers.textContent = totalLayers + ' ' + (totalLayers === 1 ? 'слой' : (totalLayers < 5 ? 'слоя' : 'слоёв'));
           drawerLayerCount.textContent = totalLayers;
 
-          // Render layers drawer
+          // Extract lightweight layers metadata and discard heavy AST
+          const layerSummary = extractLayerSummary(psd.children);
           layersList.innerHTML = '';
-          if (currentPsd.children && currentPsd.children.length) {
-            renderLayersTree(currentPsd.children, layersList);
+          if (layerSummary.length) {
+            renderLayersTree(layerSummary, layersList);
           } else {
             layersList.innerHTML = '<div style="padding: 12px; color: var(--text-muted); font-size: 12px; text-align: center;">Слои отсутствуют (объединенное изображение)</div>';
           }
 
-          // Main canvas
-          canvasWrap.style.width = imgWidth + 'px';
-          canvasWrap.style.height = imgHeight + 'px';
-          canvasWrap.innerHTML = '';
-
-          if (currentPsd.canvas) {
-            currentPsd.canvas.id = 'main-canvas';
-            canvasWrap.appendChild(currentPsd.canvas);
-          } else {
+          // Composite canvas
+          if (!psd.canvas) {
             throw new Error('В файле отсутствует композитное изображение');
           }
+          sourceCanvas = psd.canvas;
+
+          // Release heavy references so GC can collect buffer and AST
+          psd = null;
+          buffer = null;
 
           loader.classList.add('hidden');
           fitToWindow();
@@ -756,6 +821,8 @@
             if (payload.theme) {
               const isLight = payload.theme === 'light' || (typeof payload.theme === 'object' && payload.theme.isDark === false);
               document.body.classList.toggle('light', isLight);
+              checkerPattern = null;
+              scheduleRender();
             }
             // Request binary file data
             window.parent.postMessage({ type: 'PEEKIT_REQUEST_DATA' }, '*');
@@ -767,6 +834,8 @@
             if (theme) {
               const isLight = theme === 'light' || (typeof theme === 'object' && theme.isDark === false);
               document.body.classList.toggle('light', isLight);
+              checkerPattern = null;
+              scheduleRender();
             }
             break;
           }
