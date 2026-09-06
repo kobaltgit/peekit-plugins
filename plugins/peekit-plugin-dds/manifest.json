@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/kobaltgit/peekit-plugins/main/plugin-schema.json",
+  "id": "com.peekit.dds-viewer",
+  "name": "DDS Texture Viewer",
+  "version": "1.0.0",
+  "author": "Kobalt",
+  "description": "Fast offline previewer for DirectDraw Surface (.dds) textures with DXT1/3/5, BC4/5, uncompressed formats, mipmap explorer, and channel inspector",
+  "extensions": [
+    ".dds"
+  ],
+  "entry": "index.html",
+  "min_peekit_version": "1.0.0",
+  "category": "Graphics",
+  "icon": "icon.svg",
+  "homepage": "https://github.com/kobaltgit/peekit-plugins",
+  "default_dimensions": {
+    "width": 840,
+    "height": 600
+  }
+}

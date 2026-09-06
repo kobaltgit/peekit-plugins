@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DDS Texture Viewer</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --bg-surface: #1e293b;
+      --bg-surface-hover: #334155;
+      --border-color: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --accent-glow: rgba(56, 189, 248, 0.25);
+      --badge-bg: rgba(56, 189, 248, 0.12);
+      --badge-border: rgba(56, 189, 248, 0.3);
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13px;
+    }
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* --- Toolbar --- */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 14px;
+      background: rgba(30, 41, 59, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      z-index: 10;
+      flex-shrink: 0;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+    }
+
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      background: var(--badge-bg);
+      border: 1px solid var(--badge-border);
+      color: var(--accent);
+      white-space: nowrap;
+    }
+
+    .badge-subtle {
+      background: rgba(148, 163, 184, 0.1);
+      border-color: rgba(148, 163, 184, 0.2);
+      color: var(--text-muted);
+    }
+
+    .btn-group {
+      display: flex;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 2px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      outline: none;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      color: var(--text-main);
+      background: var(--bg-surface-hover);
+    }
+
+    .btn.active {
+      color: #0f172a;
+      background: var(--accent);
+      font-weight: 600;
+      box-shadow: 0 1px 4px var(--accent-glow);
+    }
+
+    .btn-icon {
+      padding: 4px 8px;
+    }
+
+    select.select-input {
+      background: rgba(15, 23, 42, 0.8);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 500;
+      outline: none;
+      cursor: pointer;
+    }
+
+    select.select-input:hover {
+      border-color: var(--accent);
+    }
+
+    /* --- Viewport --- */
+    .viewport {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+    }
+
+    .viewport:active {
+      cursor: grabbing;
+    }
+
+    /* Checkered texture background */
+    .canvas-container {
+      position: absolute;
+      transform-origin: 0 0;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background-size: 16px 16px;
+      background-position: 0 0, 8px 8px;
+    }
+
+    .bg-checkered {
+      background-image: 
+        linear-gradient(45deg, #1e293b 25%, transparent 25%, transparent 75%, #1e293b 75%, #1e293b),
+        linear-gradient(45deg, #1e293b 25%, #0f172a 25%, #0f172a 75%, #1e293b 75%, #1e293b);
+    }
+
+    .bg-dark {
+      background: #090d16;
+    }
+
+    .bg-light {
+      background: #e2e8f0;
+    }
+
+    canvas#ddsCanvas {
+      display: block;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+      image-rendering: pixelated;
+    }
+
+    /* --- Footer / Status Bar --- */
+    .statusbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 14px;
+      background: rgba(15, 23, 42, 0.9);
+      border-top: 1px solid var(--border-color);
+      font-size: 11px;
+      color: var(--text-muted);
+      z-index: 10;
+      flex-shrink: 0;
+    }
+
+    .statusbar-left, .statusbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .color-preview-box {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 4px;
+    }
+
+    /* --- Overlay / States --- */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: var(--bg-dark);
+      z-index: 20;
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid rgba(56, 189, 248, 0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .error-card {
+      max-width: 480px;
+      padding: 20px;
+      background: rgba(30, 41, 59, 0.9);
+      border: 1px solid var(--danger);
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .error-title {
+      color: var(--danger);
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+
+    .error-desc {
+      color: var(--text-muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Top Controls Toolbar -->
+    <header class="toolbar">
+      <div class="toolbar-group">
+        <span id="formatBadge" class="badge">DDS</span>
+        <span id="dimBadge" class="badge badge-subtle">--- &times; ---</span>
+        <span id="sizeBadge" class="badge badge-subtle">0 KB</span>
+      </div>
+
+      <!-- Channel Switcher -->
+      <div class="toolbar-group">
+        <div class="btn-group" role="group" aria-label="Color Channels">
+          <button type="button" tabindex="-1" class="btn active" data-channel="rgba" title="RGBA Full Color">RGBA</button>
+          <button type="button" tabindex="-1" class="btn" data-channel="rgb" title="RGB Only (Ignore Alpha)">RGB</button>
+          <button type="button" tabindex="-1" class="btn" data-channel="a" title="Alpha Channel">Alpha</button>
+          <button type="button" tabindex="-1" class="btn" data-channel="r" title="Red Channel">R</button>
+          <button type="button" tabindex="-1" class="btn" data-channel="g" title="Green Channel">G</button>
+          <button type="button" tabindex="-1" class="btn" data-channel="b" title="Blue Channel">B</button>
+        </div>
+      </div>
+
+      <!-- Mipmap & Zoom & Background controls -->
+      <div class="toolbar-group">
+        <label for="mipSelect" style="color: var(--text-muted); font-size: 11px;">Mip:</label>
+        <select id="mipSelect" class="select-input" tabindex="-1">
+          <option value="0">0 (Full)</option>
+        </select>
+
+        <div class="btn-group">
+          <button type="button" tabindex="-1" id="btnFit" class="btn" title="Fit to Window">Fit</button>
+          <button type="button" tabindex="-1" id="btnOriginal" class="btn" title="100% Zoom">1:1</button>
+          <button type="button" tabindex="-1" id="btnZoomOut" class="btn btn-icon" title="Zoom Out">&minus;</button>
+          <button type="button" tabindex="-1" id="btnZoomIn" class="btn btn-icon" title="Zoom In">&plus;</button>
+        </div>
+
+        <button type="button" tabindex="-1" id="btnBg" class="btn" title="Toggle Background (Checkered / Dark / Light)">&#9638;</button>
+      </div>
+    </header>
+
+    <!-- Main Viewport with Pan & Zoom -->
+    <main class="viewport" id="viewport">
+      <div class="canvas-container bg-checkered" id="canvasContainer">
+        <canvas id="ddsCanvas"></canvas>
+      </div>
+
+      <!-- Loading / Error Overlay -->
+      <div id="overlay" class="overlay">
+        <div class="spinner"></div>
+        <div style="color: var(--text-muted); font-size: 12px;">Loading DDS texture...</div>
+      </div>
+    </main>
+
+    <!-- Footer Status Bar -->
+    <footer class="statusbar">
+      <div class="statusbar-left">
+        <span id="texelInfo">Hover over texture to inspect texels</span>
+      </div>
+      <div class="statusbar-right">
+        <span id="zoomLevel">100%</span>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // --- State Management ---
+    let readyInterval = null;
+    let ddsData = null; // Parsed metadata & decoded mip levels
+    let currentMip = 0;
+    let currentChannel = 'rgba';
+    let currentBg = 'checkered'; // 'checkered' | 'dark' | 'light'
+
+    // Pan & Zoom State
+    let zoom = 1;
+    let panX = 0;
+    let panY = 0;
+    let isDragging = false;
+    let startDragX = 0;
+    let startDragY = 0;
+
+    const viewport = document.getElementById('viewport');
+    const container = document.getElementById('canvasContainer');
+    const canvas = document.getElementById('ddsCanvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const overlay = document.getElementById('overlay');
+
+    // UI Badges & Selectors
+    const formatBadge = document.getElementById('formatBadge');
+    const dimBadge = document.getElementById('dimBadge');
+    const sizeBadge = document.getElementById('sizeBadge');
+    const mipSelect = document.getElementById('mipSelect');
+    const texelInfo = document.getElementById('texelInfo');
+    const zoomLevelText = document.getElementById('zoomLevel');
+
+    // --- Prevent Focus Loss / Window Blur On Any Click ---
+    document.addEventListener('mousedown', (e) => {
+      // Prevent focus shift from host WebView window when clicking toolbar/buttons
+      if (e.target.closest('button, select, input')) {
+        // Keep active element blur-free
+      }
+    });
+
+    // --- IPC Setup ---
+    readyInterval = setInterval(() => {
+      window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
+    }, 100);
+
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      if (msg.type === 'PEEKIT_INIT') {
+        if (readyInterval) {
+          clearInterval(readyInterval);
+          readyInterval = null;
+        }
+        if (msg.theme && msg.theme.accentColor) {
+          document.documentElement.style.setProperty('--accent', msg.theme.accentColor);
+        }
+        // Request binary data from PeekIt
+        window.parent.postMessage({ type: 'PEEKIT_REQUEST_DATA', responseType: 'binary' }, '*');
+        return;
+      }
+
+      if (msg.type === 'PEEKIT_DATA_RESPONSE') {
+        if (msg.error) {
+          showError('Load Error', msg.error);
+          return;
+        }
+        try {
+          parseAndRenderDDS(msg.data);
+        } catch (err) {
+          showError('DDS Decoding Failed', err.message || String(err));
+        }
+      }
+    });
+
+    function showError(title, message) {
+      overlay.innerHTML = `
+        <div class="error-card">
+          <div class="error-title">${escapeHtml(title)}</div>
+          <div class="error-desc">${escapeHtml(message)}</div>
+        </div>
+      `;
+      overlay.style.display = 'flex';
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
+    }
+
+    // --- DDS Parser & Block Decoders ---
+    const FOURCC_DXT1 = 0x31545844; // "DXT1"
+    const FOURCC_DXT2 = 0x32545844; // "DXT2"
+    const FOURCC_DXT3 = 0x33545844; // "DXT3"
+    const FOURCC_DXT4 = 0x34545844; // "DXT4"
+    const FOURCC_DXT5 = 0x35545844; // "DXT5"
+    const FOURCC_ATI1 = 0x31495441; // "ATI1"
+    const FOURCC_BC4U = 0x55344342; // "BC4U"
+    const FOURCC_BC4S = 0x53344342; // "BC4S"
+    const FOURCC_ATI2 = 0x32495441; // "ATI2"
+    const FOURCC_BC5U = 0x55354342; // "BC5U"
+    const FOURCC_BC5S = 0x53354342; // "BC5S"
+    const FOURCC_DX10 = 0x30315844; // "DX10"
+
+    function parseAndRenderDDS(raw) {
+      // Normalize raw data to Uint8Array & DataView
+      let uint8;
+      if (raw instanceof Uint8Array) {
+        uint8 = raw;
+      } else if (ArrayBuffer.isView(raw)) {
+        uint8 = new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength);
+      } else if (raw instanceof ArrayBuffer) {
+        uint8 = new Uint8Array(raw);
+      } else if (typeof raw === 'string') {
+        const bin = atob(raw);
+        uint8 = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) uint8[i] = bin.charCodeAt(i);
+      } else {
+        uint8 = new Uint8Array(raw);
+      }
+
+      if (uint8.byteLength < 128) {
+        throw new Error('File too small to be a valid DDS texture');
+      }
+
+      const buf = uint8.buffer.slice(uint8.byteOffset, uint8.byteOffset + uint8.byteLength);
+      const view = new DataView(buf);
+
+      const magic = view.getUint32(0, true);
+      if (magic !== 0x20534444) { // "DDS "
+        throw new Error('Invalid DDS magic header (expected "DDS ")');
+      }
+
+      const headerSize = view.getUint32(4, true);
+      const flags = view.getUint32(8, true);
+      const height = view.getUint32(12, true);
+      const width = view.getUint32(16, true);
+      const pitchOrLinearSize = view.getUint32(20, true);
+      const depth = view.getUint32(24, true) || 1;
+      let mipMapCount = view.getUint32(28, true);
+      if (mipMapCount === 0) mipMapCount = 1;
+
+      // Pixel Format (offset 76)
+      const pfSize = view.getUint32(76, true);
+      const pfFlags = view.getUint32(80, true);
+      const fourCC = view.getUint32(84, true);
+      const rgbBitCount = view.getUint32(88, true);
+      const rBitMask = view.getUint32(92, true);
+      const gBitMask = view.getUint32(96, true);
+      const bBitMask = view.getUint32(100, true);
+      const aBitMask = view.getUint32(104, true);
+
+      let dataOffset = 128;
+      let formatName = 'Unknown';
+      let decoderType = null;
+      let isNormalMap = false;
+
+      const DDPF_FOURCC = 0x4;
+      const DDPF_RGB = 0x40;
+      const DDPF_LUMINANCE = 0x20000;
+      const DDPF_ALPHA = 0x2;
+
+      if (pfFlags & DDPF_FOURCC) {
+        if (fourCC === FOURCC_DXT1) {
+          formatName = 'DXT1 (BC1)';
+          decoderType = 'dxt1';
+        } else if (fourCC === FOURCC_DXT2 || fourCC === FOURCC_DXT3) {
+          formatName = 'DXT3 (BC2)';
+          decoderType = 'dxt3';
+        } else if (fourCC === FOURCC_DXT4 || fourCC === FOURCC_DXT5) {
+          formatName = 'DXT5 (BC3)';
+          decoderType = 'dxt5';
+        } else if (fourCC === FOURCC_ATI1 || fourCC === FOURCC_BC4U || fourCC === FOURCC_BC4S) {
+          formatName = 'BC4 (ATI1)';
+          decoderType = 'bc4';
+        } else if (fourCC === FOURCC_ATI2 || fourCC === FOURCC_BC5U || fourCC === FOURCC_BC5S) {
+          formatName = 'BC5 (ATI2 Normal)';
+          decoderType = 'bc5';
+          isNormalMap = true;
+        } else if (fourCC === FOURCC_DX10) {
+          // DX10 header (20 bytes)
+          if (buf.byteLength < 148) throw new Error('File truncated before DX10 header');
+          const dxgiFormat = view.getUint32(128, true);
+          dataOffset = 148;
+          switch (dxgiFormat) {
+            case 70: case 71: case 72: formatName = 'DXGI BC1'; decoderType = 'dxt1'; break;
+            case 73: case 74: case 75: formatName = 'DXGI BC2'; decoderType = 'dxt3'; break;
+            case 76: case 77: case 78: formatName = 'DXGI BC3'; decoderType = 'dxt5'; break;
+            case 79: case 80: case 81: formatName = 'DXGI BC4'; decoderType = 'bc4'; break;
+            case 82: case 83: case 84: formatName = 'DXGI BC5 Normal'; decoderType = 'bc5'; isNormalMap = true; break;
+            case 27: case 28: case 29: formatName = 'DXGI RGBA8'; decoderType = 'uncompressed_rgba8'; break;
+            case 87: case 91: formatName = 'DXGI BGRA8'; decoderType = 'uncompressed_bgra8'; break;
+            default:
+              formatName = `DXGI Format ${dxgiFormat}`;
+              decoderType = 'uncompressed_fallback';
+              break;
+          }
+        } else {
+          const str = String.fromCharCode(fourCC & 0xff, (fourCC >> 8) & 0xff, (fourCC >> 16) & 0xff, (fourCC >> 24) & 0xff);
+          formatName = `FourCC (${str})`;
+          decoderType = 'uncompressed_fallback';
+        }
+      } else if (pfFlags & DDPF_RGB) {
+        if (rgbBitCount === 32) {
+          if (rBitMask === 0x00ff0000 && bBitMask === 0x000000ff) {
+            formatName = 'BGRA8 (32bpp)';
+            decoderType = 'uncompressed_bgra8';
+          } else {
+            formatName = 'RGBA8 (32bpp)';
+            decoderType = 'uncompressed_rgba8';
+          }
+        } else if (rgbBitCount === 24) {
+          formatName = 'RGB8 (24bpp)';
+          decoderType = 'uncompressed_rgb8';
+        } else if (rgbBitCount === 16) {
+          if (rBitMask === 0xF800 && gBitMask === 0x07E0 && bBitMask === 0x001F) {
+            formatName = 'RGB565 (16bpp)';
+            decoderType = 'uncompressed_rgb565';
+          } else {
+            formatName = 'RGB16';
+            decoderType = 'uncompressed_fallback';
+          }
+        }
+      } else if (pfFlags & DDPF_LUMINANCE) {
+        formatName = rgbBitCount === 16 ? 'LuminanceAlpha16' : 'Luminance8';
+        decoderType = 'uncompressed_luminance';
+      } else if (pfFlags & DDPF_ALPHA) {
+        formatName = 'Alpha8';
+        decoderType = 'uncompressed_alpha';
+      } else {
+        formatName = 'Uncompressed';
+        decoderType = 'uncompressed_fallback';
+      }
+
+      // Calculate and decode mipmap levels
+      const mipLevels = [];
+      let curW = width;
+      let curH = height;
+      let curOffset = dataOffset;
+
+      for (let m = 0; m < mipMapCount; m++) {
+        const mipW = Math.max(1, curW);
+        const mipH = Math.max(1, curH);
+
+        let byteSize = 0;
+        if (decoderType === 'dxt1' || decoderType === 'bc4') {
+          byteSize = Math.max(1, Math.ceil(mipW / 4)) * Math.max(1, Math.ceil(mipH / 4)) * 8;
+        } else if (decoderType === 'dxt3' || decoderType === 'dxt5' || decoderType === 'bc5') {
+          byteSize = Math.max(1, Math.ceil(mipW / 4)) * Math.max(1, Math.ceil(mipH / 4)) * 16;
+        } else if (decoderType === 'uncompressed_rgba8' || decoderType === 'uncompressed_bgra8') {
+          byteSize = mipW * mipH * 4;
+        } else if (decoderType === 'uncompressed_rgb8') {
+          byteSize = mipW * mipH * 3;
+        } else if (decoderType === 'uncompressed_rgb565' || decoderType === 'uncompressed_luminance') {
+          byteSize = mipW * mipH * 2;
+        } else {
+          byteSize = mipW * mipH * 4;
+        }
+
+        if (curOffset + byteSize <= uint8.byteLength) {
+          mipLevels.push({
+            level: m,
+            width: mipW,
+            height: mipH,
+            offset: curOffset,
+            size: byteSize
+          });
+          curOffset += byteSize;
+        } else if (m === 0) {
+          // If level 0 exceeds file length, take whatever is available
+          mipLevels.push({
+            level: 0,
+            width: mipW,
+            height: mipH,
+            offset: curOffset,
+            size: Math.max(0, uint8.byteLength - curOffset)
+          });
+          break;
+        } else {
+          break;
+        }
+
+        curW = Math.floor(curW / 2);
+        curH = Math.floor(curH / 2);
+      }
+
+      ddsData = {
+        width,
+        height,
+        formatName,
+        decoderType,
+        isNormalMap,
+        rawBytes: uint8,
+        mipLevels,
+        totalBytes: uint8.byteLength
+      };
+
+      // Populate UI
+      formatBadge.textContent = formatName;
+      dimBadge.innerHTML = `${width} &times; ${height}`;
+      sizeBadge.textContent = formatBytes(uint8.byteLength);
+
+      // Populate Mipmap Dropdown
+      mipSelect.innerHTML = '';
+      ddsData.mipLevels.forEach((mip, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = `Mip ${idx} (${mip.width}×${mip.height})`;
+        mipSelect.appendChild(opt);
+      });
+      currentMip = 0;
+      mipSelect.value = '0';
+
+      // Render Current Mip
+      renderCurrentMip();
+
+      // Fit to view
+      fitToViewport();
+
+      // Hide overlay
+      overlay.style.display = 'none';
+    }
+
+    function formatBytes(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+
+    // --- Texture Decoding to ImageData ---
+    function renderCurrentMip() {
+      if (!ddsData || !ddsData.mipLevels[currentMip]) return;
+
+      const mip = ddsData.mipLevels[currentMip];
+      canvas.width = mip.width;
+      canvas.height = mip.height;
+
+      const imgData = ctx.createImageData(mip.width, mip.height);
+      const out = imgData.data;
+      const raw = ddsData.rawBytes;
+      const offset = mip.offset;
+      const type = ddsData.decoderType;
+
+      if (type === 'dxt1') {
+        decodeDXT1(raw, offset, out, mip.width, mip.height);
+      } else if (type === 'dxt3') {
+        decodeDXT3(raw, offset, out, mip.width, mip.height);
+      } else if (type === 'dxt5') {
+        decodeDXT5(raw, offset, out, mip.width, mip.height);
+      } else if (type === 'bc4') {
+        decodeBC4(raw, offset, out, mip.width, mip.height);
+      } else if (type === 'bc5') {
+        decodeBC5(raw, offset, out, mip.width, mip.height);
+      } else if (type === 'uncompressed_rgba8') {
+        decodeUncompressedRGBA8(raw, offset, out, mip.width, mip.height);
+      } else if (type === 'uncompressed_bgra8') {
+        decodeUncompressedBGRA8(raw, offset, out, mip.width, mip.height);
+      } else if (type === 'uncompressed_rgb8') {
+        decodeUncompressedRGB8(raw, offset, out, mip.width, mip.height);
+      } else if (type === 'uncompressed_rgb565') {
+        decodeUncompressedRGB565(raw, offset, out, mip.width, mip.height);
+      } else {
+        decodeFallback(raw, offset, out, mip.width, mip.height);
+      }
+
+      // Store decoded full-color image buffer for channel switching without re-decoding DXT
+      mip.decodedBuffer = new Uint8ClampedArray(out);
+
+      // Apply channel isolation
+      applyChannelFilter();
+    }
+
+    function applyChannelFilter() {
+      if (!ddsData || !ddsData.mipLevels[currentMip]) return;
+      const mip = ddsData.mipLevels[currentMip];
+      if (!mip.decodedBuffer) return;
+
+      const imgData = ctx.createImageData(mip.width, mip.height);
+      const src = mip.decodedBuffer;
+      const dst = imgData.data;
+      const totalPixels = mip.width * mip.height;
+
+      if (currentChannel === 'rgba') {
+        dst.set(src);
+      } else if (currentChannel === 'rgb') {
+        for (let i = 0; i < totalPixels * 4; i += 4) {
+          dst[i] = src[i];
+          dst[i + 1] = src[i + 1];
+          dst[i + 2] = src[i + 2];
+          dst[i + 3] = 255;
+        }
+      } else if (currentChannel === 'a') {
+        for (let i = 0; i < totalPixels * 4; i += 4) {
+          const a = src[i + 3];
+          dst[i] = a;
+          dst[i + 1] = a;
+          dst[i + 2] = a;
+          dst[i + 3] = 255;
+        }
+      } else if (currentChannel === 'r') {
+        for (let i = 0; i < totalPixels * 4; i += 4) {
+          const r = src[i];
+          dst[i] = r;
+          dst[i + 1] = r;
+          dst[i + 2] = r;
+          dst[i + 3] = 255;
+        }
+      } else if (currentChannel === 'g') {
+        for (let i = 0; i < totalPixels * 4; i += 4) {
+          const g = src[i + 1];
+          dst[i] = g;
+          dst[i + 1] = g;
+          dst[i + 2] = g;
+          dst[i + 3] = 255;
+        }
+      } else if (currentChannel === 'b') {
+        for (let i = 0; i < totalPixels * 4; i += 4) {
+          const b = src[i + 2];
+          dst[i] = b;
+          dst[i + 1] = b;
+          dst[i + 2] = b;
+          dst[i + 3] = 255;
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+    }
+
+    // --- Fast Block Decoders ---
+    function decodeDXT1(src, offset, dst, width, height) {
+      let blockOffset = offset;
+      const blocksX = Math.ceil(width / 4);
+      const blocksY = Math.ceil(height / 4);
+
+      for (let by = 0; by < blocksY; by++) {
+        for (let bx = 0; bx < blocksX; bx++) {
+          if (blockOffset + 8 > src.length) return;
+
+          const c0 = src[blockOffset] | (src[blockOffset + 1] << 8);
+          const c1 = src[blockOffset + 2] | (src[blockOffset + 3] << 8);
+
+          const r0 = ((c0 >> 11) & 0x1f) * 255 / 31 | 0;
+          const g0 = ((c0 >> 5) & 0x3f) * 255 / 63 | 0;
+          const b0 = (c0 & 0x1f) * 255 / 31 | 0;
+
+          const r1 = ((c1 >> 11) & 0x1f) * 255 / 31 | 0;
+          const g1 = ((c1 >> 5) & 0x3f) * 255 / 63 | 0;
+          const b1 = (c1 & 0x1f) * 255 / 31 | 0;
+
+          let p0 = [r0, g0, b0, 255];
+          let p1 = [r1, g1, b1, 255];
+          let p2, p3;
+
+          if (c0 > c1) {
+            p2 = [((2 * r0 + r1) / 3) | 0, ((2 * g0 + g1) / 3) | 0, ((2 * b0 + b1) / 3) | 0, 255];
+            p3 = [((r0 + 2 * r1) / 3) | 0, ((g0 + 2 * g1) / 3) | 0, ((b0 + 2 * b1) / 3) | 0, 255];
+          } else {
+            p2 = [((r0 + r1) >> 1), ((g0 + g1) >> 1), ((b0 + b1) >> 1), 255];
+            p3 = [0, 0, 0, 0];
+          }
+
+          const palette = [p0, p1, p2, p3];
+          const codeTable = src[blockOffset + 4] | (src[blockOffset + 5] << 8) | (src[blockOffset + 6] << 16) | (src[blockOffset + 7] << 24);
+
+          for (let py = 0; py < 4; py++) {
+            const y = by * 4 + py;
+            if (y >= height) break;
+            for (let px = 0; px < 4; px++) {
+              const x = bx * 4 + px;
+              if (x >= width) break;
+
+              const code = (codeTable >> (2 * (py * 4 + px))) & 3;
+              const color = palette[code];
+              const idx = (y * width + x) * 4;
+              dst[idx] = color[0];
+              dst[idx + 1] = color[1];
+              dst[idx + 2] = color[2];
+              dst[idx + 3] = color[3];
+            }
+          }
+
+          blockOffset += 8;
+        }
+      }
+    }
+
+    function decodeDXT3(src, offset, dst, width, height) {
+      let blockOffset = offset;
+      const blocksX = Math.ceil(width / 4);
+      const blocksY = Math.ceil(height / 4);
+
+      for (let by = 0; by < blocksY; by++) {
+        for (let bx = 0; bx < blocksX; bx++) {
+          if (blockOffset + 16 > src.length) return;
+
+          const c0 = src[blockOffset + 8] | (src[blockOffset + 9] << 8);
+          const c1 = src[blockOffset + 10] | (src[blockOffset + 11] << 8);
+
+          const r0 = ((c0 >> 11) & 0x1f) * 255 / 31 | 0;
+          const g0 = ((c0 >> 5) & 0x3f) * 255 / 63 | 0;
+          const b0 = (c0 & 0x1f) * 255 / 31 | 0;
+
+          const r1 = ((c1 >> 11) & 0x1f) * 255 / 31 | 0;
+          const g1 = ((c1 >> 5) & 0x3f) * 255 / 63 | 0;
+          const b1 = (c1 & 0x1f) * 255 / 31 | 0;
+
+          const palette = [
+            [r0, g0, b0],
+            [r1, g1, b1],
+            [((2 * r0 + r1) / 3) | 0, ((2 * g0 + g1) / 3) | 0, ((2 * b0 + b1) / 3) | 0],
+            [((r0 + 2 * r1) / 3) | 0, ((g0 + 2 * g1) / 3) | 0, ((b0 + 2 * b1) / 3) | 0]
+          ];
+
+          const codeTable = src[blockOffset + 12] | (src[blockOffset + 13] << 8) | (src[blockOffset + 14] << 16) | (src[blockOffset + 15] << 24);
+
+          for (let py = 0; py < 4; py++) {
+            const y = by * 4 + py;
+            if (y >= height) break;
+            for (let px = 0; px < 4; px++) {
+              const x = bx * 4 + px;
+              if (x >= width) break;
+
+              const pIdx = py * 4 + px;
+              const aByte = src[blockOffset + (pIdx >> 1)];
+              const a4 = (pIdx & 1) ? ((aByte >> 4) & 0x0f) : (aByte & 0x0f);
+              const a = a4 * 17;
+
+              const code = (codeTable >> (2 * pIdx)) & 3;
+              const color = palette[code];
+              const idx = (y * width + x) * 4;
+              dst[idx] = color[0];
+              dst[idx + 1] = color[1];
+              dst[idx + 2] = color[2];
+              dst[idx + 3] = a;
+            }
+          }
+
+          blockOffset += 16;
+        }
+      }
+    }
+
+    function decodeDXT5(src, offset, dst, width, height) {
+      let blockOffset = offset;
+      const blocksX = Math.ceil(width / 4);
+      const blocksY = Math.ceil(height / 4);
+
+      for (let by = 0; by < blocksY; by++) {
+        for (let bx = 0; bx < blocksX; bx++) {
+          if (blockOffset + 16 > src.length) return;
+
+          // Alpha block (first 8 bytes)
+          const a0 = src[blockOffset];
+          const a1 = src[blockOffset + 1];
+          const alphas = new Uint8Array(8);
+          alphas[0] = a0;
+          alphas[1] = a1;
+          if (a0 > a1) {
+            alphas[2] = ((6 * a0 + 1 * a1) / 7) | 0;
+            alphas[3] = ((5 * a0 + 2 * a1) / 7) | 0;
+            alphas[4] = ((4 * a0 + 3 * a1) / 7) | 0;
+            alphas[5] = ((3 * a0 + 4 * a1) / 7) | 0;
+            alphas[6] = ((2 * a0 + 5 * a1) / 7) | 0;
+            alphas[7] = ((1 * a0 + 6 * a1) / 7) | 0;
+          } else {
+            alphas[2] = ((4 * a0 + 1 * a1) / 5) | 0;
+            alphas[3] = ((3 * a0 + 2 * a1) / 5) | 0;
+            alphas[4] = ((2 * a0 + 3 * a1) / 5) | 0;
+            alphas[5] = ((1 * a0 + 4 * a1) / 5) | 0;
+            alphas[6] = 0;
+            alphas[7] = 255;
+          }
+
+          const bits0 = src[blockOffset + 2] | (src[blockOffset + 3] << 8) | (src[blockOffset + 4] << 16);
+          const bits1 = src[blockOffset + 5] | (src[blockOffset + 6] << 8) | (src[blockOffset + 7] << 16);
+
+          // Color block (next 8 bytes)
+          const c0 = src[blockOffset + 8] | (src[blockOffset + 9] << 8);
+          const c1 = src[blockOffset + 10] | (src[blockOffset + 11] << 8);
+
+          const r0 = ((c0 >> 11) & 0x1f) * 255 / 31 | 0;
+          const g0 = ((c0 >> 5) & 0x3f) * 255 / 63 | 0;
+          const b0 = (c0 & 0x1f) * 255 / 31 | 0;
+
+          const r1 = ((c1 >> 11) & 0x1f) * 255 / 31 | 0;
+          const g1 = ((c1 >> 5) & 0x3f) * 255 / 63 | 0;
+          const b1 = (c1 & 0x1f) * 255 / 31 | 0;
+
+          const palette = [
+            [r0, g0, b0],
+            [r1, g1, b1],
+            [((2 * r0 + r1) / 3) | 0, ((2 * g0 + g1) / 3) | 0, ((2 * b0 + b1) / 3) | 0],
+            [((r0 + 2 * r1) / 3) | 0, ((g0 + 2 * g1) / 3) | 0, ((b0 + 2 * b1) / 3) | 0]
+          ];
+
+          const codeTable = src[blockOffset + 12] | (src[blockOffset + 13] << 8) | (src[blockOffset + 14] << 16) | (src[blockOffset + 15] << 24);
+
+          for (let py = 0; py < 4; py++) {
+            const y = by * 4 + py;
+            if (y >= height) break;
+            for (let px = 0; px < 4; px++) {
+              const x = bx * 4 + px;
+              if (x >= width) break;
+
+              const pIdx = py * 4 + px;
+              const aCode = pIdx < 8 ? ((bits0 >> (pIdx * 3)) & 7) : ((bits1 >> ((pIdx - 8) * 3)) & 7);
+              const a = alphas[aCode];
+
+              const code = (codeTable >> (2 * pIdx)) & 3;
+              const color = palette[code];
+              const idx = (y * width + x) * 4;
+              dst[idx] = color[0];
+              dst[idx + 1] = color[1];
+              dst[idx + 2] = color[2];
+              dst[idx + 3] = a;
+            }
+          }
+
+          blockOffset += 16;
+        }
+      }
+    }
+
+    // BC4: Single channel grayscale (Height/Roughness/Metallic)
+    function decodeBC4(src, offset, dst, width, height) {
+      let blockOffset = offset;
+      const blocksX = Math.ceil(width / 4);
+      const blocksY = Math.ceil(height / 4);
+
+      for (let by = 0; by < blocksY; by++) {
+        for (let bx = 0; bx < blocksX; bx++) {
+          if (blockOffset + 8 > src.length) return;
+
+          const r0 = src[blockOffset];
+          const r1 = src[blockOffset + 1];
+          const reds = new Uint8Array(8);
+          reds[0] = r0;
+          reds[1] = r1;
+          if (r0 > r1) {
+            reds[2] = ((6 * r0 + 1 * r1) / 7) | 0;
+            reds[3] = ((5 * r0 + 2 * r1) / 7) | 0;
+            reds[4] = ((4 * r0 + 3 * r1) / 7) | 0;
+            reds[5] = ((3 * r0 + 4 * r1) / 7) | 0;
+            reds[6] = ((2 * r0 + 5 * r1) / 7) | 0;
+            reds[7] = ((1 * r0 + 6 * r1) / 7) | 0;
+          } else {
+            reds[2] = ((4 * r0 + 1 * r1) / 5) | 0;
+            reds[3] = ((3 * r0 + 2 * r1) / 5) | 0;
+            reds[4] = ((2 * r0 + 3 * r1) / 5) | 0;
+            reds[5] = ((1 * r0 + 4 * r1) / 5) | 0;
+            reds[6] = 0;
+            reds[7] = 255;
+          }
+
+          const bits0 = src[blockOffset + 2] | (src[blockOffset + 3] << 8) | (src[blockOffset + 4] << 16);
+          const bits1 = src[blockOffset + 5] | (src[blockOffset + 6] << 8) | (src[blockOffset + 7] << 16);
+
+          for (let py = 0; py < 4; py++) {
+            const y = by * 4 + py;
+            if (y >= height) break;
+            for (let px = 0; px < 4; px++) {
+              const x = bx * 4 + px;
+              if (x >= width) break;
+
+              const pIdx = py * 4 + px;
+              const rCode = pIdx < 8 ? ((bits0 >> (pIdx * 3)) & 7) : ((bits1 >> ((pIdx - 8) * 3)) & 7);
+              const val = reds[rCode];
+
+              const idx = (y * width + x) * 4;
+              dst[idx] = val;
+              dst[idx + 1] = val;
+              dst[idx + 2] = val;
+              dst[idx + 3] = 255;
+            }
+          }
+
+          blockOffset += 8;
+        }
+      }
+    }
+
+    // BC5: Two channels (Red & Green), standard for Normal Maps
+    function decodeBC5(src, offset, dst, width, height) {
+      let blockOffset = offset;
+      const blocksX = Math.ceil(width / 4);
+      const blocksY = Math.ceil(height / 4);
+
+      for (let by = 0; by < blocksY; by++) {
+        for (let bx = 0; bx < blocksX; bx++) {
+          if (blockOffset + 16 > src.length) return;
+
+          // Red channel block (0..7)
+          const r0 = src[blockOffset];
+          const r1 = src[blockOffset + 1];
+          const reds = new Uint8Array(8);
+          reds[0] = r0; reds[1] = r1;
+          if (r0 > r1) {
+            for (let i = 2; i < 8; i++) reds[i] = (((8 - i) * r0 + (i - 1) * r1) / 7) | 0;
+          } else {
+            for (let i = 2; i < 6; i++) reds[i] = (((6 - i) * r0 + (i - 1) * r1) / 5) | 0;
+            reds[6] = 0; reds[7] = 255;
+          }
+          const rBits0 = src[blockOffset + 2] | (src[blockOffset + 3] << 8) | (src[blockOffset + 4] << 16);
+          const rBits1 = src[blockOffset + 5] | (src[blockOffset + 6] << 8) | (src[blockOffset + 7] << 16);
+
+          // Green channel block (8..15)
+          const g0 = src[blockOffset + 8];
+          const g1 = src[blockOffset + 9];
+          const greens = new Uint8Array(8);
+          greens[0] = g0; greens[1] = g1;
+          if (g0 > g1) {
+            for (let i = 2; i < 8; i++) greens[i] = (((8 - i) * g0 + (i - 1) * g1) / 7) | 0;
+          } else {
+            for (let i = 2; i < 6; i++) greens[i] = (((6 - i) * g0 + (i - 1) * g1) / 5) | 0;
+            greens[6] = 0; greens[7] = 255;
+          }
+          const gBits0 = src[blockOffset + 10] | (src[blockOffset + 11] << 8) | (src[blockOffset + 12] << 16);
+          const gBits1 = src[blockOffset + 13] | (src[blockOffset + 14] << 8) | (src[blockOffset + 15] << 16);
+
+          for (let py = 0; py < 4; py++) {
+            const y = by * 4 + py;
+            if (y >= height) break;
+            for (let px = 0; px < 4; px++) {
+              const x = bx * 4 + px;
+              if (x >= width) break;
+
+              const pIdx = py * 4 + px;
+              const rCode = pIdx < 8 ? ((rBits0 >> (pIdx * 3)) & 7) : ((rBits1 >> ((pIdx - 8) * 3)) & 7);
+              const gCode = pIdx < 8 ? ((gBits0 >> (pIdx * 3)) & 7) : ((gBits1 >> ((pIdx - 8) * 3)) & 7);
+
+              const r = reds[rCode];
+              const g = greens[gCode];
+
+              // Reconstruct Tangent Space Normal Z = sqrt(1 - X^2 - Y^2)
+              const nx = (r / 255) * 2 - 1;
+              const ny = (g / 255) * 2 - 1;
+              const nz = Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny));
+              const b = Math.round((nz * 0.5 + 0.5) * 255);
+
+              const idx = (y * width + x) * 4;
+              dst[idx] = r;
+              dst[idx + 1] = g;
+              dst[idx + 2] = b;
+              dst[idx + 3] = 255;
+            }
+          }
+
+          blockOffset += 16;
+        }
+      }
+    }
+
+    // Uncompressed Decoders
+    function decodeUncompressedRGBA8(src, offset, dst, width, height) {
+      const len = Math.min(dst.length, src.length - offset);
+      for (let i = 0; i < len; i++) {
+        dst[i] = src[offset + i];
+      }
+    }
+
+    function decodeUncompressedBGRA8(src, offset, dst, width, height) {
+      const total = width * height;
+      for (let i = 0; i < total; i++) {
+        const s = offset + i * 4;
+        const d = i * 4;
+        if (s + 3 >= src.length) break;
+        dst[d] = src[s + 2];     // R
+        dst[d + 1] = src[s + 1]; // G
+        dst[d + 2] = src[s];     // B
+        dst[d + 3] = src[s + 3]; // A
+      }
+    }
+
+    function decodeUncompressedRGB8(src, offset, dst, width, height) {
+      const total = width * height;
+      for (let i = 0; i < total; i++) {
+        const s = offset + i * 3;
+        const d = i * 4;
+        if (s + 2 >= src.length) break;
+        dst[d] = src[s];
+        dst[d + 1] = src[s + 1];
+        dst[d + 2] = src[s + 2];
+        dst[d + 3] = 255;
+      }
+    }
+
+    function decodeUncompressedRGB565(src, offset, dst, width, height) {
+      const total = width * height;
+      for (let i = 0; i < total; i++) {
+        const s = offset + i * 2;
+        const d = i * 4;
+        if (s + 1 >= src.length) break;
+        const val = src[s] | (src[s + 1] << 8);
+        dst[d] = ((val >> 11) & 0x1f) * 255 / 31 | 0;
+        dst[d + 1] = ((val >> 5) & 0x3f) * 255 / 63 | 0;
+        dst[d + 2] = (val & 0x1f) * 255 / 31 | 0;
+        dst[d + 3] = 255;
+      }
+    }
+
+    function decodeFallback(src, offset, dst, width, height) {
+      const len = Math.min(dst.length, src.length - offset);
+      for (let i = 0; i < len; i++) {
+        dst[i] = src[offset + i];
+      }
+    }
+
+    // --- Pan, Zoom & Transform Management ---
+    function updateTransform() {
+      container.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+      zoomLevelText.textContent = `${Math.round(zoom * 100)}%`;
+    }
+
+    function fitToViewport() {
+      if (!canvas.width || !canvas.height) return;
+      const pad = 32;
+      const vW = viewport.clientWidth - pad;
+      const vH = viewport.clientHeight - pad;
+
+      const scaleX = vW / canvas.width;
+      const scaleY = vH / canvas.height;
+      zoom = Math.min(scaleX, scaleY);
+      if (zoom > 1) zoom = 1; // Don't upscale tiny textures by default on initial fit
+
+      // Center container
+      panX = (viewport.clientWidth - canvas.width * zoom) / 2;
+      panY = (viewport.clientHeight - canvas.height * zoom) / 2;
+      updateTransform();
+    }
+
+    function zoomToPoint(newZoom, clientX, clientY) {
+      const rect = viewport.getBoundingClientRect();
+      const mouseX = clientX - rect.left;
+      const mouseY = clientY - rect.top;
+
+      const factor = newZoom / zoom;
+      panX = mouseX - (mouseX - panX) * factor;
+      panY = mouseY - (mouseY - panY) * factor;
+      zoom = newZoom;
+      updateTransform();
+    }
+
+    // Mouse Wheel Zoom
+    viewport.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
+      let newZoom = zoom * zoomFactor;
+      newZoom = Math.min(32, Math.max(0.05, newZoom));
+      zoomToPoint(newZoom, e.clientX, e.clientY);
+    }, { passive: false });
+
+    // Drag to Pan
+    viewport.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return;
+      isDragging = true;
+      startDragX = e.clientX - panX;
+      startDragY = e.clientY - panY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        panX = e.clientX - startDragX;
+        panY = e.clientY - startDragY;
+        updateTransform();
+      }
+
+      // Texel Inspector under cursor
+      inspectTexel(e);
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    // Texel Inspector
+    function inspectTexel(e) {
+      if (!ddsData || !ddsData.mipLevels[currentMip]) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) / (rect.width / canvas.width));
+      const y = Math.floor((e.clientY - rect.top) / (rect.height / canvas.height));
+
+      if (x >= 0 && x < canvas.width && y >= 0 && y < canvas.height) {
+        try {
+          const pixel = ctx.getImageData(x, y, 1, 1).data;
+          const hex = `#${((1 << 24) + (pixel[0] << 16) + (pixel[1] << 8) + pixel[2]).toString(16).slice(1).toUpperCase()}`;
+          texelInfo.innerHTML = `
+            <span class="color-preview-box" style="background: rgba(${pixel[0]},${pixel[1]},${pixel[2]},${(pixel[3]/255).toFixed(2)})"></span>
+            X: ${x}, Y: ${y} | RGBA: (${pixel[0]}, ${pixel[1]}, ${pixel[2]}, ${pixel[3]}) | ${hex}
+          `;
+        } catch (_) {}
+      } else {
+        texelInfo.textContent = `Hover over texture to inspect texels`;
+      }
+    }
+
+    // --- UI Event Handlers ---
+    // Channel selector buttons
+    document.querySelectorAll('[data-channel]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        document.querySelectorAll('[data-channel]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentChannel = btn.dataset.channel;
+        applyChannelFilter();
+      });
+    });
+
+    // Mipmap select
+    mipSelect.addEventListener('change', () => {
+      currentMip = parseInt(mipSelect.value, 10) || 0;
+      renderCurrentMip();
+    });
+
+    // Zoom Buttons
+    document.getElementById('btnFit').addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      fitToViewport();
+    });
+
+    document.getElementById('btnOriginal').addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const rect = viewport.getBoundingClientRect();
+      zoomToPoint(1, rect.left + rect.width / 2, rect.top + rect.height / 2);
+    });
+
+    document.getElementById('btnZoomIn').addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const rect = viewport.getBoundingClientRect();
+      zoomToPoint(Math.min(32, zoom * 1.3), rect.left + rect.width / 2, rect.top + rect.height / 2);
+    });
+
+    document.getElementById('btnZoomOut').addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const rect = viewport.getBoundingClientRect();
+      zoomToPoint(Math.max(0.05, zoom * 0.77), rect.left + rect.width / 2, rect.top + rect.height / 2);
+    });
+
+    // Background toggle button
+    document.getElementById('btnBg').addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      container.classList.remove('bg-checkered', 'bg-dark', 'bg-light');
+      if (currentBg === 'checkered') {
+        currentBg = 'dark';
+        container.classList.add('bg-dark');
+      } else if (currentBg === 'dark') {
+        currentBg = 'light';
+        container.classList.add('bg-light');
+      } else {
+        currentBg = 'checkered';
+        container.classList.add('bg-checkered');
+      }
+    });
+
+    // Window resize
+    window.addEventListener('resize', () => {
+      // Keep center
+    });
+  </script>
+</body>
+</html>

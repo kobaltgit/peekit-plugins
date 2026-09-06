@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <linearGradient id="ddsGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00C9FF"/>
+      <stop offset="100%" stop-color="#92FE9D"/>
+    </linearGradient>
+    <linearGradient id="boxGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E293B"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+  </defs>
+  <!-- Background Rounded Rect -->
+  <rect x="4" y="4" width="40" height="40" rx="10" fill="url(#boxGrad)" stroke="#334155" stroke-width="1.5"/>
+  <!-- Texture Grid Perspective / Mesh -->
+  <path d="M12 16L24 10L36 16L24 22Z" fill="url(#ddsGrad)" opacity="0.85"/>
+  <path d="M12 16L24 22V36L12 30Z" fill="url(#ddsGrad)" opacity="0.5"/>
+  <path d="M24 22L36 16V30L24 36Z" fill="url(#ddsGrad)" opacity="0.35"/>
+  <!-- Texture Grid Lines -->
+  <line x1="18" y1="13" x2="30" y2="19" stroke="#0F172A" stroke-width="0.8" opacity="0.6"/>
+  <line x1="30" y1="13" x2="18" y2="19" stroke="#0F172A" stroke-width="0.8" opacity="0.6"/>
+  <!-- DDS Text Badge -->
+  <rect x="23" y="27" width="18" height="11" rx="3" fill="#00C9FF"/>
+  <text x="32" y="35.5" fill="#0F172A" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="7" font-weight="900" text-anchor="middle" letter-spacing="0.5">DDS</text>
+</svg>

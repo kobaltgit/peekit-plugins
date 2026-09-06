@@ -1,7 +1,7 @@
 {
   "$schema": "./plugin-schema.json",
   "version": 1,
-  "updated_at": "2026-09-06T20:22:48.911Z",
+  "updated_at": "2026-09-06T20:44:56.325Z",
   "plugins": [
     {
       "id": "com.peekit.3d-viewer",
@@ -195,6 +195,24 @@
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.apk-viewer-1.0.0.pkit",
       "size_kb": "71.8",
       "sha256": "5edc460ed4d3a106a163f2840ade03b1c2682a44572ef6c4db41c80ceaed3a08",
+      "icon": "icon.svg",
+      "homepage": "https://github.com/kobaltgit/peekit-plugins"
+    },
+    {
+      "id": "com.peekit.dds-viewer",
+      "name": "DDS Texture Viewer",
+      "version": "1.0.0",
+      "author": "Kobalt",
+      "description": "Fast offline previewer for DirectDraw Surface (.dds) textures with DXT1/3/5, BC4/5, uncompressed formats, mipmap explorer, and channel inspector",
+      "extensions": [
+        ".dds"
+      ],
+      "entry": "index.html",
+      "min_peekit_version": "1.0.0",
+      "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.dds-viewer-1.0.0.pkit",
+      "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.dds-viewer-1.0.0.pkit",
+      "size_kb": "10.5",
+      "sha256": "0e7e7c67e13832e6bf8eeb16836b42589464cf20a2371f7558fbe2ad09e9e78f",
       "icon": "icon.svg",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     }
