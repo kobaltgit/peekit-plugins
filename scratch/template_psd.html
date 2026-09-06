@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PeekIt Adobe Photoshop Viewer</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    :root {
+      --bg-color: #121216;
+      --panel-bg: rgba(26, 26, 34, 0.88);
+      --panel-border: rgba(255, 255, 255, 0.09);
+      --text-color: #e4e4e9;
+      --text-muted: #8c8c9a;
+      --accent: #31a8ff;
+      --accent-hover: #4db5ff;
+      --btn-bg: rgba(255, 255, 255, 0.06);
+      --btn-hover: rgba(255, 255, 255, 0.12);
+      --btn-active: rgba(49, 168, 255, 0.25);
+      --item-hover: rgba(255, 255, 255, 0.05);
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+    }
+
+    body.light {
+      --bg-color: #f3f3f6;
+      --panel-bg: rgba(255, 255, 255, 0.9);
+      --panel-border: rgba(0, 0, 0, 0.08);
+      --text-color: #1a1a20;
+      --text-muted: #6b6b78;
+      --accent: #0076d6;
+      --accent-hover: #0087f5;
+      --btn-bg: rgba(0, 0, 0, 0.05);
+      --btn-hover: rgba(0, 0, 0, 0.09);
+      --btn-active: rgba(0, 118, 214, 0.18);
+      --item-hover: rgba(0, 0, 0, 0.04);
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    #app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Floating Top Toolbar */
+    #toolbar {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      z-index: 100;
+      gap: 12px;
+    }
+
+    .tool-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .psd-badge {
+      background: linear-gradient(135deg, #001e36, #004d80);
+      color: #31a8ff;
+      font-weight: 800;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(49, 168, 255, 0.4);
+      letter-spacing: 0.5px;
+    }
+
+    body.light .psd-badge {
+      background: linear-gradient(135deg, #e6f4ff, #bae0ff);
+      color: #0066b3;
+      border-color: rgba(0, 102, 179, 0.3);
+    }
+
+    .info-pill {
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .info-dot {
+      opacity: 0.5;
+    }
+
+    .btn-group {
+      display: flex;
+      align-items: center;
+      background: var(--btn-bg);
+      border-radius: 8px;
+      padding: 2px;
+      border: 1px solid var(--panel-border);
+    }
+
+    button {
+      background: transparent;
+      border: none;
+      color: var(--text-color);
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    button:hover {
+      background: var(--btn-hover);
+    }
+
+    button:active {
+      background: var(--btn-active);
+    }
+
+    button.active {
+      background: var(--btn-active);
+      color: var(--accent);
+    }
+
+    .zoom-text {
+      font-size: 11px;
+      font-weight: 600;
+      min-width: 44px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    /* Main Viewport */
+    #viewport {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+      cursor: grab;
+    }
+
+    #viewport.dragging {
+      cursor: grabbing;
+    }
+
+    #viewport-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Layers Drawer */
+    #layers-drawer {
+      position: absolute;
+      top: 68px;
+      right: 14px;
+      bottom: 14px;
+      width: 280px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      z-index: 90;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(310px);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #layers-drawer.open {
+      transform: translateX(0);
+    }
+
+    .drawer-header {
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--panel-border);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .drawer-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px;
+    }
+
+    .drawer-content::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .drawer-content::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 3px;
+    }
+
+    body.light .drawer-content::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.15);
+    }
+
+    .layer-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      transition: background 0.12s;
+    }
+
+    .layer-item:hover {
+      background: var(--item-hover);
+    }
+
+    .layer-vis {
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      opacity: 0.7;
+    }
+
+    .layer-vis.visible {
+      color: var(--text-color);
+      opacity: 1;
+    }
+
+    .layer-icon {
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .layer-name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    .layer-badge {
+      font-size: 10px;
+      padding: 2px 5px;
+      border-radius: 4px;
+      background: var(--btn-bg);
+      color: var(--text-muted);
+      border: 1px solid var(--panel-border);
+    }
+
+    /* Loading Spinner */
+    #loader {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-color);
+      z-index: 200;
+      gap: 14px;
+      transition: opacity 0.2s;
+    }
+
+    #loader.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .spinner {
+      width: 38px;
+      height: 38px;
+      border: 3px solid rgba(49, 168, 255, 0.15);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loader-text {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* Error Overlay */
+    #error-box {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-color);
+      padding: 24px;
+      text-align: center;
+      z-index: 300;
+      gap: 12px;
+    }
+
+    #error-box.show {
+      display: flex;
+    }
+
+    .error-icon {
+      font-size: 40px;
+    }
+
+    .error-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #ff5252;
+    }
+
+    .error-msg {
+      font-size: 13px;
+      color: var(--text-muted);
+      max-width: 440px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Top Floating Toolbar -->
+    <div id="toolbar">
+      <div class="tool-section">
+        <span class="psd-badge">PSD</span>
+        <div class="info-pill" id="info-pill">
+          <span id="meta-res">—</span>
+          <span class="info-dot">•</span>
+          <span id="meta-mode">—</span>
+          <span class="info-dot">•</span>
+          <span id="meta-layers">—</span>
+        </div>
+      </div>
+
+      <div class="tool-section">
+        <div class="btn-group">
+          <button id="btn-zoom-out" title="Уменьшить (Ctrl + -)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
+          <span class="zoom-text" id="zoom-val">100%</span>
+          <button id="btn-zoom-in" title="Увеличить (Ctrl + +)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
+        </div>
+        <div class="btn-group">
+          <button id="btn-fit" title="Вписать в окно">Вписать</button>
+          <button id="btn-actual" title="100% масштаб">1:1</button>
+        </div>
+        <button id="btn-toggle-layers" title="Показать слои">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+          <span>Слои</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- High Performance Virtual Viewport -->
+    <div id="viewport">
+      <canvas id="viewport-canvas"></canvas>
+    </div>
+
+    <!-- Layers Side Drawer -->
+    <div id="layers-drawer">
+      <div class="drawer-header">
+        <span>Слои (<span id="drawer-layer-count">0</span>)</span>
+        <button id="btn-close-drawer" style="padding: 4px 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="drawer-content" id="layers-list"></div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loader">
+      <div class="spinner"></div>
+      <div class="loader-text">Чтение Photoshop файла...</div>
+    </div>
+
+    <!-- Error -->
+    <div id="error-box">
+      <div class="error-icon">⚠️</div>
+      <div class="error-title">Ошибка чтения PSD</div>
+      <div class="error-msg" id="error-msg">Не удалось загрузить или декодировать файл.</div>
+    </div>
+  </div>
+
+  <!-- INLINE_AG_PSD_PLACEHOLDER -->
+
+  <script>
+    (function () {
+      'use strict';
+
+      // Ensure canvas creation is properly bound in ag-psd
+      if (window.agPsd && typeof window.agPsd.initializeCanvas === 'function') {
+        window.agPsd.initializeCanvas((w, h) => {
+          const c = document.createElement('canvas');
+          c.width = w;
+          c.height = h;
+          return c;
+        });
+      }
+
+      const COLOR_MODES = {
+        0: 'Bitmap',
+        1: 'Grayscale',
+        2: 'Indexed',
+        3: 'RGB',
+        4: 'CMYK',
+        7: 'Multichannel',
+        8: 'Duotone',
+        9: 'Lab'
+      };
+
+      const viewport = document.getElementById('viewport');
+      const viewportCanvas = document.getElementById('viewport-canvas');
+      const loader = document.getElementById('loader');
+      const errorBox = document.getElementById('error-box');
+      const errorMsg = document.getElementById('error-msg');
+      const metaRes = document.getElementById('meta-res');
+      const metaMode = document.getElementById('meta-mode');
+      const metaLayers = document.getElementById('meta-layers');
+      const zoomVal = document.getElementById('zoom-val');
+      const btnZoomIn = document.getElementById('btn-zoom-in');
+      const btnZoomOut = document.getElementById('btn-zoom-out');
+      const btnFit = document.getElementById('btn-fit');
+      const btnActual = document.getElementById('btn-actual');
+      const btnToggleLayers = document.getElementById('btn-toggle-layers');
+      const btnCloseDrawer = document.getElementById('btn-close-drawer');
+      const layersDrawer = document.getElementById('layers-drawer');
+      const drawerLayerCount = document.getElementById('drawer-layer-count');
+      const layersList = document.getElementById('layers-list');
+
+      let sourceCanvas = null;
+      let scale = 1.0;
+      let panX = 0;
+      let panY = 0;
+      let isDragging = false;
+      let startX = 0;
+      let startY = 0;
+      let initialPanX = 0;
+      let initialPanY = 0;
+      let imgWidth = 0;
+      let imgHeight = 0;
+      let animFrameId = null;
+      let checkerPattern = null;
+      let lastThemeIsDark = true;
+
+      let initReceived = false;
+      let lastLoadedPath = null;
+      let isRequestPending = false;
+
+      function createCheckerPattern(isLight) {
+        const pc = document.createElement('canvas');
+        pc.width = 24;
+        pc.height = 24;
+        const pctx = pc.getContext('2d');
+        pctx.fillStyle = isLight ? '#ffffff' : '#1e1e24';
+        pctx.fillRect(0, 0, 24, 24);
+        pctx.fillStyle = isLight ? '#e6e6ec' : '#292932';
+        pctx.fillRect(0, 0, 12, 12);
+        pctx.fillRect(12, 12, 12, 12);
+        const ctx = viewportCanvas.getContext('2d');
+        checkerPattern = ctx.createPattern(pc, 'repeat');
+      }
+
+      function renderFrame() {
+        if (!sourceCanvas) return;
+        const vw = viewport.clientWidth;
+        const vh = viewport.clientHeight;
+        if (!vw || !vh) return;
+
+        if (viewportCanvas.width !== vw || viewportCanvas.height !== vh) {
+          viewportCanvas.width = vw;
+          viewportCanvas.height = vh;
+        }
+
+        const ctx = viewportCanvas.getContext('2d');
+        ctx.clearRect(0, 0, vw, vh);
+
+        const dw = imgWidth * scale;
+        const dh = imgHeight * scale;
+        const dx = (vw - dw) / 2 + panX;
+        const dy = (vh - dh) / 2 + panY;
+
+        const isLight = document.body.classList.contains('light');
+        if (!checkerPattern || isLight === lastThemeIsDark) {
+          lastThemeIsDark = !isLight;
+          createCheckerPattern(isLight);
+        }
+
+        ctx.fillStyle = checkerPattern;
+        ctx.fillRect(dx, dy, dw, dh);
+
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 24;
+        ctx.shadowOffsetY = 8;
+        ctx.drawImage(sourceCanvas, dx, dy, dw, dh);
+        ctx.restore();
+
+        ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.12)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(dx, dy, dw, dh);
+      }
+
+      function scheduleRender() {
+        if (animFrameId) return;
+        animFrameId = requestAnimationFrame(() => {
+          animFrameId = null;
+          renderFrame();
+        });
+      }
+
+      function fitToWindow() {
+        if (!imgWidth || !imgHeight) return;
+        const padX = 64;
+        const padY = 96;
+        const vw = viewport.clientWidth - padX;
+        const vh = viewport.clientHeight - padY;
+        if (vw <= 0 || vh <= 0) return;
+
+        scale = Math.min(vw / imgWidth, vh / imgHeight, 1.0);
+        panX = 0;
+        panY = 16;
+        zoomVal.textContent = Math.round(scale * 100) + '%';
+        scheduleRender();
+      }
+
+      function setZoom(newScale) {
+        scale = Math.max(0.02, Math.min(newScale, 20.0));
+        zoomVal.textContent = Math.round(scale * 100) + '%';
+        scheduleRender();
+      }
+
+      btnZoomIn.addEventListener('click', () => setZoom(scale * 1.25));
+      btnZoomOut.addEventListener('click', () => setZoom(scale / 1.25));
+      btnFit.addEventListener('click', fitToWindow);
+      btnActual.addEventListener('click', () => {
+        scale = 1.0;
+        panX = 0;
+        panY = 16;
+        zoomVal.textContent = '100%';
+        scheduleRender();
+      });
+
+      // Mouse drag pan
+      viewport.addEventListener('mousedown', (e) => {
+        if (e.target.closest('#toolbar') || e.target.closest('#layers-drawer')) return;
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        initialPanX = panX;
+        initialPanY = panY;
+        viewport.classList.add('dragging');
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        panX = initialPanX + (e.clientX - startX);
+        panY = initialPanY + (e.clientY - startY);
+        scheduleRender();
+      });
+
+      window.addEventListener('mouseup', () => {
+        isDragging = false;
+        viewport.classList.remove('dragging');
+      });
+
+      // Mouse wheel zoom towards cursor
+      viewport.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const factor = e.deltaY < 0 ? 1.15 : (1 / 1.15);
+        const newScale = Math.max(0.02, Math.min(scale * factor, 20.0));
+
+        const rect = viewport.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left - viewport.clientWidth / 2;
+        const mouseY = e.clientY - rect.top - viewport.clientHeight / 2;
+
+        panX = mouseX - (mouseX - panX) * (newScale / scale);
+        panY = mouseY - (mouseY - panY) * (newScale / scale);
+        scale = newScale;
+
+        zoomVal.textContent = Math.round(scale * 100) + '%';
+        scheduleRender();
+      }, { passive: false });
+
+      // Layers Drawer Toggle
+      btnToggleLayers.addEventListener('click', () => {
+        const isOpen = layersDrawer.classList.toggle('open');
+        btnToggleLayers.classList.toggle('active', isOpen);
+      });
+
+      btnCloseDrawer.addEventListener('click', () => {
+        layersDrawer.classList.remove('open');
+        btnToggleLayers.classList.remove('active');
+      });
+
+      function countLayers(layers) {
+        if (!layers) return 0;
+        let count = 0;
+        for (const l of layers) {
+          count++;
+          if (l.children && l.children.length) {
+            count += countLayers(l.children);
+          }
+        }
+        return count;
+      }
+
+      function extractLayerSummary(layers) {
+        if (!layers || !layers.length) return [];
+        return layers.map(l => ({
+          name: l.name || 'Слой',
+          hidden: !!l.hidden,
+          opacity: l.opacity !== undefined ? l.opacity : 1,
+          blendMode: l.blendMode || 'normal',
+          isText: !!l.text,
+          children: l.children ? extractLayerSummary(l.children) : []
+        }));
+      }
+
+      function renderLayersTree(layers, container, level = 0) {
+        if (!layers || !layers.length) return;
+
+        for (let i = layers.length - 1; i >= 0; i--) {
+          const layer = layers[i];
+          const item = document.createElement('div');
+          item.className = 'layer-item';
+          item.style.paddingLeft = (8 + level * 14) + 'px';
+
+          const isGroup = layer.children && layer.children.length;
+          const isHidden = !!layer.hidden;
+
+          const visIcon = '<div class="layer-vis ' + (isHidden ? '' : 'visible') + '">' +
+            (isHidden
+              ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>'
+              : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>') +
+            '</div>';
+
+          const typeIcon = '<div class="layer-icon">' +
+            (isGroup
+              ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>'
+              : layer.isText
+                ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>'
+                : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>') +
+            '</div>';
+
+          const nameSpan = '<span class="layer-name" title="' + (layer.name || 'Слой') + '">' + (layer.name || 'Слой') + '</span>';
+
+          const opacity = layer.opacity !== undefined ? Math.round(layer.opacity * 100) + '%' : '100%';
+          const badge = '<span class="layer-badge">' + opacity + '</span>';
+
+          item.innerHTML = visIcon + typeIcon + nameSpan + badge;
+          container.appendChild(item);
+
+          if (isGroup) {
+            renderLayersTree(layer.children, container, level + 1);
+          }
+        }
+      }
+
+      function showError(msg) {
+        loader.classList.add('hidden');
+        errorMsg.textContent = msg;
+        errorBox.classList.add('show');
+      }
+
+      function renderPsd(buffer) {
+        try {
+          if (!window.agPsd || typeof window.agPsd.readPsd !== 'function') {
+            throw new Error('Библиотека ag-psd не инициализирована');
+          }
+
+          // Release previous source canvas from memory
+          if (sourceCanvas) {
+            sourceCanvas.width = 1;
+            sourceCanvas.height = 1;
+            sourceCanvas = null;
+          }
+
+          // Read PSD with strict memory optimizations
+          let psd = window.agPsd.readPsd(buffer, {
+            skipLayerImageData: true,
+            skipThumbnail: true,
+            skipLinkedFilesData: true
+          });
+          buffer = null; // Release input buffer reference immediately
+
+          if (!psd) {
+            throw new Error('Не удалось прочитать структуру PSD');
+          }
+
+          imgWidth = psd.width;
+          imgHeight = psd.height;
+
+          // Info bar
+          metaRes.textContent = imgWidth + ' × ' + imgHeight;
+          const modeName = COLOR_MODES[psd.colorMode] || 'RGB';
+          const depth = psd.bitsPerChannel ? psd.bitsPerChannel + '-bit' : '8-bit';
+          metaMode.textContent = modeName + ' ' + depth;
+
+          const totalLayers = countLayers(psd.children);
+          metaLayers.textContent = totalLayers + ' ' + (totalLayers === 1 ? 'слой' : (totalLayers < 5 ? 'слоя' : 'слоёв'));
+          drawerLayerCount.textContent = totalLayers;
+
+          // Extract lightweight layers metadata and discard heavy AST
+          const layerSummary = extractLayerSummary(psd.children);
+          layersList.innerHTML = '';
+          if (layerSummary.length) {
+            renderLayersTree(layerSummary, layersList);
+          } else {
+            layersList.innerHTML = '<div style="padding: 12px; color: var(--text-muted); font-size: 12px; text-align: center;">Слои отсутствуют (объединенное изображение)</div>';
+          }
+
+          // Composite canvas
+          if (!psd.canvas) {
+            throw new Error('В файле отсутствует композитное изображение');
+          }
+          sourceCanvas = psd.canvas;
+
+          // Nullify heavy AST references so GC can collect buffer
+          psd = null;
+
+          loader.classList.add('hidden');
+          fitToWindow();
+        } catch (err) {
+          console.error('[PSD Viewer Error]', err);
+          showError(err.message || 'Ошибка парсинга PSD');
+        }
+      }
+
+      // Send PEEKIT_READY with strict debouncing (max 3 attempts, 300ms apart)
+      let readyAttempts = 0;
+      const readyInterval = setInterval(() => {
+        if (initReceived || readyAttempts >= 3) {
+          clearInterval(readyInterval);
+          return;
+        }
+        readyAttempts++;
+        window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
+      }, 300);
+      window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
+
+      // PeekIt IPC Handshake
+      window.addEventListener('message', (event) => {
+        const msg = event.data;
+        if (!msg || typeof msg !== 'object') return;
+
+        switch (msg.type) {
+          case 'PEEKIT_INIT': {
+            initReceived = true;
+            clearInterval(readyInterval);
+
+            const payload = msg.payload || msg;
+            if (payload.theme) {
+              const isLight = payload.theme === 'light' || (typeof payload.theme === 'object' && payload.theme.isDark === false);
+              document.body.classList.toggle('light', isLight);
+              checkerPattern = null;
+              scheduleRender();
+            }
+
+            // Deduplicate data requests for the same file
+            const currentPath = payload.filePath || payload.fileName;
+            if (currentPath && currentPath === lastLoadedPath && (isRequestPending || sourceCanvas)) {
+              return;
+            }
+            lastLoadedPath = currentPath;
+            isRequestPending = true;
+
+            // Reset UI for new file
+            loader.classList.remove('hidden');
+            errorBox.classList.remove('show');
+
+            window.parent.postMessage({ type: 'PEEKIT_REQUEST_DATA' }, '*');
+            break;
+          }
+
+          case 'PEEKIT_THEME_CHANGED': {
+            const theme = msg.payload?.theme || msg.theme;
+            if (theme) {
+              const isLight = theme === 'light' || (typeof theme === 'object' && theme.isDark === false);
+              document.body.classList.toggle('light', isLight);
+              checkerPattern = null;
+              scheduleRender();
+            }
+            break;
+          }
+
+          case 'PEEKIT_DATA_RESPONSE': {
+            isRequestPending = false;
+            const rawData = msg.payload?.data !== undefined ? msg.payload.data : (msg.payload !== undefined ? msg.payload : msg.data);
+            const error = msg.payload?.error || msg.error;
+
+            if (error) {
+              showError('Ошибка чтения файла: ' + error);
+              return;
+            }
+
+            if (!rawData) {
+              showError('Пустые данные файла');
+              return;
+            }
+
+            let buffer = null;
+            if (rawData instanceof ArrayBuffer) {
+              buffer = rawData;
+            } else if (ArrayBuffer.isView(rawData)) {
+              buffer = rawData.buffer.slice(rawData.byteOffset, rawData.byteOffset + rawData.byteLength);
+            } else if (Array.isArray(rawData)) {
+              const u8 = new Uint8Array(rawData);
+              rawData.length = 0; // Release huge number array from memory immediately
+              buffer = u8.buffer;
+            } else if (typeof rawData === 'string') {
+              const bin = atob(rawData);
+              const bytes = new Uint8Array(bin.length);
+              for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+              buffer = bytes.buffer;
+            }
+
+            if (!buffer) {
+              showError('Неподдерживаемый формат данных буфера');
+              return;
+            }
+
+            renderPsd(buffer);
+            break;
+          }
+        }
+      });
+
+      // Window resize
+      window.addEventListener('resize', () => {
+        if (imgWidth && imgHeight) {
+          fitToWindow();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PeekIt E-Book Reader</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-color: #141418;
+      --card-bg: #1c1c24;
+      --panel-bg: rgba(28, 28, 36, 0.92);
+      --panel-border: rgba(255, 255, 255, 0.09);
+      --text-color: #e4e4ea;
+      --text-muted: #8e8e9e;
+      --accent: #ab47bc;
+      --accent-hover: #ba68c8;
+      --btn-bg: rgba(255, 255, 255, 0.06);
+      --btn-hover: rgba(255, 255, 255, 0.12);
+      --btn-active: rgba(171, 71, 188, 0.25);
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+      --quote-border: rgba(171, 71, 188, 0.4);
+      --font-family: Georgia, Cambria, "Times New Roman", Times, serif;
+    }
+
+    body.sepia {
+      --bg-color: #f4ecd8;
+      --card-bg: #eae1cb;
+      --panel-bg: rgba(244, 236, 216, 0.94);
+      --panel-border: rgba(90, 70, 50, 0.12);
+      --text-color: #3e3223;
+      --text-muted: #82725e;
+      --accent: #8d5b2d;
+      --accent-hover: #a26934;
+      --btn-bg: rgba(90, 70, 50, 0.07);
+      --btn-hover: rgba(90, 70, 50, 0.13);
+      --btn-active: rgba(141, 91, 45, 0.2);
+      --shadow: 0 8px 32px rgba(90, 70, 50, 0.15);
+      --quote-border: rgba(141, 91, 45, 0.35);
+    }
+
+    body.light {
+      --bg-color: #f8f8fb;
+      --card-bg: #ffffff;
+      --panel-bg: rgba(255, 255, 255, 0.94);
+      --panel-border: rgba(0, 0, 0, 0.08);
+      --text-color: #1a1a20;
+      --text-muted: #6c6c78;
+      --accent: #8e24aa;
+      --accent-hover: #9c27b0;
+      --btn-bg: rgba(0, 0, 0, 0.05);
+      --btn-hover: rgba(0, 0, 0, 0.09);
+      --btn-active: rgba(142, 36, 170, 0.18);
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+      --quote-border: rgba(142, 36, 170, 0.35);
+    }
+
+    body.sans-serif {
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: var(--font-family);
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    #app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Floating Top Toolbar */
+    #toolbar {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      z-index: 100;
+      gap: 12px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    .tool-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .format-badge {
+      color: #fff;
+      font-weight: 800;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-epub {
+      background: linear-gradient(135deg, #4a148c, #7b1fa2);
+      border: 1px solid rgba(186, 104, 200, 0.4);
+    }
+
+    .badge-fb2 {
+      background: linear-gradient(135deg, #1a237e, #303f9f);
+      border: 1px solid rgba(121, 134, 203, 0.4);
+    }
+
+    .book-meta {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      max-width: 320px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .book-title {
+      font-weight: 600;
+      color: var(--text-color);
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .btn-group {
+      display: flex;
+      align-items: center;
+      background: var(--btn-bg);
+      border-radius: 8px;
+      padding: 2px;
+      gap: 2px;
+      border: 1px solid var(--panel-border);
+    }
+
+    .icon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border: none;
+      background: transparent;
+      color: var(--text-color);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .icon-btn:hover {
+      background: var(--btn-hover);
+      color: var(--accent);
+    }
+
+    .icon-btn:active {
+      background: var(--btn-active);
+    }
+
+    .icon-btn.active {
+      background: var(--btn-active);
+      color: var(--accent);
+    }
+
+    .icon-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .page-indicator {
+      font-size: 12px;
+      color: var(--text-muted);
+      min-width: 65px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Reading Scroll Area */
+    #reader-viewport {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 80px 20px 60px 20px;
+      scroll-behavior: smooth;
+    }
+
+    #reader-content {
+      max-width: 740px;
+      margin: 0 auto;
+      font-size: 18px;
+      line-height: 1.75;
+      color: var(--text-color);
+    }
+
+    /* Typography inside reader */
+    #reader-content h1, 
+    #reader-content h2, 
+    #reader-content h3 {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-weight: 700;
+      margin: 1.8em 0 0.8em 0;
+      line-height: 1.3;
+      color: var(--text-color);
+      letter-spacing: -0.3px;
+    }
+
+    #reader-content h1 {
+      font-size: 1.7em;
+      border-bottom: 1px solid var(--panel-border);
+      padding-bottom: 0.4em;
+    }
+
+    #reader-content h2 {
+      font-size: 1.4em;
+    }
+
+    #reader-content p,
+    #reader-content .p,
+    #reader-content .p1 {
+      margin-bottom: 1.1em;
+      line-height: 1.75;
+      text-align: justify;
+      text-justify: inter-word;
+      text-indent: 1.8em;
+      color: inherit;
+    }
+
+    #reader-content .title,
+    #reader-content .title1 {
+      font-size: 1.8em;
+      font-weight: 700;
+      margin: 1.6em 0 0.8em 0;
+      line-height: 1.3;
+      text-align: center;
+      color: var(--text-color);
+      letter-spacing: -0.3px;
+    }
+
+    #reader-content p:first-of-type,
+    #reader-content .title p,
+    #reader-content .title1 p {
+      text-indent: 0;
+    }
+
+    #reader-content img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 24px auto;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    #reader-content svg {
+      max-width: 100%;
+      max-height: 75vh;
+      height: auto;
+      display: block;
+      margin: 20px auto;
+    }
+
+    #reader-content svg image {
+      max-width: 100%;
+      height: auto;
+    }
+
+    #reader-content blockquote,
+    #reader-content epigraph {
+      display: block;
+      margin: 20px 0 20px 24px;
+      padding-left: 16px;
+      border-left: 3px solid var(--quote-border);
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    #reader-content poem {
+      display: block;
+      margin: 20px 0 20px 32px;
+      font-style: italic;
+    }
+
+    #reader-content stanza {
+      display: block;
+      margin-bottom: 14px;
+    }
+
+    #reader-content v {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    #reader-content empty-line {
+      display: block;
+      height: 18px;
+    }
+
+    /* Cover Presentation */
+    .book-cover-container {
+      text-align: center;
+      margin: 20px 0 40px 0;
+    }
+
+    .book-cover-img {
+      max-height: 380px;
+      max-width: 260px;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Table of Contents Drawer */
+    #toc-drawer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 320px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-right: 1px solid var(--panel-border);
+      box-shadow: 8px 0 32px rgba(0, 0, 0, 0.45);
+      z-index: 150;
+      transform: translateX(-100%);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    #toc-drawer.open {
+      transform: translateX(0);
+    }
+
+    .drawer-header {
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--panel-border);
+    }
+
+    .drawer-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-color);
+    }
+
+    .toc-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+
+    .toc-item {
+      padding: 10px 18px;
+      font-size: 13px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .toc-item:hover {
+      background: var(--btn-hover);
+      color: var(--text-color);
+    }
+
+    .toc-item.active {
+      background: var(--btn-active);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    #drawer-backdrop {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 140;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    #drawer-backdrop.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Loader */
+    #loader {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-color);
+      z-index: 200;
+      gap: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      transition: opacity 0.25s ease, visibility 0.25s ease;
+    }
+
+    #loader.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 3px solid rgba(171, 71, 188, 0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loader-text {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* Error State */
+    #error-box {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--panel-bg);
+      border: 1px solid rgba(244, 67, 54, 0.4);
+      padding: 24px 32px;
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      text-align: center;
+      z-index: 210;
+      display: none;
+      max-width: 420px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    #error-box.show {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .error-icon { font-size: 32px; }
+    .error-title { font-size: 15px; font-weight: 700; color: #f44336; }
+    .error-msg { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Toolbar -->
+    <div id="toolbar">
+      <div class="tool-section">
+        <button class="icon-btn" id="btn-toc" title="Оглавление (T)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+        <span class="format-badge badge-epub" id="format-badge">EPUB</span>
+        <div class="book-meta">
+          <span class="book-title" id="book-title">Загрузка...</span>
+          <span style="opacity: 0.4;">•</span>
+          <span id="book-author">—</span>
+        </div>
+      </div>
+
+      <div class="tool-section">
+        <!-- Typography Settings -->
+        <div class="btn-group">
+          <button class="icon-btn" id="btn-font-dec" title="Уменьшить шрифт (A-)">A-</button>
+          <button class="icon-btn" id="btn-font-family" title="Сменить шрифт (Serif/Sans)">Serif</button>
+          <button class="icon-btn" id="btn-font-inc" title="Увеличить шрифт (A+)">A+</button>
+        </div>
+
+        <!-- Color Themes -->
+        <div class="btn-group">
+          <button class="icon-btn active" id="btn-theme-dark" title="Тёмная тема">🌙</button>
+          <button class="icon-btn" id="btn-theme-sepia" title="Тема Сепия">📜</button>
+          <button class="icon-btn" id="btn-theme-light" title="Светлая тема">☀️</button>
+        </div>
+
+        <!-- Chapter Navigation -->
+        <div class="btn-group">
+          <button class="icon-btn" id="btn-prev-chap" title="Предыдущая глава (←)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          <span class="page-indicator" id="chapter-indicator">1 / 1</span>
+          <button class="icon-btn" id="btn-next-chap" title="Следующая глава (→)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table of Contents Drawer -->
+    <div id="drawer-backdrop"></div>
+    <div id="toc-drawer">
+      <div class="drawer-header">
+        <span class="drawer-title">Оглавление</span>
+        <button class="icon-btn" id="btn-close-drawer">✕</button>
+      </div>
+      <div class="toc-list" id="toc-items"></div>
+    </div>
+
+    <!-- Reading Area -->
+    <div id="reader-viewport">
+      <div id="reader-content"></div>
+    </div>
+
+    <!-- Loader -->
+    <div id="loader">
+      <div class="spinner"></div>
+      <div class="loader-text">Открытие книги...</div>
+    </div>
+
+    <!-- Error State -->
+    <div id="error-box">
+      <div class="error-icon">⚠️</div>
+      <div class="error-title">Ошибка чтения книги</div>
+      <div class="error-msg" id="error-msg">Не удалось разобрать содержимое файла.</div>
+    </div>
+  </div>
+
+  <!-- INLINE_FFLATE_PLACEHOLDER -->
+
+  <script>
+    (function () {
+      'use strict';
+
+      // Elements
+      const formatBadge = document.getElementById('format-badge');
+      const bookTitle = document.getElementById('book-title');
+      const bookAuthor = document.getElementById('book-author');
+      const readerViewport = document.getElementById('reader-viewport');
+      const readerContent = document.getElementById('reader-content');
+      const chapterIndicator = document.getElementById('chapter-indicator');
+      const btnPrevChap = document.getElementById('btn-prev-chap');
+      const btnNextChap = document.getElementById('btn-next-chap');
+      const btnToc = document.getElementById('btn-toc');
+      const btnCloseDrawer = document.getElementById('btn-close-drawer');
+      const tocDrawer = document.getElementById('toc-drawer');
+      const drawerBackdrop = document.getElementById('drawer-backdrop');
+      const tocItems = document.getElementById('toc-items');
+      const btnFontDec = document.getElementById('btn-font-dec');
+      const btnFontInc = document.getElementById('btn-font-inc');
+      const btnFontFamily = document.getElementById('btn-font-family');
+      const btnThemeDark = document.getElementById('btn-theme-dark');
+      const btnThemeSepia = document.getElementById('btn-theme-sepia');
+      const btnThemeLight = document.getElementById('btn-theme-light');
+      const loader = document.getElementById('loader');
+      const errorBox = document.getElementById('error-box');
+      const errorMsg = document.getElementById('error-msg');
+
+      // Book State
+      let chapters = [];
+      let currentChapterIndex = 0;
+      let bookMetadata = { title: '', author: '', format: 'EPUB' };
+      let fontSize = 18;
+      let isSerif = true;
+
+      // IPC Handshake State
+      let initReceived = false;
+      let lastLoadedPath = null;
+      let isRequestPending = false;
+
+      function updateTypography() {
+        readerContent.style.fontSize = fontSize + 'px';
+        document.body.classList.toggle('sans-serif', !isSerif);
+        btnFontFamily.textContent = isSerif ? 'Serif' : 'Sans';
+      }
+
+      function setTheme(theme) {
+        document.body.classList.remove('sepia', 'light');
+        btnThemeDark.classList.remove('active');
+        btnThemeSepia.classList.remove('active');
+        btnThemeLight.classList.remove('active');
+
+        if (theme === 'sepia') {
+          document.body.classList.add('sepia');
+          btnThemeSepia.classList.add('active');
+        } else if (theme === 'light') {
+          document.body.classList.add('light');
+          btnThemeLight.classList.add('active');
+        } else {
+          btnThemeDark.classList.add('active');
+        }
+      }
+
+      function showError(msg) {
+        loader.classList.add('hidden');
+        errorMsg.textContent = msg;
+        errorBox.classList.add('show');
+      }
+
+      function showChapter(idx) {
+        if (!chapters.length) return;
+        idx = Math.max(0, Math.min(chapters.length - 1, idx));
+        currentChapterIndex = idx;
+
+        readerContent.innerHTML = chapters[idx].html;
+        readerViewport.scrollTop = 0;
+
+        chapterIndicator.textContent = (idx + 1) + ' / ' + chapters.length;
+        btnPrevChap.disabled = idx === 0;
+        btnNextChap.disabled = idx === chapters.length - 1;
+
+        // Highlight TOC item
+        const items = tocItems.querySelectorAll('.toc-item');
+        items.forEach((it, i) => {
+          it.classList.toggle('active', i === idx);
+        });
+      }
+
+      function buildTocUI() {
+        tocItems.innerHTML = '';
+        chapters.forEach((ch, idx) => {
+          const div = document.createElement('div');
+          div.className = 'toc-item' + (idx === currentChapterIndex ? ' active' : '');
+          div.textContent = ch.title || ('Глава ' + (idx + 1));
+          div.addEventListener('click', () => {
+            showChapter(idx);
+            closeDrawer();
+          });
+          tocItems.appendChild(div);
+        });
+      }
+
+      function openDrawer() {
+        tocDrawer.classList.add('open');
+        drawerBackdrop.classList.add('show');
+      }
+
+      function closeDrawer() {
+        tocDrawer.classList.remove('open');
+        drawerBackdrop.classList.remove('show');
+      }
+
+      // Event listeners
+      btnPrevChap.addEventListener('click', () => showChapter(currentChapterIndex - 1));
+      btnNextChap.addEventListener('click', () => showChapter(currentChapterIndex + 1));
+      btnToc.addEventListener('click', openDrawer);
+      btnCloseDrawer.addEventListener('click', closeDrawer);
+      drawerBackdrop.addEventListener('click', closeDrawer);
+
+      btnFontDec.addEventListener('click', () => {
+        if (fontSize > 13) {
+          fontSize -= 2;
+          updateTypography();
+        }
+      });
+
+      btnFontInc.addEventListener('click', () => {
+        if (fontSize < 34) {
+          fontSize += 2;
+          updateTypography();
+        }
+      });
+
+      btnFontFamily.addEventListener('click', () => {
+        isSerif = !isSerif;
+        updateTypography();
+      });
+
+      btnThemeDark.addEventListener('click', () => setTheme('dark'));
+      btnThemeSepia.addEventListener('click', () => setTheme('sepia'));
+      btnThemeLight.addEventListener('click', () => setTheme('light'));
+
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'ArrowLeft' || e.code === 'PageUp') {
+          e.preventDefault();
+          showChapter(currentChapterIndex - 1);
+        } else if (e.code === 'ArrowRight' || e.code === 'PageDown') {
+          e.preventDefault();
+          showChapter(currentChapterIndex + 1);
+        } else if (e.code === 'KeyT') {
+          if (tocDrawer.classList.contains('open')) closeDrawer();
+          else openDrawer();
+        } else if (e.code === 'Escape') {
+          closeDrawer();
+        }
+      });
+
+      // -------------------------------------------------------------
+      // PARSERS: EPUB & FB2
+      // -------------------------------------------------------------
+
+      function parseFb2(xmlString) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(xmlString, 'text/xml');
+        if (doc.querySelector('parsererror')) {
+          throw new Error('Ошибка разбора структуры XML FB2');
+        }
+
+        // Title Info
+        const titleEl = doc.querySelector('description title-info book-title');
+        const authorEl = doc.querySelector('description title-info author');
+        let authorStr = '';
+        if (authorEl) {
+          const fn = authorEl.querySelector('first-name')?.textContent || '';
+          const ln = authorEl.querySelector('last-name')?.textContent || '';
+          authorStr = (fn + ' ' + ln).trim();
+        }
+
+        bookMetadata.title = titleEl ? titleEl.textContent.trim() : 'Книга FB2';
+        bookMetadata.author = authorStr || 'Неизвестный автор';
+        bookMetadata.format = 'FB2';
+
+        // Extract binary images: <binary id="...">base64</binary>
+        const binaries = {};
+        const binaryEls = doc.querySelectorAll('binary');
+        binaryEls.forEach(b => {
+          const id = b.getAttribute('id');
+          const mime = b.getAttribute('content-type') || 'image/jpeg';
+          if (id) {
+            binaries[id] = 'data:' + mime + ';base64,' + b.textContent.replace(/\s+/g, '');
+          }
+        });
+
+        // Parse sections into chapters
+        const parsedChapters = [];
+        const bodyEl = doc.querySelector('body');
+        if (!bodyEl) throw new Error('В файле FB2 отсутствует тело документа (body)');
+
+        const sections = bodyEl.querySelectorAll(':scope > section');
+
+        if (sections.length > 0) {
+          sections.forEach((sec, idx) => {
+            const secTitleEl = sec.querySelector(':scope > title');
+            const secTitle = secTitleEl ? secTitleEl.textContent.trim() : ('Раздел ' + (idx + 1));
+            
+            // Format section innerHTML
+            const html = formatFb2Section(sec, binaries);
+            parsedChapters.push({ title: secTitle, html: html });
+          });
+        } else {
+          // Single flat document
+          const html = formatFb2Section(bodyEl, binaries);
+          parsedChapters.push({ title: bookMetadata.title, html: html });
+        }
+
+        return parsedChapters;
+      }
+
+      function formatFb2Section(secEl, binaries) {
+        let out = '';
+        secEl.childNodes.forEach(node => {
+          if (node.nodeType !== 1) return;
+          const tag = node.tagName.toLowerCase();
+
+          if (tag === 'title') {
+            out += '<h2>' + node.textContent.trim() + '</h2>';
+          } else if (tag === 'p') {
+            out += '<p>' + node.innerHTML + '</p>';
+          } else if (tag === 'empty-line') {
+            out += '<empty-line></empty-line>';
+          } else if (tag === 'epigraph') {
+            out += '<epigraph>' + node.innerHTML + '</epigraph>';
+          } else if (tag === 'poem') {
+            out += '<poem>' + node.innerHTML + '</poem>';
+          } else if (tag === 'image') {
+            const href = node.getAttribute('l:href') || node.getAttribute('xlink:href') || node.getAttribute('href') || '';
+            const key = href.replace(/^#/, '');
+            if (binaries[key]) {
+              out += '<img src="' + binaries[key] + '" alt="Иллюстрация" />';
+            }
+          } else if (tag === 'section') {
+            out += formatFb2Section(node, binaries);
+          }
+        });
+        return out;
+      }
+
+      function parseEpub(unzipped) {
+        const fflate = window.fflate;
+        // 1. Locate container.xml
+        const containerBytes = unzipped['META-INF/container.xml'];
+        if (!containerBytes) {
+          throw new Error('Некорректный EPUB: отсутствует META-INF/container.xml');
+        }
+
+        const containerXml = fflate.strFromU8(containerBytes);
+        const parser = new DOMParser();
+        const containerDoc = parser.parseFromString(containerXml, 'text/xml');
+        const rootfile = containerDoc.getElementsByTagName('rootfile')[0] || containerDoc.querySelector('rootfile');
+        const opfPath = rootfile ? rootfile.getAttribute('full-path') : 'OEBPS/content.opf';
+
+        // 2. Read OPF file
+        const opfBytes = unzipped[opfPath];
+        if (!opfBytes) {
+          throw new Error('Не найден файл манифеста: ' + opfPath);
+        }
+
+        const opfDir = opfPath.includes('/') ? opfPath.slice(0, opfPath.lastIndexOf('/') + 1) : '';
+        const opfDoc = parser.parseFromString(fflate.strFromU8(opfBytes), 'text/xml');
+
+        // Metadata
+        const titleEl = opfDoc.getElementsByTagName('dc:title')[0] || opfDoc.getElementsByTagName('title')[0] || opfDoc.querySelector('metadata dc\\:title, metadata title');
+        const authorEl = opfDoc.getElementsByTagName('dc:creator')[0] || opfDoc.getElementsByTagName('creator')[0] || opfDoc.querySelector('metadata dc\\:creator, metadata creator');
+        bookMetadata.title = titleEl ? titleEl.textContent.trim() : 'Книга EPUB';
+        bookMetadata.author = authorEl ? authorEl.textContent.trim() : 'Неизвестный автор';
+        bookMetadata.format = 'EPUB';
+
+        // Manifest map
+        const manifest = {};
+        const items = Array.from(opfDoc.getElementsByTagName('item'));
+        (items.length ? items : opfDoc.querySelectorAll('manifest item')).forEach(it => {
+          const id = it.getAttribute('id');
+          const href = it.getAttribute('href');
+          const media = it.getAttribute('media-type');
+          if (id && href) {
+            manifest[id] = { href: opfDir + href, mediaType: media };
+          }
+        });
+
+        // Reading order (spine)
+        const spineItems = [];
+        const itemrefs = Array.from(opfDoc.getElementsByTagName('itemref'));
+        (itemrefs.length ? itemrefs : opfDoc.querySelectorAll('spine itemref')).forEach(ir => {
+          const idref = ir.getAttribute('idref');
+          if (manifest[idref]) {
+            spineItems.push(manifest[idref]);
+          }
+        });
+
+        // Table of contents from NCX or Spine
+        const tocTitles = {};
+        const ncxItem = Object.values(manifest).find(m => m.mediaType === 'application/x-dtbncx+xml');
+        if (ncxItem && unzipped[ncxItem.href]) {
+          try {
+            const ncxDoc = parser.parseFromString(fflate.strFromU8(unzipped[ncxItem.href]), 'text/xml');
+            const navPoints = Array.from(ncxDoc.getElementsByTagName('navPoint'));
+            navPoints.forEach(np => {
+              const textEl = np.getElementsByTagName('text')[0];
+              const contentEl = np.getElementsByTagName('content')[0];
+              const text = textEl ? textEl.textContent.trim() : '';
+              const src = contentEl ? contentEl.getAttribute('src') : '';
+              if (text && src) {
+                const fullSrc = opfDir + src.split('#')[0];
+                tocTitles[fullSrc] = text;
+              }
+            });
+          } catch (ncxErr) {
+            console.warn('[EPUB] Failed to parse NCX:', ncxErr);
+          }
+        }
+
+        // Build chapters
+        const parsedChapters = [];
+        spineItems.forEach((sp, idx) => {
+          const fileBytes = unzipped[sp.href];
+          if (!fileBytes) return;
+
+          const fileDir = sp.href.includes('/') ? sp.href.slice(0, sp.href.lastIndexOf('/') + 1) : '';
+          const xhtml = fflate.strFromU8(fileBytes);
+          
+          // Replace self-closing <title/> and <link/> that break HTML5 parsing
+          const cleanXhtml = xhtml.replace(/<title\s*\/>/gi, '<title></title>');
+
+          // Parse XHTML safely (XML parser first, HTML fallback)
+          let chDoc;
+          try {
+            chDoc = parser.parseFromString(cleanXhtml, 'application/xhtml+xml');
+            if (chDoc.querySelector('parsererror')) {
+              chDoc = parser.parseFromString(cleanXhtml, 'text/html');
+            }
+          } catch (e) {
+            chDoc = parser.parseFromString(cleanXhtml, 'text/html');
+          }
+
+          // Rewrite image and svg image sources to base64 data URLs
+          chDoc.querySelectorAll('img, image').forEach(img => {
+            const rawSrc = img.getAttribute('src') || img.getAttribute('xlink:href') || img.getAttribute('href');
+            if (rawSrc && !rawSrc.startsWith('data:') && !rawSrc.startsWith('http')) {
+              let fullImgPath = rawSrc;
+              if (rawSrc.startsWith('/')) fullImgPath = rawSrc.slice(1);
+              else fullImgPath = normalizePath(fileDir + rawSrc);
+
+              const imgBytes = unzipped[fullImgPath] || unzipped[decodeURIComponent(fullImgPath)];
+              if (imgBytes) {
+                const mime = guessMime(fullImgPath);
+                const base64 = toBase64(imgBytes);
+                const dataUrl = 'data:' + mime + ';base64,' + base64;
+                if (img.tagName.toLowerCase() === 'image') {
+                  img.setAttribute('href', dataUrl);
+                  img.setAttribute('xlink:href', dataUrl);
+                } else {
+                  img.setAttribute('src', dataUrl);
+                }
+              }
+            }
+          });
+
+          // Extract title cleanly
+          let chapTitle = tocTitles[sp.href] || tocTitles[sp.href.split('#')[0]];
+          if (!chapTitle) {
+            // Search inside body for semantic headings only
+            const h = chDoc.body ? chDoc.body.querySelector('h1, h2, h3, h4, [class*="title"], [class*="chapter"]') : null;
+            if (h) {
+              const text = h.textContent.trim().replace(/\s+/g, ' ');
+              if (text && text.length < 70) {
+                chapTitle = text;
+              }
+            }
+          }
+
+          if (!chapTitle) {
+            if (sp.href.toLowerCase().includes('cover') || chDoc.querySelector('.cover, svg, img')) {
+              chapTitle = 'Обложка';
+            } else if (sp.href.toLowerCase().includes('epigraph') || chDoc.querySelector('.epigraph')) {
+              chapTitle = 'Эпиграф';
+            } else {
+              chapTitle = 'Раздел ' + (idx + 1);
+            }
+          }
+
+          let htmlContent = chDoc.body ? chDoc.body.innerHTML : '';
+          if (!htmlContent.trim()) {
+            const bodyMatch = cleanXhtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+            htmlContent = bodyMatch ? bodyMatch[1] : cleanXhtml;
+          }
+
+          parsedChapters.push({
+            title: chapTitle,
+            html: htmlContent
+          });
+        });
+
+        return parsedChapters;
+      }
+
+      function normalizePath(p) {
+        const parts = p.split('/');
+        const out = [];
+        for (const part of parts) {
+          if (part === '.' || !part) continue;
+          if (part === '..') out.pop();
+          else out.push(part);
+        }
+        return out.join('/');
+      }
+
+      function guessMime(path) {
+        const ext = path.toLowerCase().slice(path.lastIndexOf('.'));
+        if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
+        if (ext === '.png') return 'image/png';
+        if (ext === '.gif') return 'image/gif';
+        if (ext === '.svg') return 'image/svg+xml';
+        if (ext === '.webp') return 'image/webp';
+        return 'application/octet-stream';
+      }
+
+      function toBase64(bytes) {
+        let binary = '';
+        const len = bytes.byteLength;
+        for (let i = 0; i < len; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+      }
+
+      // -------------------------------------------------------------
+      // MAIN RENDERER
+      // -------------------------------------------------------------
+
+      function renderEbook(buffer, filename) {
+        try {
+          const bytes = new Uint8Array(buffer);
+          if (bytes.length < 10) {
+            throw new Error('Файл слишком мал');
+          }
+
+          const isZip = bytes[0] === 0x50 && bytes[1] === 0x4B; // 'PK'
+          const ext = filename ? filename.toLowerCase().slice(filename.lastIndexOf('.')) : '';
+
+          if (isZip || ext === '.epub') {
+            const fflate = window.fflate;
+            if (!fflate) {
+              throw new Error('Библиотека fflate не загружена');
+            }
+
+            const unzipped = fflate.unzipSync(bytes);
+            
+            // Check if it's FB2 in ZIP
+            const fb2Entry = Object.keys(unzipped).find(k => k.toLowerCase().endsWith('.fb2'));
+            if (fb2Entry) {
+              const xmlText = fflate.strFromU8(unzipped[fb2Entry]);
+              chapters = parseFb2(xmlText);
+              bookMetadata.format = 'FB2';
+            } else {
+              chapters = parseEpub(unzipped);
+              bookMetadata.format = 'EPUB';
+            }
+          } else {
+            // Raw FB2 XML text
+            const decoder = new TextDecoder('utf-8');
+            let text = decoder.decode(bytes);
+            
+            // Check encoding attribute if windows-1251
+            if (text.includes('encoding="windows-1251"') || text.includes('encoding="cp1251"')) {
+              try {
+                const cp1251Decoder = new TextDecoder('windows-1251');
+                text = cp1251Decoder.decode(bytes);
+              } catch (e) {
+                console.warn('windows-1251 decoder not supported, fallback to utf-8');
+              }
+            }
+
+            chapters = parseFb2(text);
+            bookMetadata.format = 'FB2';
+          }
+
+          if (!chapters.length) {
+            throw new Error('В книге не найдено глав для отображения');
+          }
+
+          // Update header
+          formatBadge.textContent = bookMetadata.format;
+          formatBadge.className = 'format-badge ' + (bookMetadata.format === 'FB2' ? 'badge-fb2' : 'badge-epub');
+          bookTitle.textContent = bookMetadata.title;
+          bookAuthor.textContent = bookMetadata.author;
+
+          buildTocUI();
+          showChapter(0);
+
+          loader.classList.add('hidden');
+        } catch (err) {
+          console.error('[E-Book Reader Error]', err);
+          showError(err.message || 'Ошибка открытия электронной книги');
+        }
+      }
+
+      // -------------------------------------------------------------
+      // IPC HANDSHAKE
+      // -------------------------------------------------------------
+
+      let readyAttempts = 0;
+      const readyInterval = setInterval(() => {
+        if (initReceived || readyAttempts >= 3) {
+          clearInterval(readyInterval);
+          return;
+        }
+        readyAttempts++;
+        window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
+      }, 300);
+      window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
+
+      window.addEventListener('message', (event) => {
+        const msg = event.data;
+        if (!msg || typeof msg !== 'object') return;
+
+        switch (msg.type) {
+          case 'PEEKIT_INIT': {
+            initReceived = true;
+            clearInterval(readyInterval);
+
+            const payload = msg.payload || msg;
+            if (payload.theme) {
+              const isLight = payload.theme === 'light' || (typeof payload.theme === 'object' && payload.theme.isDark === false);
+              setTheme(isLight ? 'light' : 'dark');
+            }
+
+            const currentPath = payload.filePath || payload.fileName;
+            if (currentPath && currentPath === lastLoadedPath && (isRequestPending || chapters.length)) {
+              return;
+            }
+            lastLoadedPath = currentPath;
+            isRequestPending = true;
+
+            loader.classList.remove('hidden');
+            errorBox.classList.remove('show');
+
+            window.parent.postMessage({ type: 'PEEKIT_REQUEST_DATA' }, '*');
+            break;
+          }
+
+          case 'PEEKIT_THEME_CHANGED': {
+            const theme = msg.payload?.theme || msg.theme;
+            if (theme) {
+              const isLight = theme === 'light' || (typeof theme === 'object' && theme.isDark === false);
+              setTheme(isLight ? 'light' : 'dark');
+            }
+            break;
+          }
+
+          case 'PEEKIT_DATA_RESPONSE': {
+            isRequestPending = false;
+            const rawData = msg.payload?.data !== undefined ? msg.payload.data : (msg.payload !== undefined ? msg.payload : msg.data);
+            const error = msg.payload?.error || msg.error;
+
+            if (error) {
+              showError('Ошибка чтения файла: ' + error);
+              return;
+            }
+
+            if (!rawData) {
+              showError('Пустые данные файла');
+              return;
+            }
+
+            let buffer = null;
+            if (rawData instanceof ArrayBuffer) {
+              buffer = rawData;
+            } else if (ArrayBuffer.isView(rawData)) {
+              buffer = rawData.buffer.slice(rawData.byteOffset, rawData.byteOffset + rawData.byteLength);
+            } else if (Array.isArray(rawData)) {
+              const u8 = new Uint8Array(rawData);
+              rawData.length = 0;
+              buffer = u8.buffer;
+            } else if (typeof rawData === 'string') {
+              const bin = atob(rawData);
+              const bytes = new Uint8Array(bin.length);
+              for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+              buffer = bytes.buffer;
+            }
+
+            if (!buffer) {
+              showError('Неподдерживаемый формат данных буфера');
+              return;
+            }
+
+            renderEbook(buffer, lastLoadedPath);
+            break;
+          }
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

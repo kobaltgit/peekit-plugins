@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PeekIt Encapsulated PostScript Viewer</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    :root {
+      --bg-color: #121216;
+      --panel-bg: rgba(26, 26, 34, 0.88);
+      --panel-border: rgba(255, 255, 255, 0.09);
+      --text-color: #e4e4e9;
+      --text-muted: #8c8c9a;
+      --accent: #ff5722;
+      --accent-hover: #ff7043;
+      --btn-bg: rgba(255, 255, 255, 0.06);
+      --btn-hover: rgba(255, 255, 255, 0.12);
+      --btn-active: rgba(255, 87, 34, 0.25);
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+    }
+
+    body.light {
+      --bg-color: #f3f3f6;
+      --panel-bg: rgba(255, 255, 255, 0.9);
+      --panel-border: rgba(0, 0, 0, 0.08);
+      --text-color: #1a1a20;
+      --text-muted: #6b6b78;
+      --accent: #e64a19;
+      --accent-hover: #f4511e;
+      --btn-bg: rgba(0, 0, 0, 0.05);
+      --btn-hover: rgba(0, 0, 0, 0.09);
+      --btn-active: rgba(230, 74, 25, 0.18);
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    #app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Floating Top Toolbar */
+    #toolbar {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      z-index: 100;
+      gap: 12px;
+    }
+
+    .tool-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .eps-badge {
+      background: linear-gradient(135deg, #3d1406, #6b210a);
+      color: #ff7043;
+      font-weight: 800;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 112, 67, 0.4);
+      letter-spacing: 0.5px;
+    }
+
+    body.light .eps-badge {
+      background: linear-gradient(135deg, #fbe9e7, #ffccbc);
+      color: #d84315;
+      border-color: rgba(216, 67, 21, 0.3);
+    }
+
+    .info-pill {
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .info-dot {
+      opacity: 0.5;
+    }
+
+    .engine-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .engine-tiff {
+      background: rgba(0, 188, 212, 0.15);
+      color: #00bcd4;
+      border: 1px solid rgba(0, 188, 212, 0.3);
+    }
+
+    .engine-vector {
+      background: rgba(255, 152, 0, 0.15);
+      color: #ff9800;
+      border: 1px solid rgba(255, 152, 0, 0.3);
+    }
+
+    .btn-group {
+      display: flex;
+      align-items: center;
+      background: var(--btn-bg);
+      border-radius: 8px;
+      padding: 2px;
+      gap: 2px;
+      border: 1px solid var(--panel-border);
+    }
+
+    .icon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border: none;
+      background: transparent;
+      color: var(--text-color);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .icon-btn:hover {
+      background: var(--btn-hover);
+      color: var(--accent);
+    }
+
+    .icon-btn:active {
+      background: var(--btn-active);
+    }
+
+    .zoom-text {
+      min-width: 46px;
+      text-align: center;
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      color: var(--text-color);
+    }
+
+    /* Viewport Area */
+    #viewport {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      cursor: grab;
+    }
+
+    #viewport.dragging {
+      cursor: grabbing;
+    }
+
+    #viewport-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      pointer-events: none;
+    }
+
+    /* Loading Overlay */
+    #loader {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-color);
+      z-index: 50;
+      gap: 16px;
+      transition: opacity 0.25s ease, visibility 0.25s ease;
+    }
+
+    #loader.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 3px solid rgba(255, 87, 34, 0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loader-text {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* Error Box */
+    #error-box {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--panel-bg);
+      border: 1px solid rgba(244, 67, 54, 0.4);
+      padding: 24px 32px;
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      text-align: center;
+      z-index: 60;
+      display: none;
+      max-width: 420px;
+    }
+
+    #error-box.show {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .error-icon {
+      font-size: 32px;
+    }
+
+    .error-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f44336;
+    }
+
+    .error-msg {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Toolbar -->
+    <div id="toolbar">
+      <div class="tool-section">
+        <span class="eps-badge">EPS</span>
+        <div class="info-pill">
+          <span id="meta-res">—</span>
+          <span class="info-dot">•</span>
+          <span id="meta-creator">PostScript</span>
+        </div>
+        <span id="meta-engine" class="engine-badge engine-vector">Вектор</span>
+      </div>
+
+      <div class="tool-section">
+        <div class="btn-group">
+          <button class="icon-btn" id="btn-zoom-out" title="Уменьшить (Ctrl -)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
+          <span class="zoom-text" id="zoom-val">100%</span>
+          <button class="icon-btn" id="btn-zoom-in" title="Увеличить (Ctrl +)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
+        </div>
+
+        <div class="btn-group">
+          <button class="icon-btn" id="btn-fit" title="Вписать в окно (Пробел)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+          </button>
+          <button class="icon-btn" id="btn-actual" title="100% масштаб">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Viewport Container with 1 Canvas -->
+    <div id="viewport">
+      <canvas id="viewport-canvas"></canvas>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loader">
+      <div class="spinner"></div>
+      <div class="loader-text">Чтение PostScript файла...</div>
+    </div>
+
+    <!-- Error State -->
+    <div id="error-box">
+      <div class="error-icon">⚠️</div>
+      <div class="error-title">Ошибка чтения EPS</div>
+      <div class="error-msg" id="error-msg">Не удалось декодировать структуру PostScript.</div>
+    </div>
+  </div>
+
+  <!-- INLINE_LIBRARIES_PLACEHOLDER -->
+
+  <script>
+    (function () {
+      'use strict';
+
+      // Elements
+      const viewport = document.getElementById('viewport');
+      const viewportCanvas = document.getElementById('viewport-canvas');
+      const loader = document.getElementById('loader');
+      const errorBox = document.getElementById('error-box');
+      const errorMsg = document.getElementById('error-msg');
+      const metaRes = document.getElementById('meta-res');
+      const metaCreator = document.getElementById('meta-creator');
+      const metaEngine = document.getElementById('meta-engine');
+      const zoomVal = document.getElementById('zoom-val');
+      const btnZoomIn = document.getElementById('btn-zoom-in');
+      const btnZoomOut = document.getElementById('btn-zoom-out');
+      const btnFit = document.getElementById('btn-fit');
+      const btnActual = document.getElementById('btn-actual');
+
+      // State
+      let sourceCanvas = null;
+      let scale = 1.0;
+      let panX = 0;
+      let panY = 0;
+      let isDragging = false;
+      let startX = 0;
+      let startY = 0;
+      let initialPanX = 0;
+      let initialPanY = 0;
+      let imgWidth = 0;
+      let imgHeight = 0;
+      let animFrameId = null;
+      let checkerPattern = null;
+      let lastThemeIsDark = true;
+
+      let initReceived = false;
+      let lastLoadedPath = null;
+      let isRequestPending = false;
+
+      // Provide fallback for ToPDF._flt if used by ToContext2D
+      if (typeof window.ToPDF === 'undefined') {
+        window.ToPDF = {
+          _flt: function (x) {
+            return Math.round(x * 100) / 100;
+          }
+        };
+      }
+
+      function createCheckerPattern(isLight) {
+        const pc = document.createElement('canvas');
+        pc.width = 24;
+        pc.height = 24;
+        const pctx = pc.getContext('2d');
+        pctx.fillStyle = isLight ? '#ffffff' : '#1e1e24';
+        pctx.fillRect(0, 0, 24, 24);
+        pctx.fillStyle = isLight ? '#e6e6ec' : '#292932';
+        pctx.fillRect(0, 0, 12, 12);
+        pctx.fillRect(12, 12, 12, 12);
+        const ctx = viewportCanvas.getContext('2d');
+        checkerPattern = ctx.createPattern(pc, 'repeat');
+      }
+
+      function scheduleRender() {
+        if (animFrameId) return;
+        animFrameId = requestAnimationFrame(() => {
+          animFrameId = null;
+          drawFrame();
+        });
+      }
+
+      function drawFrame() {
+        if (!sourceCanvas || !imgWidth || !imgHeight) return;
+
+        const vw = viewport.clientWidth;
+        const vh = viewport.clientHeight;
+        if (!vw || !vh) return;
+
+        if (viewportCanvas.width !== vw || viewportCanvas.height !== vh) {
+          viewportCanvas.width = vw;
+          viewportCanvas.height = vh;
+        }
+
+        const ctx = viewportCanvas.getContext('2d');
+        ctx.clearRect(0, 0, vw, vh);
+
+        const dw = imgWidth * scale;
+        const dh = imgHeight * scale;
+        const dx = (vw - dw) / 2 + panX;
+        const dy = (vh - dh) / 2 + panY;
+
+        const isLight = document.body.classList.contains('light');
+        if (!checkerPattern || isLight === lastThemeIsDark) {
+          lastThemeIsDark = !isLight;
+          createCheckerPattern(isLight);
+        }
+
+        // Transparency checkerboard
+        ctx.fillStyle = checkerPattern;
+        ctx.fillRect(dx, dy, dw, dh);
+
+        // Drop shadow & render
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+        ctx.shadowBlur = 20;
+        ctx.shadowOffsetY = 6;
+        ctx.drawImage(sourceCanvas, dx, dy, dw, dh);
+        ctx.restore();
+
+        // Subtle frame outline
+        ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.12)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(dx, dy, dw, dh);
+
+        zoomVal.textContent = Math.round(scale * 100) + '%';
+      }
+
+      function setZoom(newScale, focalX, focalY) {
+        const minScale = 0.05;
+        const maxScale = 32.0;
+        newScale = Math.max(minScale, Math.min(maxScale, newScale));
+        if (Math.abs(newScale - scale) < 0.0001) return;
+
+        const vw = viewport.clientWidth;
+        const vh = viewport.clientHeight;
+
+        const fx = focalX !== undefined ? focalX : vw / 2;
+        const fy = focalY !== undefined ? focalY : vh / 2;
+
+        const curImgX = (fx - (vw - imgWidth * scale) / 2 - panX) / scale;
+        const curImgY = (fy - (vh - imgHeight * scale) / 2 - panY) / scale;
+
+        scale = newScale;
+        panX = fx - (vw - imgWidth * scale) / 2 - curImgX * scale;
+        panY = fy - (vh - imgHeight * scale) / 2 - curImgY * scale;
+
+        scheduleRender();
+      }
+
+      function fitToWindow() {
+        if (!imgWidth || !imgHeight) return;
+        const vw = viewport.clientWidth - 80;
+        const vh = viewport.clientHeight - 120;
+        const s = Math.min(vw / imgWidth, vh / imgHeight, 1.0);
+        scale = Math.max(s, 0.05);
+        panX = 0;
+        panY = 0;
+        scheduleRender();
+      }
+
+      // Pan & Zoom Events
+      viewport.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const factor = e.deltaY < 0 ? 1.15 : 0.85;
+        const rect = viewport.getBoundingClientRect();
+        setZoom(scale * factor, e.clientX - rect.left, e.clientY - rect.top);
+      }, { passive: false });
+
+      viewport.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        initialPanX = panX;
+        initialPanY = panY;
+        viewport.classList.add('dragging');
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        panX = initialPanX + (e.clientX - startX);
+        panY = initialPanY + (e.clientY - startY);
+        scheduleRender();
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        viewport.classList.remove('dragging');
+      });
+
+      // Controls
+      btnZoomIn.addEventListener('click', () => setZoom(scale * 1.25));
+      btnZoomOut.addEventListener('click', () => setZoom(scale * 0.8));
+      btnFit.addEventListener('click', fitToWindow);
+      btnActual.addEventListener('click', () => setZoom(1.0));
+
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+          e.preventDefault();
+          fitToWindow();
+        } else if (e.code === 'Digit0' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          fitToWindow();
+        } else if (e.code === 'Digit1' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          setZoom(1.0);
+        }
+      });
+
+      function showError(msg) {
+        loader.classList.add('hidden');
+        errorMsg.textContent = msg;
+        errorBox.classList.add('show');
+      }
+
+      // Parse EPS Headers & Metadata
+      function parseEpsMeta(bytes) {
+        const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+        const isDosEps = bytes[0] === 0xC5 && bytes[1] === 0xD0 && bytes[2] === 0xD3 && bytes[3] === 0xC6;
+
+        let psOffset = 0;
+        let psLength = bytes.length;
+        let tiffOffset = 0;
+        let tiffLength = 0;
+
+        if (isDosEps && bytes.length >= 30) {
+          psOffset = view.getUint32(4, true);
+          psLength = view.getUint32(8, true);
+          tiffOffset = view.getUint32(20, true);
+          tiffLength = view.getUint32(24, true);
+        } else {
+          for (let i = 0; i < Math.min(bytes.length - 1, 1024); i++) {
+            if (bytes[i] === 0x25 && bytes[i + 1] === 0x21) {
+              psOffset = i;
+              break;
+            }
+          }
+        }
+
+        const maxHeader = Math.min(psLength, 32768);
+        const headerSlice = bytes.subarray(psOffset, psOffset + maxHeader);
+        let headerText = '';
+        for (let i = 0; i < headerSlice.length; i++) {
+          headerText += String.fromCharCode(headerSlice[i]);
+        }
+
+        const meta = {
+          isDosEps,
+          hasTiff: tiffLength > 0,
+          tiffOffset,
+          tiffLength,
+          psOffset,
+          psLength,
+          creator: null,
+          title: null,
+          bbox: null,
+          width: 0,
+          height: 0
+        };
+
+        const lines = headerText.split(/[\r\n]+/);
+        for (const line of lines) {
+          const tr = line.trim();
+          if (tr.startsWith('%%Creator:')) {
+            meta.creator = tr.replace('%%Creator:', '').trim();
+          } else if (tr.startsWith('%%Title:')) {
+            meta.title = tr.replace('%%Title:', '').trim();
+          } else if (tr.startsWith('%%BoundingBox:') && !meta.bbox) {
+            const pts = tr.replace('%%BoundingBox:', '').trim().split(/\s+/).map(Number);
+            if (pts.length === 4 && pts.every(n => !isNaN(n))) {
+              meta.bbox = pts;
+              meta.width = Math.abs(pts[2] - pts[0]);
+              meta.height = Math.abs(pts[3] - pts[1]);
+            }
+          } else if (tr.startsWith('%%HiResBoundingBox:') || tr.startsWith('%%CropBox:')) {
+            const pts = tr.split(':')[1]?.trim().split(/\s+/).map(Number);
+            if (pts && pts.length === 4 && pts.every(n => !isNaN(n))) {
+              meta.width = Math.round(Math.abs(pts[2] - pts[0]));
+              meta.height = Math.round(Math.abs(pts[3] - pts[1]));
+            }
+          }
+        }
+
+        return meta;
+      }
+
+      // Robust TIFF preview decoder supporting Adobe Palette+Alpha and standard TIFF
+      function decodeTiffPreview(bytes) {
+        if (!window.UTIF) return null;
+        const ifds = window.UTIF.decode(bytes);
+        if (!ifds || ifds.length === 0) return null;
+        const ifd = ifds[0];
+
+        const w = ifd.t256 ? ifd.t256[0] : (ifd.width || 0);
+        const h = ifd.t257 ? ifd.t257[0] : (ifd.height || 0);
+        if (!w || !h) return null;
+
+        const intp = ifd.t262 ? ifd.t262[0] : 2; // 3=Palette
+        const cmpr = ifd.t259 ? ifd.t259[0] : 1; // 1=Uncompressed
+        const smpls = ifd.t277 ? ifd.t277[0] : (ifd.t258 ? ifd.t258.length : 1);
+        const bps = ifd.t258 ? ifd.t258[0] : 8;
+
+        // Custom accurate decoding for Palette Color (PhotometricInterpretation = 3)
+        // Highly common in Adobe Illustrator EPS where smpls = 2 (Palette index + Alpha channel)
+        if (intp === 3 && cmpr === 1 && ifd.t320) {
+          const soff = ifd.t273 ? ifd.t273[0] : 0;
+          const bcnt = ifd.t279 ? ifd.t279[0] : (w * h * smpls);
+          const strip = bytes.subarray(soff, soff + bcnt);
+          const map = ifd.t320;
+          const rgba = new Uint8Array(w * h * 4);
+
+          if (smpls === 2 && bps === 8) {
+            for (let i = 0; i < w * h; i++) {
+              const mi = strip[i * 2];
+              const alpha = strip[i * 2 + 1];
+              const qi = i * 4;
+              rgba[qi] = map[mi] >> 8;
+              rgba[qi + 1] = map[256 + mi] >> 8;
+              rgba[qi + 2] = map[512 + mi] >> 8;
+              rgba[qi + 3] = alpha;
+            }
+            return { width: w, height: h, rgba };
+          } else if (smpls === 1 && bps === 8) {
+            for (let i = 0; i < w * h; i++) {
+              const mi = strip[i];
+              const qi = i * 4;
+              rgba[qi] = map[mi] >> 8;
+              rgba[qi + 1] = map[256 + mi] >> 8;
+              rgba[qi + 2] = map[512 + mi] >> 8;
+              rgba[qi + 3] = 255;
+            }
+            return { width: w, height: h, rgba };
+          }
+        }
+
+        // Fix BitsPerSample array length if SamplesPerPixel is larger
+        if (ifd.t258 && ifd.t277 && ifd.t277[0] > ifd.t258.length) {
+          const fixedBps = [];
+          for (let k = 0; k < ifd.t277[0]; k++) fixedBps.push(ifd.t258[0]);
+          ifd.t258 = fixedBps;
+        }
+
+        window.UTIF.decodeImage(bytes, ifd);
+        const rgba = window.UTIF.toRGBA8(ifd);
+        return { width: ifd.width, height: ifd.height, rgba };
+      }
+
+      function renderEps(buffer) {
+        try {
+          const bytes = new Uint8Array(buffer);
+          if (bytes.length < 10) {
+            throw new Error('Файл слишком мал для корректного EPS');
+          }
+
+          const meta = parseEpsMeta(bytes);
+
+          // Release previous canvas
+          if (sourceCanvas) {
+            sourceCanvas.width = 1;
+            sourceCanvas.height = 1;
+            sourceCanvas = null;
+          }
+
+          let rendered = false;
+
+          // 1. Fast Path: Embedded TIFF Preview
+          if (meta.hasTiff && window.UTIF) {
+            try {
+              const tiffSlice = bytes.subarray(meta.tiffOffset, meta.tiffOffset + meta.tiffLength);
+              const decoded = decodeTiffPreview(tiffSlice);
+              if (decoded && decoded.width > 0 && decoded.height > 0) {
+                const sc = document.createElement('canvas');
+                sc.width = decoded.width;
+                sc.height = decoded.height;
+                const sctx = sc.getContext('2d');
+                const imgData = sctx.createImageData(sc.width, sc.height);
+                imgData.data.set(decoded.rgba);
+                sctx.putImageData(imgData, 0, 0);
+
+                sourceCanvas = sc;
+                imgWidth = sc.width;
+                imgHeight = sc.height;
+                rendered = true;
+
+                metaEngine.textContent = 'TIFF Превью';
+                metaEngine.className = 'engine-badge engine-tiff';
+              }
+            } catch (tiffErr) {
+              console.warn('[EPS] Failed to decode TIFF preview, falling back to PostScript interpreter:', tiffErr);
+            }
+          }
+
+          // 2. Vector Path: PostScript Interpreter (UDOC.js / FromPS.js)
+          if (!rendered) {
+            if (typeof window.FromPS === 'undefined' || typeof window.ToContext2D === 'undefined') {
+              throw new Error('Векторный интерпретатор PostScript не инициализирован');
+            }
+
+            // Extract PostScript buffer slice
+            const psBytes = bytes.subarray(meta.psOffset, meta.psOffset + meta.psLength);
+            
+            // Choose rendering scale based on BoundingBox
+            let renderScale = 1.0;
+            if (meta.width > 0 && meta.height > 0) {
+              const maxDim = Math.max(meta.width, meta.height);
+              if (maxDim < 600) renderScale = 2.0;
+              else if (maxDim > 3000) renderScale = 0.5;
+            }
+
+            const wrt = new window.ToContext2D(0, renderScale);
+            window.FromPS.Parse(psBytes.buffer.slice(psBytes.byteOffset, psBytes.byteOffset + psBytes.byteLength), wrt);
+
+            if (!wrt.canvas || wrt.canvas.width === 0 || wrt.canvas.height === 0) {
+              throw new Error('В файле отсутствует отображаемая страница PostScript');
+            }
+
+            sourceCanvas = wrt.canvas;
+            imgWidth = wrt.canvas.width;
+            imgHeight = wrt.canvas.height;
+            rendered = true;
+
+            metaEngine.textContent = 'Вектор';
+            metaEngine.className = 'engine-badge engine-vector';
+          }
+
+          // Meta display
+          const displayW = meta.width || imgWidth;
+          const displayH = meta.height || imgHeight;
+          metaRes.textContent = displayW + ' × ' + displayH + ' pt';
+
+          if (meta.creator) {
+            let shortCreator = meta.creator.replace(/^(Adobe\s*Illustrator[^\r\n]*)/i, 'Illustrator');
+            if (shortCreator.length > 25) shortCreator = shortCreator.slice(0, 24) + '…';
+            metaCreator.textContent = shortCreator;
+            metaCreator.title = meta.creator;
+          } else {
+            metaCreator.textContent = 'PostScript';
+          }
+
+          loader.classList.add('hidden');
+          fitToWindow();
+        } catch (err) {
+          console.error('[EPS Viewer Error]', err);
+          showError(err.message || 'Ошибка парсинга EPS');
+        }
+      }
+
+      // Send PEEKIT_READY (max 3 attempts, 300ms apart)
+      let readyAttempts = 0;
+      const readyInterval = setInterval(() => {
+        if (initReceived || readyAttempts >= 3) {
+          clearInterval(readyInterval);
+          return;
+        }
+        readyAttempts++;
+        window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
+      }, 300);
+      window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
+
+      // PeekIt IPC Handshake
+      window.addEventListener('message', (event) => {
+        const msg = event.data;
+        if (!msg || typeof msg !== 'object') return;
+
+        switch (msg.type) {
+          case 'PEEKIT_INIT': {
+            initReceived = true;
+            clearInterval(readyInterval);
+
+            const payload = msg.payload || msg;
+            if (payload.theme) {
+              const isLight = payload.theme === 'light' || (typeof payload.theme === 'object' && payload.theme.isDark === false);
+              document.body.classList.toggle('light', isLight);
+              checkerPattern = null;
+              scheduleRender();
+            }
+
+            // Deduplicate data requests
+            const currentPath = payload.filePath || payload.fileName;
+            if (currentPath && currentPath === lastLoadedPath && (isRequestPending || sourceCanvas)) {
+              return;
+            }
+            lastLoadedPath = currentPath;
+            isRequestPending = true;
+
+            // Reset UI
+            loader.classList.remove('hidden');
+            errorBox.classList.remove('show');
+
+            window.parent.postMessage({ type: 'PEEKIT_REQUEST_DATA' }, '*');
+            break;
+          }
+
+          case 'PEEKIT_THEME_CHANGED': {
+            const theme = msg.payload?.theme || msg.theme;
+            if (theme) {
+              const isLight = theme === 'light' || (typeof theme === 'object' && theme.isDark === false);
+              document.body.classList.toggle('light', isLight);
+              checkerPattern = null;
+              scheduleRender();
+            }
+            break;
+          }
+
+          case 'PEEKIT_DATA_RESPONSE': {
+            isRequestPending = false;
+            const rawData = msg.payload?.data !== undefined ? msg.payload.data : (msg.payload !== undefined ? msg.payload : msg.data);
+            const error = msg.payload?.error || msg.error;
+
+            if (error) {
+              showError('Ошибка чтения файла: ' + error);
+              return;
+            }
+
+            if (!rawData) {
+              showError('Пустые данные файла');
+              return;
+            }
+
+            let buffer = null;
+            if (rawData instanceof ArrayBuffer) {
+              buffer = rawData;
+            } else if (ArrayBuffer.isView(rawData)) {
+              buffer = rawData.buffer.slice(rawData.byteOffset, rawData.byteOffset + rawData.byteLength);
+            } else if (Array.isArray(rawData)) {
+              const u8 = new Uint8Array(rawData);
+              rawData.length = 0; // Release huge number array from memory immediately
+              buffer = u8.buffer;
+            } else if (typeof rawData === 'string') {
+              const bin = atob(rawData);
+              const bytes = new Uint8Array(bin.length);
+              for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+              buffer = bytes.buffer;
+            }
+
+            if (!buffer) {
+              showError('Неподдерживаемый формат данных буфера');
+              return;
+            }
+
+            renderEps(buffer);
+            break;
+          }
+        }
+      });
+
+      // Window resize
+      window.addEventListener('resize', () => {
+        if (imgWidth && imgHeight) {
+          fitToWindow();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
