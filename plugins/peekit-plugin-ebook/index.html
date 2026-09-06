@@ -244,14 +244,31 @@
       font-size: 1.4em;
     }
 
-    #reader-content p {
+    #reader-content p,
+    #reader-content .p,
+    #reader-content .p1 {
       margin-bottom: 1.1em;
+      line-height: 1.75;
       text-align: justify;
       text-justify: inter-word;
       text-indent: 1.8em;
+      color: inherit;
     }
 
-    #reader-content p:first-of-type {
+    #reader-content .title,
+    #reader-content .title1 {
+      font-size: 1.8em;
+      font-weight: 700;
+      margin: 1.6em 0 0.8em 0;
+      line-height: 1.3;
+      text-align: center;
+      color: var(--text-color);
+      letter-spacing: -0.3px;
+    }
+
+    #reader-content p:first-of-type,
+    #reader-content .title p,
+    #reader-content .title1 p {
       text-indent: 0;
     }
 
@@ -262,6 +279,19 @@
       margin: 24px auto;
       border-radius: 8px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    #reader-content svg {
+      max-width: 100%;
+      max-height: 75vh;
+      height: auto;
+      display: block;
+      margin: 20px auto;
+    }
+
+    #reader-content svg image {
+      max-width: 100%;
+      height: auto;
     }
 
     #reader-content blockquote,
@@ -881,32 +911,76 @@
 
           const fileDir = sp.href.includes('/') ? sp.href.slice(0, sp.href.lastIndexOf('/') + 1) : '';
           const xhtml = fflate.strFromU8(fileBytes);
-          const chDoc = parser.parseFromString(xhtml, 'text/html');
+          
+          // Replace self-closing <title/> and <link/> that break HTML5 parsing
+          const cleanXhtml = xhtml.replace(/<title\s*\/>/gi, '<title></title>');
 
-          // Rewrite image sources to base64 / blob
+          // Parse XHTML safely (XML parser first, HTML fallback)
+          let chDoc;
+          try {
+            chDoc = parser.parseFromString(cleanXhtml, 'application/xhtml+xml');
+            if (chDoc.querySelector('parsererror')) {
+              chDoc = parser.parseFromString(cleanXhtml, 'text/html');
+            }
+          } catch (e) {
+            chDoc = parser.parseFromString(cleanXhtml, 'text/html');
+          }
+
+          // Rewrite image and svg image sources to base64 data URLs
           chDoc.querySelectorAll('img, image').forEach(img => {
-            const src = img.getAttribute('src') || img.getAttribute('xlink:href');
-            if (src && !src.startsWith('data:') && !src.startsWith('http')) {
-              const fullImgPath = normalizePath(fileDir + src);
-              const imgBytes = unzipped[fullImgPath];
+            const rawSrc = img.getAttribute('src') || img.getAttribute('xlink:href') || img.getAttribute('href');
+            if (rawSrc && !rawSrc.startsWith('data:') && !rawSrc.startsWith('http')) {
+              let fullImgPath = rawSrc;
+              if (rawSrc.startsWith('/')) fullImgPath = rawSrc.slice(1);
+              else fullImgPath = normalizePath(fileDir + rawSrc);
+
+              const imgBytes = unzipped[fullImgPath] || unzipped[decodeURIComponent(fullImgPath)];
               if (imgBytes) {
                 const mime = guessMime(fullImgPath);
                 const base64 = toBase64(imgBytes);
-                img.setAttribute('src', 'data:' + mime + ';base64,' + base64);
+                const dataUrl = 'data:' + mime + ';base64,' + base64;
+                if (img.tagName.toLowerCase() === 'image') {
+                  img.setAttribute('href', dataUrl);
+                  img.setAttribute('xlink:href', dataUrl);
+                } else {
+                  img.setAttribute('src', dataUrl);
+                }
               }
             }
           });
 
-          // Extract title
-          let chapTitle = tocTitles[sp.href];
+          // Extract title cleanly
+          let chapTitle = tocTitles[sp.href] || tocTitles[sp.href.split('#')[0]];
           if (!chapTitle) {
-            const h = chDoc.querySelector('h1, h2, h3, title');
-            chapTitle = h ? h.textContent.trim() : ('Глава ' + (idx + 1));
+            // Search inside body for semantic headings only
+            const h = chDoc.body ? chDoc.body.querySelector('h1, h2, h3, h4, [class*="title"], [class*="chapter"]') : null;
+            if (h) {
+              const text = h.textContent.trim().replace(/\s+/g, ' ');
+              if (text && text.length < 70) {
+                chapTitle = text;
+              }
+            }
+          }
+
+          if (!chapTitle) {
+            if (sp.href.toLowerCase().includes('cover') || chDoc.querySelector('.cover, svg, img')) {
+              chapTitle = 'Обложка';
+            } else if (sp.href.toLowerCase().includes('epigraph') || chDoc.querySelector('.epigraph')) {
+              chapTitle = 'Эпиграф';
+            } else {
+              chapTitle = 'Раздел ' + (idx + 1);
+            }
+          }
+
+          let htmlContent = chDoc.body ? chDoc.body.innerHTML : '';
+          if (!htmlContent.trim()) {
+            const bodyMatch = cleanXhtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+            htmlContent = bodyMatch ? bodyMatch[1] : cleanXhtml;
           }
 
           parsedChapters.push({
             title: chapTitle,
-            html: chDoc.body ? chDoc.body.innerHTML : xhtml
+            html: htmlContent
           });
         });
 
