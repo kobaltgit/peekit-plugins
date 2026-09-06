@@ -1,4 +1,4 @@
-name: Deploy Website and Release Packages
+﻿name: Deploy Website and Release Packages
 
 on:
   push:
@@ -61,6 +61,7 @@ jobs:
         run: |
           mkdir -p website/build/web/plugins
           cp dist/*.pkit website/build/web/plugins/
+          cp registry.json website/build/web/registry.json
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3

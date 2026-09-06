@@ -1,4 +1,4 @@
-const fs = require('fs');
+﻿const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const vm = require('vm');
@@ -92,12 +92,16 @@ async function packSinglePlugin(pluginDirPath) {
   const zip = new JSZip();
 
   // Add all files from plugin dir into zip root
-  const files = fs.readdirSync(pluginDirPath);
+  const files = fs.readdirSync(pluginDirPath).sort();
   for (const f of files) {
     const fullPath = path.join(pluginDirPath, f);
     const stat = fs.statSync(fullPath);
     if (stat.isFile()) {
-      zip.file(f, fs.readFileSync(fullPath));
+      let data = fs.readFileSync(fullPath);
+      if (/\.(json|html|js|css|md|txt|svg)$/i.test(f)) {
+        data = Buffer.from(data.toString("utf8").replace(/\r\n/g, "\n"), "utf8");
+      }
+      zip.file(f, data, { date: new Date("2026-01-01T00:00:00Z"), createFolders: false });
     }
   }
 
