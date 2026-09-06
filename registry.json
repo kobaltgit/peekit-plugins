@@ -1,7 +1,7 @@
 {
   "$schema": "./plugin-schema.json",
   "version": 1,
-  "updated_at": "2026-09-06T04:36:47.059Z",
+  "updated_at": "2026-09-06T20:22:48.911Z",
   "plugins": [
     {
       "id": "com.peekit.3d-viewer",
@@ -177,6 +177,25 @@
       "size_kb": "23.6",
       "sha256": "7631721a023ea8cfd986f52f2f098dc653635dfc46a20ad0464ebf02c4ec8765",
       "icon": "book-open",
+      "homepage": "https://github.com/kobaltgit/peekit-plugins"
+    },
+    {
+      "id": "com.peekit.apk-viewer",
+      "name": "Android Package Viewer",
+      "version": "1.0.0",
+      "author": "Kobalt",
+      "description": "Fast offline previewer for Android packages (APK, XAPK) with icon extraction, SDK compatibility, permissions analysis, and package metrics",
+      "extensions": [
+        ".apk",
+        ".xapk"
+      ],
+      "entry": "index.html",
+      "min_peekit_version": "1.0.0",
+      "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.apk-viewer-1.0.0.pkit",
+      "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.apk-viewer-1.0.0.pkit",
+      "size_kb": "71.8",
+      "sha256": "5edc460ed4d3a106a163f2840ade03b1c2682a44572ef6c4db41c80ceaed3a08",
+      "icon": "icon.svg",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     }
   ]

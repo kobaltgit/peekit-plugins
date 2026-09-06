@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/kobaltgit/peekit-plugins/main/plugin-schema.json",
+  "id": "com.peekit.apk-viewer",
+  "name": "Android Package Viewer",
+  "version": "1.0.0",
+  "author": "Kobalt",
+  "description": "Fast offline previewer for Android packages (APK, XAPK) with icon extraction, SDK compatibility, permissions analysis, and package metrics",
+  "extensions": [
+    ".apk",
+    ".xapk"
+  ],
+  "entry": "index.html",
+  "min_peekit_version": "1.0.0",
+  "permissions": [
+    "read_file",
+    "clipboard_write"
+  ],
+  "icon": "icon.svg",
+  "homepage": "https://github.com/kobaltgit/peekit-plugins",
+  "default_dimensions": {
+    "width": 820,
+    "height": 580
+  }
+}
