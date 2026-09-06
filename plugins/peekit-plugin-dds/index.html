@@ -148,9 +148,6 @@
       flex: 1;
       position: relative;
       overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       cursor: grab;
     }
 
@@ -161,6 +158,8 @@
     /* Checkered texture background */
     .canvas-container {
       position: absolute;
+      top: 0;
+      left: 0;
       transform-origin: 0 0;
       box-shadow: 0 10px 35px rgba(0, 0, 0, 0.6);
       border: 1px solid rgba(255, 255, 255, 0.08);
@@ -664,11 +663,13 @@
       // Render Current Mip
       renderCurrentMip();
 
-      // Fit to view
-      fitToViewport();
-
       // Hide overlay
       overlay.style.display = 'none';
+
+      // Fit to view once layout is stabilized
+      requestAnimationFrame(() => {
+        fitToViewport();
+      });
     }
 
     function formatBytes(bytes) {
@@ -1163,18 +1164,19 @@
 
     function fitToViewport() {
       if (!canvas.width || !canvas.height) return;
-      const pad = 32;
+      const pad = 36;
       const vW = viewport.clientWidth - pad;
       const vH = viewport.clientHeight - pad;
+      if (vW <= 0 || vH <= 0) return;
 
       const scaleX = vW / canvas.width;
       const scaleY = vH / canvas.height;
       zoom = Math.min(scaleX, scaleY);
       if (zoom > 1) zoom = 1; // Don't upscale tiny textures by default on initial fit
 
-      // Center container
-      panX = (viewport.clientWidth - canvas.width * zoom) / 2;
-      panY = (viewport.clientHeight - canvas.height * zoom) / 2;
+      // Center container precisely
+      panX = Math.round((viewport.clientWidth - canvas.width * zoom) / 2);
+      panY = Math.round((viewport.clientHeight - canvas.height * zoom) / 2);
       updateTransform();
     }
 
@@ -1309,7 +1311,7 @@
 
     // Window resize
     window.addEventListener('resize', () => {
-      // Keep center
+      fitToViewport();
     });
   </script>
 </body>
