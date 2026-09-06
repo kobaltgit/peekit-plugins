@@ -1,7 +1,7 @@
 {
   "$schema": "./plugin-schema.json",
   "version": 1,
-  "updated_at": "2026-09-06T02:08:05.225Z",
+  "updated_at": "2026-09-06T02:12:46.520Z",
   "plugins": [
     {
       "id": "com.peekit.3d-viewer",
@@ -137,8 +137,8 @@
       "min_peekit_version": "1.0.0",
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.psd-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.psd-viewer-1.0.0.pkit",
-      "size_kb": "100.5",
-      "sha256": "c3d0b077b4dfdbc17567e6d5cf8f0e69054324c424fb12ffd71829037cf823a7",
+      "size_kb": "100.4",
+      "sha256": "5d7ab0dc4a5be8089a6efc61ba8da6750a834da0c0be6924ce3cb34cedbe5fa7",
       "icon": "image",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     }

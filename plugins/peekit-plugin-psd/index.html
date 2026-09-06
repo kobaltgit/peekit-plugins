@@ -184,13 +184,14 @@
       cursor: grabbing;
     }
 
-    /* Checkerboard Grid Container */
+    /* Centered Canvas Container with Transparency Grid */
     #canvas-wrap {
-      position: absolute;
-      transform-origin: 0 0;
+      position: relative;
+      transform-origin: center center;
       will-change: transform;
-      box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
-      border-radius: 2px;
+      box-shadow: 0 14px 48px rgba(0, 0, 0, 0.6);
+      border-radius: 3px;
+      line-height: 0;
       background-color: var(--check-bg);
       background-image:
         linear-gradient(45deg, var(--check-pat) 25%, transparent 25%),
@@ -203,6 +204,7 @@
 
     #main-canvas {
       display: block;
+      border-radius: 3px;
       image-rendering: auto;
     }
 
@@ -509,7 +511,6 @@
 
       const viewport = document.getElementById('viewport');
       const canvasWrap = document.getElementById('canvas-wrap');
-      const mainCanvas = document.getElementById('main-canvas');
       const loader = document.getElementById('loader');
       const errorBox = document.getElementById('error-box');
       const errorMsg = document.getElementById('error-msg');
@@ -529,46 +530,40 @@
 
       let currentPsd = null;
       let scale = 1.0;
-      let posX = 0;
-      let posY = 0;
+      let panX = 0;
+      let panY = 0;
       let isDragging = false;
-      let startDragX = 0;
-      let startDragY = 0;
+      let startX = 0;
+      let startY = 0;
+      let initialPanX = 0;
+      let initialPanY = 0;
       let imgWidth = 0;
       let imgHeight = 0;
 
       function updateTransform() {
-        canvasWrap.style.transform = 'translate(' + posX + 'px, ' + posY + 'px) scale(' + scale + ')';
+        canvasWrap.style.transform = 'translate(' + panX + 'px, ' + panY + 'px) scale(' + scale + ')';
         zoomVal.textContent = Math.round(scale * 100) + '%';
       }
 
       function fitToWindow() {
         if (!imgWidth || !imgHeight) return;
-        const pad = 60;
-        const vw = viewport.clientWidth - pad;
-        const vh = viewport.clientHeight - pad - 50; // top bar space
+        const padX = 64;
+        const padY = 96;
+        const vw = viewport.clientWidth - padX;
+        const vh = viewport.clientHeight - padY;
         if (vw <= 0 || vh <= 0) return;
 
         const scaleX = vw / imgWidth;
         const scaleY = vh / imgHeight;
-        scale = Math.min(scaleX, scaleY, 1.0); // don't upscale by default
+        scale = Math.min(scaleX, scaleY, 1.0); // Fit smoothly, don't upscale by default
 
-        posX = (viewport.clientWidth - imgWidth * scale) / 2;
-        posY = ((viewport.clientHeight - imgHeight * scale) / 2) + 15;
+        panX = 0;
+        panY = 16; // Slight downward offset to clear the top toolbar
         updateTransform();
       }
 
-      function setZoom(newScale, focalX, focalY) {
-        newScale = Math.max(0.05, Math.min(newScale, 16.0));
-        if (!focalX || !focalY) {
-          focalX = viewport.clientWidth / 2;
-          focalY = viewport.clientHeight / 2;
-        }
-
-        const delta = newScale / scale;
-        posX = focalX - (focalX - posX) * delta;
-        posY = focalY - (focalY - posY) * delta;
-        scale = newScale;
+      function setZoom(newScale) {
+        scale = Math.max(0.02, Math.min(newScale, 20.0));
         updateTransform();
       }
 
@@ -576,9 +571,9 @@
       btnZoomOut.addEventListener('click', () => setZoom(scale / 1.25));
       btnFit.addEventListener('click', fitToWindow);
       btnActual.addEventListener('click', () => {
-        setZoom(1.0);
-        posX = (viewport.clientWidth - imgWidth) / 2;
-        posY = (viewport.clientHeight - imgHeight) / 2 + 15;
+        scale = 1.0;
+        panX = 0;
+        panY = 16;
         updateTransform();
       });
 
@@ -586,15 +581,17 @@
       viewport.addEventListener('mousedown', (e) => {
         if (e.target.closest('#toolbar') || e.target.closest('#layers-drawer')) return;
         isDragging = true;
-        startDragX = e.clientX - posX;
-        startDragY = e.clientY - posY;
+        startX = e.clientX;
+        startY = e.clientY;
+        initialPanX = panX;
+        initialPanY = panY;
         viewport.classList.add('dragging');
       });
 
       window.addEventListener('mousemove', (e) => {
         if (!isDragging) return;
-        posX = e.clientX - startDragX;
-        posY = e.clientY - startDragY;
+        panX = initialPanX + (e.clientX - startX);
+        panY = initialPanY + (e.clientY - startY);
         updateTransform();
       });
 
@@ -607,7 +604,7 @@
       viewport.addEventListener('wheel', (e) => {
         e.preventDefault();
         const factor = e.deltaY < 0 ? 1.15 : (1 / 1.15);
-        setZoom(scale * factor, e.clientX, e.clientY);
+        setZoom(scale * factor);
       }, { passive: false });
 
       // Layers Drawer Toggle
@@ -715,15 +712,14 @@
             layersList.innerHTML = '<div style="padding: 12px; color: var(--text-muted); font-size: 12px; text-align: center;">Слои отсутствуют (объединенное изображение)</div>';
           }
 
-          // Main canvas drawing
-          mainCanvas.width = imgWidth;
-          mainCanvas.height = imgHeight;
+          // Main canvas
           canvasWrap.style.width = imgWidth + 'px';
           canvasWrap.style.height = imgHeight + 'px';
+          canvasWrap.innerHTML = '';
 
-          const ctx = mainCanvas.getContext('2d');
           if (currentPsd.canvas) {
-            ctx.drawImage(currentPsd.canvas, 0, 0);
+            currentPsd.canvas.id = 'main-canvas';
+            canvasWrap.appendChild(currentPsd.canvas);
           } else {
             throw new Error('В файле отсутствует композитное изображение');
           }
