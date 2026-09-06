@@ -1,0 +1,6 @@
+{
+  "devDependencies": {
+    "pako": "^3.0.1",
+    "utif": "^3.1.0"
+  }
+}
