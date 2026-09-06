@@ -3268,6 +3268,67 @@ X.B(E,Y);return E}return J}())
         return meta;
       }
 
+      // Robust TIFF preview decoder supporting Adobe Palette+Alpha and standard TIFF
+      function decodeTiffPreview(bytes) {
+        if (!window.UTIF) return null;
+        const ifds = window.UTIF.decode(bytes);
+        if (!ifds || ifds.length === 0) return null;
+        const ifd = ifds[0];
+
+        const w = ifd.t256 ? ifd.t256[0] : (ifd.width || 0);
+        const h = ifd.t257 ? ifd.t257[0] : (ifd.height || 0);
+        if (!w || !h) return null;
+
+        const intp = ifd.t262 ? ifd.t262[0] : 2; // 3=Palette
+        const cmpr = ifd.t259 ? ifd.t259[0] : 1; // 1=Uncompressed
+        const smpls = ifd.t277 ? ifd.t277[0] : (ifd.t258 ? ifd.t258.length : 1);
+        const bps = ifd.t258 ? ifd.t258[0] : 8;
+
+        // Custom accurate decoding for Palette Color (PhotometricInterpretation = 3)
+        // Highly common in Adobe Illustrator EPS where smpls = 2 (Palette index + Alpha channel)
+        if (intp === 3 && cmpr === 1 && ifd.t320) {
+          const soff = ifd.t273 ? ifd.t273[0] : 0;
+          const bcnt = ifd.t279 ? ifd.t279[0] : (w * h * smpls);
+          const strip = bytes.subarray(soff, soff + bcnt);
+          const map = ifd.t320;
+          const rgba = new Uint8Array(w * h * 4);
+
+          if (smpls === 2 && bps === 8) {
+            for (let i = 0; i < w * h; i++) {
+              const mi = strip[i * 2];
+              const alpha = strip[i * 2 + 1];
+              const qi = i * 4;
+              rgba[qi] = map[mi] >> 8;
+              rgba[qi + 1] = map[256 + mi] >> 8;
+              rgba[qi + 2] = map[512 + mi] >> 8;
+              rgba[qi + 3] = alpha;
+            }
+            return { width: w, height: h, rgba };
+          } else if (smpls === 1 && bps === 8) {
+            for (let i = 0; i < w * h; i++) {
+              const mi = strip[i];
+              const qi = i * 4;
+              rgba[qi] = map[mi] >> 8;
+              rgba[qi + 1] = map[256 + mi] >> 8;
+              rgba[qi + 2] = map[512 + mi] >> 8;
+              rgba[qi + 3] = 255;
+            }
+            return { width: w, height: h, rgba };
+          }
+        }
+
+        // Fix BitsPerSample array length if SamplesPerPixel is larger
+        if (ifd.t258 && ifd.t277 && ifd.t277[0] > ifd.t258.length) {
+          const fixedBps = [];
+          for (let k = 0; k < ifd.t277[0]; k++) fixedBps.push(ifd.t258[0]);
+          ifd.t258 = fixedBps;
+        }
+
+        window.UTIF.decodeImage(bytes, ifd);
+        const rgba = window.UTIF.toRGBA8(ifd);
+        return { width: ifd.width, height: ifd.height, rgba };
+      }
+
       function renderEps(buffer) {
         try {
           const bytes = new Uint8Array(buffer);
@@ -3290,17 +3351,14 @@ X.B(E,Y);return E}return J}())
           if (meta.hasTiff && window.UTIF) {
             try {
               const tiffSlice = bytes.subarray(meta.tiffOffset, meta.tiffOffset + meta.tiffLength);
-              const ifds = window.UTIF.decode(tiffSlice);
-              if (ifds && ifds.length > 0) {
-                window.UTIF.decodeImage(tiffSlice, ifds[0]);
-                const rgba = window.UTIF.toRGBA8(ifds[0]);
-
+              const decoded = decodeTiffPreview(tiffSlice);
+              if (decoded && decoded.width > 0 && decoded.height > 0) {
                 const sc = document.createElement('canvas');
-                sc.width = ifds[0].width;
-                sc.height = ifds[0].height;
+                sc.width = decoded.width;
+                sc.height = decoded.height;
                 const sctx = sc.getContext('2d');
                 const imgData = sctx.createImageData(sc.width, sc.height);
-                imgData.data.set(rgba);
+                imgData.data.set(decoded.rgba);
                 sctx.putImageData(imgData, 0, 0);
 
                 sourceCanvas = sc;
