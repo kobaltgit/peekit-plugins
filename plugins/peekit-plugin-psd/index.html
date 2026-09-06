@@ -486,6 +486,16 @@
     (function () {
       'use strict';
 
+      // Ensure canvas creation is properly bound in ag-psd
+      if (window.agPsd && typeof window.agPsd.initializeCanvas === 'function') {
+        window.agPsd.initializeCanvas((w, h) => {
+          const c = document.createElement('canvas');
+          c.width = w;
+          c.height = h;
+          return c;
+        });
+      }
+
       const COLOR_MODES = {
         0: 'Bitmap',
         1: 'Grayscale',
@@ -669,26 +679,13 @@
         errorBox.classList.add('show');
       }
 
-      function toUint8Array(data) {
-        if (data instanceof Uint8Array) return data;
-        if (data instanceof ArrayBuffer) return new Uint8Array(data);
-        if (Array.isArray(data)) return new Uint8Array(data);
-        if (typeof data === 'string') {
-          const bin = atob(data);
-          const bytes = new Uint8Array(bin.length);
-          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-          return bytes;
-        }
-        throw new Error('Неподдерживаемый формат данных');
-      }
-
-      function renderPsd(bytes) {
+      function renderPsd(buffer) {
         try {
           if (!window.agPsd || typeof window.agPsd.readPsd !== 'function') {
             throw new Error('Библиотека ag-psd не инициализирована');
           }
 
-          currentPsd = window.agPsd.readPsd(bytes.buffer, {
+          currentPsd = window.agPsd.readPsd(buffer, {
             skipLayerImageData: true,
             skipThumbnail: true
           });
@@ -728,16 +725,7 @@
           if (currentPsd.canvas) {
             ctx.drawImage(currentPsd.canvas, 0, 0);
           } else {
-            // Read with composite canvas if not initially present
-            const fullPsd = window.agPsd.readPsd(bytes.buffer, {
-              skipLayerImageData: true,
-              skipThumbnail: false
-            });
-            if (fullPsd && fullPsd.canvas) {
-              ctx.drawImage(fullPsd.canvas, 0, 0);
-            } else {
-              throw new Error('В файле отсутствует композитное изображение');
-            }
+            throw new Error('В файле отсутствует композитное изображение');
           }
 
           loader.classList.add('hidden');
@@ -751,35 +739,78 @@
         }
       }
 
-      // PeekIt IPC Handlers
+      // Heartbeat PEEKIT_READY
+      let readyTimer = setInterval(() => {
+        window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
+      }, 50);
+      window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
+
+      // PeekIt IPC Handshake
       window.addEventListener('message', (event) => {
         const msg = event.data;
-        if (!msg || !msg.type) return;
+        if (!msg || typeof msg !== 'object') return;
 
-        if (msg.type === 'PEEKIT_INIT') {
-          if (msg.theme) {
-            if (msg.theme.isDark === false) {
-              document.body.classList.add('light');
-            } else {
-              document.body.classList.remove('light');
+        switch (msg.type) {
+          case 'PEEKIT_INIT': {
+            if (readyTimer) {
+              clearInterval(readyTimer);
+              readyTimer = null;
             }
+            const payload = msg.payload || msg;
+            if (payload.theme) {
+              const isLight = payload.theme === 'light' || (typeof payload.theme === 'object' && payload.theme.isDark === false);
+              document.body.classList.toggle('light', isLight);
+            }
+            // Request binary file data
+            window.parent.postMessage({ type: 'PEEKIT_REQUEST_DATA' }, '*');
+            break;
           }
-          // Request file data
-          window.parent.postMessage({
-            type: 'PEEKIT_REQUEST_DATA',
-            responseType: 'base64'
-          }, '*');
-        } else if (msg.type === 'PEEKIT_DATA_RESPONSE') {
-          if (msg.error) {
-            showError(msg.error);
-            return;
+
+          case 'PEEKIT_THEME_CHANGED': {
+            const theme = msg.payload?.theme || msg.theme;
+            if (theme) {
+              const isLight = theme === 'light' || (typeof theme === 'object' && theme.isDark === false);
+              document.body.classList.toggle('light', isLight);
+            }
+            break;
           }
-          if (!msg.data) {
-            showError('Пустые данные файла');
-            return;
+
+          case 'PEEKIT_DATA_RESPONSE': {
+            const rawData = msg.payload?.data !== undefined ? msg.payload.data : (msg.payload !== undefined ? msg.payload : msg.data);
+            const error = msg.payload?.error || msg.error;
+
+            if (error) {
+              showError('Ошибка чтения файла: ' + error);
+              return;
+            }
+
+            if (!rawData) {
+              showError('Пустые данные файла');
+              return;
+            }
+
+            let buffer = null;
+            if (rawData instanceof ArrayBuffer) {
+              buffer = rawData;
+            } else if (ArrayBuffer.isView(rawData)) {
+              buffer = rawData.buffer.slice(rawData.byteOffset, rawData.byteOffset + rawData.byteLength);
+            } else if (Array.isArray(rawData)) {
+              buffer = new Uint8Array(rawData).buffer;
+            } else if (typeof rawData === 'string') {
+              const bin = atob(rawData);
+              const bytes = new Uint8Array(bin.length);
+              for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+              buffer = bytes.buffer;
+            }
+
+            if (!buffer) {
+              showError('Неподдерживаемый формат данных буфера');
+              return;
+            }
+
+            renderPsd(buffer);
+            break;
           }
-          const bytes = toUint8Array(msg.data);
-          renderPsd(bytes);
         }
       });
 
