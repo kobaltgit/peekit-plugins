@@ -33,6 +33,7 @@
 | **📊 Spreadsheet Viewer** | `com.peekit.sheet-viewer` | `.xlsx`, `.xls`, `.csv`, `.tsv`, `.ods` | Сетка Excel с формулами, вкладки листов, живой поиск и фильтрация ячеек |
 | **📽️ Presentation Viewer** | `com.peekit.slides-viewer` | `.pptx`, `.ppt` | Слайд-шоу PowerPoint, навигация стрелками клавиатуры, боковая лента миниатюр |
 | **🖌️ Adobe Illustrator Viewer** | `com.peekit.ai-viewer` | `.ai` | Векторный рендеринг Illustrator, артборды, масштабирование и шахматная подложка |
+| **🖼️ Adobe Photoshop Viewer** | `com.peekit.psd-viewer` | `.psd` | Превью файлов Photoshop: композитный рендер, слои, разрешение, прозрачность |
 
 ---
 
@@ -48,6 +49,7 @@ peekit-plugins/
 │   ├── peekit-plugin-ai/        # Adobe Illustrator (.ai)
 │   ├── peekit-plugin-docx/      # Word документы (DOCX, DOC)
 │   ├── peekit-plugin-font/      # Шрифты (TTF, OTF, WOFF, WOFF2)
+│   ├── peekit-plugin-psd/       # Adobe Photoshop (.psd)
 │   ├── peekit-plugin-sheet/     # Электронные таблицы (XLSX, XLS, CSV)
 │   └── peekit-plugin-slides/    # Презентации (PPTX, PPT)
 ├── template/                    # Шаблон-заготовка для создания новых плагинов

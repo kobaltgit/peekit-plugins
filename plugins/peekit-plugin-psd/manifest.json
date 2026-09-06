@@ -1,0 +1,15 @@
+{
+  "id": "com.peekit.psd-viewer",
+  "name": "Adobe Photoshop Viewer",
+  "version": "1.0.0",
+  "author": "Kobalt",
+  "description": "High-fidelity previewer for Adobe Photoshop (.psd) files with layer inspection, metadata display, and zoom/pan controls",
+  "extensions": [
+    ".psd"
+  ],
+  "entry": "index.html",
+  "min_peekit_version": "1.0.0",
+  "icon": "image",
+  "category": "Graphics",
+  "homepage": "https://github.com/kobaltgit/peekit-plugins"
+}

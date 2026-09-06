@@ -70,6 +70,10 @@ class PluginItem {
       cat = 'Graphics';
       size = '523.3 KB';
       sha = 'f23df7a681704a437786d417f6355c8c8cce1e3be114bb6da6e5a731ad99c69f';
+    } else if (id.contains('psd')) {
+      cat = 'Graphics';
+      size = '100.2 KB';
+      sha = '313e8c34005145cd8982732a67ab89cab2f81c370f0665deb8d36c07d2073786';
     }
 
     return PluginItem(

@@ -1,7 +1,7 @@
 {
   "$schema": "./plugin-schema.json",
   "version": 1,
-  "updated_at": "2026-09-05T23:02:52.955Z",
+  "updated_at": "2026-09-06T01:56:27.103Z",
   "plugins": [
     {
       "id": "com.peekit.3d-viewer",
@@ -121,6 +121,24 @@
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.ai-viewer-1.0.0.pkit",
       "size_kb": "523.3",
       "sha256": "f23df7a681704a437786d417f6355c8c8cce1e3be114bb6da6e5a731ad99c69f",
+      "icon": "image",
+      "homepage": "https://github.com/kobaltgit/peekit-plugins"
+    },
+    {
+      "id": "com.peekit.psd-viewer",
+      "name": "Adobe Photoshop Viewer",
+      "version": "1.0.0",
+      "author": "Kobalt",
+      "description": "High-fidelity previewer for Adobe Photoshop (.psd) files with layer inspection, metadata display, and zoom/pan controls",
+      "extensions": [
+        ".psd"
+      ],
+      "entry": "index.html",
+      "min_peekit_version": "1.0.0",
+      "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.psd-viewer-1.0.0.pkit",
+      "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.psd-viewer-1.0.0.pkit",
+      "size_kb": "100.2",
+      "sha256": "313e8c34005145cd8982732a67ab89cab2f81c370f0665deb8d36c07d2073786",
       "icon": "image",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     }
