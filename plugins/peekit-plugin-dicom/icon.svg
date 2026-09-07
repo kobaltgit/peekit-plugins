@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.0"/>
+    </linearGradient>
+    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="rgba(56, 189, 248, 0.25)" stroke-width="6" />
+
+  <!-- CT Gantry Ring (Concentric Scanner Rings) -->
+  <circle cx="256" cy="240" r="150" fill="none" stroke="rgba(56, 189, 248, 0.12)" stroke-width="4" stroke-dasharray="8 8" />
+  <circle cx="256" cy="240" r="120" fill="none" stroke="rgba(56, 189, 248, 0.2)" stroke-width="3" />
+  <circle cx="256" cy="240" r="90" fill="rgba(6, 182, 212, 0.04)" stroke="rgba(56, 189, 248, 0.35)" stroke-width="2" />
+
+  <!-- Target Crosshair Lines -->
+  <line x1="256" y1="80" x2="256" y2="400" stroke="rgba(56, 189, 248, 0.3)" stroke-width="2" stroke-dasharray="6 4" />
+  <line x1="96" y1="240" x2="416" y2="240" stroke="rgba(56, 189, 248, 0.3)" stroke-width="2" stroke-dasharray="6 4" />
+
+  <!-- Stylized Anatomical Ribs / Spine Radiograph -->
+  <g filter="url(#neonGlow)">
+    <!-- Spine column -->
+    <rect x="248" y="160" width="16" height="22" rx="4" fill="url(#cyanGrad)" />
+    <rect x="246" y="190" width="20" height="24" rx="4" fill="url(#cyanGrad)" />
+    <rect x="244" y="222" width="24" height="26" rx="4" fill="url(#cyanGrad)" />
+    <rect x="244" y="256" width="24" height="26" rx="4" fill="url(#cyanGrad)" />
+    <rect x="246" y="290" width="20" height="24" rx="4" fill="url(#cyanGrad)" />
+
+    <!-- Left Ribs -->
+    <path d="M236 198 C180 185, 140 215, 136 240 C140 248, 175 230, 236 212" fill="url(#cyanGrad)" opacity="0.85" />
+    <path d="M234 230 C170 220, 130 250, 126 280 C130 288, 170 265, 234 246" fill="url(#cyanGrad)" opacity="0.85" />
+    <path d="M234 265 C175 255, 140 285, 136 312 C140 318, 175 298, 234 280" fill="url(#cyanGrad)" opacity="0.85" />
+
+    <!-- Right Ribs -->
+    <path d="M276 198 C332 185, 372 215, 376 240 C372 248, 337 230, 276 212" fill="url(#cyanGrad)" opacity="0.85" />
+    <path d="M278 230 C342 220, 382 250, 386 280 C382 288, 342 265, 278 246" fill="url(#cyanGrad)" opacity="0.85" />
+    <path d="M278 265 C337 255, 372 285, 376 312 C372 318, 337 298, 278 280" fill="url(#cyanGrad)" opacity="0.85" />
+  </g>
+
+  <!-- Medical Cross Badge (Top Right) -->
+  <circle cx="400" cy="112" r="32" fill="#0f172a" stroke="#38bdf8" stroke-width="4" />
+  <rect x="394" y="94" width="12" height="36" rx="3" fill="#38bdf8" />
+  <rect x="382" y="106" width="36" height="12" rx="3" fill="#38bdf8" />
+
+  <!-- Bottom Brand Chip (DICOM) -->
+  <rect x="176" y="420" width="160" height="42" rx="10" fill="rgba(15, 23, 42, 0.85)" stroke="rgba(56, 189, 248, 0.4)" stroke-width="2" />
+  <text x="256" y="448" fill="#38bdf8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="800" letter-spacing="3" text-anchor="middle">DICOM</text>
+</svg>

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://raw.githubusercontent.com/kobaltgit/peekit-plugins/main/plugin-schema.json",
+  "id": "com.peekit.dicom-viewer",
+  "name": "DICOM Medical Viewer",
+  "version": "1.0.0",
+  "author": "Kobalt",
+  "description": "Professional medical DICOM viewer with Hounsfield windowing, density inspection, measurements, and clinical metadata",
+  "extensions": [
+    ".dcm",
+    ".dicom"
+  ],
+  "entry": "index.html",
+  "min_peekit_version": "1.0.0",
+  "permissions": [
+    "read_file",
+    "save_file",
+    "clipboard_write"
+  ],
+  "icon": "icon.svg",
+  "category": "Media",
+  "homepage": "https://github.com/kobaltgit/peekit-plugins",
+  "default_dimensions": {
+    "width": 960,
+    "height": 680
+  }
+}

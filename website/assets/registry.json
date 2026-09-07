@@ -1,7 +1,7 @@
 {
   "$schema": "./plugin-schema.json",
   "version": 1,
-  "updated_at": "2026-09-07T05:09:57.688Z",
+  "updated_at": "2026-09-07T06:44:57.341Z",
   "plugins": [
     {
       "id": "com.peekit.3d-viewer",
@@ -312,6 +312,26 @@
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.2/com.peekit.video-player-1.0.2.pkit",
       "size_kb": "18.2",
       "sha256": "91814e1a2fce5f6084406dd380b5c91461ba30ef9caedd3ede97321fe64ec678",
+      "icon": "icon.svg",
+      "homepage": "https://github.com/kobaltgit/peekit-plugins"
+    },
+    {
+      "id": "com.peekit.dicom-viewer",
+      "name": "DICOM Medical Viewer",
+      "version": "1.0.0",
+      "author": "Kobalt",
+      "description": "Professional medical DICOM viewer with Hounsfield windowing, density inspection, measurements, and clinical metadata",
+      "category": "Media",
+      "extensions": [
+        ".dcm",
+        ".dicom"
+      ],
+      "entry": "index.html",
+      "min_peekit_version": "1.0.0",
+      "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.dicom-viewer-1.0.0.pkit",
+      "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.dicom-viewer-1.0.0.pkit",
+      "size_kb": "15.7",
+      "sha256": "b57cedea10331dbead8f1a85032378d683d2b16242e270c1146ced9fa765dceb",
       "icon": "icon.svg",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     }
