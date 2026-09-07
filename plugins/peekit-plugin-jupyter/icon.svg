@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <linearGradient id="jupOrange" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF9E43"/>
+      <stop offset="100%" stop-color="#E46114"/>
+    </linearGradient>
+    <filter id="jupGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#E46114" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Background subtle plate -->
+  <rect width="44" height="44" x="2" y="2" rx="10" fill="#1e293b" fill-opacity="0.6"/>
+  
+  <!-- Top Crescent Arch -->
+  <path d="M12 21 C15 13, 33 13, 36 21 C33 16, 15 16, 12 21 Z" fill="url(#jupOrange)" filter="url(#jupGlow)"/>
+  
+  <!-- Bottom Crescent Arch -->
+  <path d="M12 27 C15 35, 33 35, 36 27 C33 32, 15 32, 12 27 Z" fill="url(#jupOrange)" filter="url(#jupGlow)"/>
+  
+  <!-- Central planetary spheres -->
+  <!-- Top Dot -->
+  <circle cx="15" cy="12" r="2.4" fill="#94a3b8"/>
+  <!-- Middle Dot -->
+  <circle cx="34" cy="24" r="2.8" fill="#94a3b8"/>
+  <!-- Bottom Dot -->
+  <circle cx="13" cy="35" r="2" fill="#94a3b8"/>
+</svg>

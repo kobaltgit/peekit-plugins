@@ -1,0 +1,1633 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jupyter Notebook Viewer</title>
+  <style>
+    :root, [data-theme="dark"] {
+      --bg-base: #0f172a;
+      --bg-surface: #1e293b;
+      --bg-card: rgba(30, 41, 59, 0.75);
+      --bg-card-hover: rgba(51, 65, 85, 0.85);
+      --bg-code: #0b1120;
+      --bg-output: #090d16;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-highlight: rgba(243, 118, 38, 0.4);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-sub: #64748b;
+      --accent: #f37626;
+      --accent-hover: #e46114;
+      --accent-glow: rgba(243, 118, 38, 0.2);
+      --code-in-gutter: #38bdf8;
+      --code-out-gutter: #f43f5e;
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.15);
+      --warning: #f59e0b;
+      --warning-bg: rgba(245, 158, 11, 0.15);
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.15);
+      --table-border: rgba(255, 255, 255, 0.12);
+      --table-stripe: rgba(255, 255, 255, 0.03);
+      --table-hover: rgba(255, 255, 255, 0.06);
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+      /* Syntax tokens (Dark) */
+      --token-keyword: #f43f5e;
+      --token-builtin: #38bdf8;
+      --token-string: #34d399;
+      --token-number: #fbbf24;
+      --token-comment: #64748b;
+      --token-func: #60a5fa;
+      --token-decorator: #c084fc;
+      --token-operator: #cbd5e1;
+    }
+
+    [data-theme="light"], body.light-theme {
+      --bg-base: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f1f5f9;
+      --bg-code: #f8fafc;
+      --bg-output: #f1f5f9;
+      --border-color: rgba(0, 0, 0, 0.08);
+      --border-highlight: rgba(243, 118, 38, 0.4);
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-sub: #64748b;
+      --accent: #ea580c;
+      --accent-hover: #c2410c;
+      --accent-glow: rgba(234, 88, 12, 0.15);
+      --code-in-gutter: #0284c7;
+      --code-out-gutter: #e11d48;
+      --danger: #dc2626;
+      --danger-bg: #fee2e2;
+      --warning: #b45309;
+      --warning-bg: #fef3c7;
+      --success: #15803d;
+      --success-bg: #dcfce7;
+      --table-border: rgba(0, 0, 0, 0.1);
+      --table-stripe: rgba(0, 0, 0, 0.02);
+      --table-hover: rgba(0, 0, 0, 0.04);
+
+      /* Syntax tokens (Light) */
+      --token-keyword: #e11d48;
+      --token-builtin: #0284c7;
+      --token-string: #059669;
+      --token-number: #d97706;
+      --token-comment: #94a3b8;
+      --token-func: #2563eb;
+      --token-decorator: #9333ea;
+      --token-operator: #334155;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      scrollbar-width: thin;
+      scrollbar-color: var(--text-sub) transparent;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      user-select: text;
+    }
+
+    /* Top Ribbon Header */
+    header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-shrink: 0;
+      backdrop-filter: blur(12px);
+      z-index: 10;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .logo-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, rgba(243, 118, 38, 0.2), rgba(243, 118, 38, 0.05));
+      border: 1px solid var(--border-highlight);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .logo-badge svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .title-box {
+      min-width: 0;
+    }
+
+    .title-box h1 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.3;
+    }
+
+    .subtitle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      background: rgba(243, 118, 38, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(243, 118, 38, 0.3);
+    }
+
+    .badge-sub {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    /* Filter Tabs */
+    .filter-tabs {
+      display: flex;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 2px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    [data-theme="light"] .filter-tabs {
+      background: #e2e8f0;
+    }
+
+    .filter-tab {
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .filter-tab:hover {
+      color: var(--text-main);
+    }
+
+    .filter-tab.active {
+      background: var(--bg-surface);
+      color: var(--accent);
+      font-weight: 600;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .btn svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 0, 0, 0.15);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 4px 8px;
+    }
+
+    [data-theme="light"] .search-box {
+      background: #f1f5f9;
+    }
+
+    .search-box input {
+      background: transparent;
+      border: none;
+      outline: none;
+      font-size: 11px;
+      color: var(--text-main);
+      width: 110px;
+      font-family: inherit;
+    }
+
+    .search-box input::placeholder {
+      color: var(--text-sub);
+    }
+
+    .search-box svg {
+      width: 13px;
+      height: 13px;
+      fill: var(--text-sub);
+    }
+
+    /* Main Content Container */
+    #notebookContainer {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 24px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Cells */
+    .cell {
+      display: flex;
+      flex-direction: column;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      transition: border-color 0.15s ease;
+      position: relative;
+    }
+
+    .cell:hover {
+      border-color: var(--border-color);
+    }
+
+    /* Markdown Cell */
+    .cell-markdown {
+      padding: 10px 14px;
+      line-height: 1.6;
+      color: var(--text-main);
+      font-size: 13.5px;
+    }
+
+    .cell-markdown h1, .cell-markdown h2, .cell-markdown h3,
+    .cell-markdown h4, .cell-markdown h5, .cell-markdown h6 {
+      color: var(--text-main);
+      font-weight: 600;
+      margin-top: 14px;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+
+    .cell-markdown h1:first-child, .cell-markdown h2:first-child, .cell-markdown h3:first-child {
+      margin-top: 0;
+    }
+
+    .cell-markdown h1 { font-size: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; }
+    .cell-markdown h2 { font-size: 17px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px; }
+    .cell-markdown h3 { font-size: 15px; }
+    .cell-markdown h4 { font-size: 13.5px; }
+
+    .cell-markdown p {
+      margin-bottom: 8px;
+    }
+
+    .cell-markdown p:last-child {
+      margin-bottom: 0;
+    }
+
+    .cell-markdown strong { font-weight: 600; color: var(--text-main); }
+    .cell-markdown em { font-style: italic; }
+
+    .cell-markdown a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .cell-markdown a:hover {
+      text-decoration: underline;
+    }
+
+    .cell-markdown code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--bg-output);
+      color: var(--token-keyword);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+    }
+
+    .cell-markdown pre {
+      background: var(--bg-code);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 10px 14px;
+      overflow-x: auto;
+      margin: 10px 0;
+    }
+
+    .cell-markdown pre code {
+      background: transparent;
+      padding: 0;
+      border: none;
+      color: inherit;
+    }
+
+    .cell-markdown ul, .cell-markdown ol {
+      margin: 8px 0 8px 22px;
+    }
+
+    .cell-markdown li {
+      margin-bottom: 4px;
+    }
+
+    .cell-markdown blockquote {
+      border-left: 3px solid var(--accent);
+      padding: 6px 14px;
+      background: rgba(243, 118, 38, 0.05);
+      color: var(--text-muted);
+      border-radius: 0 6px 6px 0;
+      margin: 8px 0;
+    }
+
+    .cell-markdown hr {
+      border: none;
+      border-top: 1px solid var(--border-color);
+      margin: 14px 0;
+    }
+
+    .cell-markdown img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 6px;
+      margin: 8px 0;
+      border: 1px solid var(--border-color);
+    }
+
+    /* Markdown & HTML Tables */
+    .cell-markdown table, .output-html table.dataframe {
+      width: auto;
+      max-width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+      font-size: 12px;
+      border: 1px solid var(--table-border);
+      border-radius: 6px;
+      overflow: hidden;
+      display: block;
+      overflow-x: auto;
+    }
+
+    .cell-markdown th, .cell-markdown td,
+    .output-html table.dataframe th, .output-html table.dataframe td {
+      padding: 6px 12px;
+      text-align: left;
+      border: 1px solid var(--table-border);
+    }
+
+    .cell-markdown th, .output-html table.dataframe th {
+      background: var(--bg-surface);
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .cell-markdown tr:nth-child(even), .output-html table.dataframe tbody tr:nth-child(even) {
+      background: var(--table-stripe);
+    }
+
+    .cell-markdown tr:hover, .output-html table.dataframe tbody tr:hover {
+      background: var(--table-hover);
+    }
+
+    /* Code Cell Section */
+    .cell-code {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .input-area {
+      display: flex;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background: var(--bg-code);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .input-area:focus-within {
+      border-color: var(--border-highlight);
+    }
+
+    .gutter {
+      width: 64px;
+      padding: 10px 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--code-in-gutter);
+      text-align: right;
+      user-select: none;
+      flex-shrink: 0;
+      background: rgba(0, 0, 0, 0.1);
+      border-right: 1px solid var(--border-color);
+    }
+
+    [data-theme="light"] .gutter {
+      background: rgba(0, 0, 0, 0.02);
+    }
+
+    .gutter.gutter-out {
+      color: var(--code-out-gutter);
+    }
+
+    .code-body {
+      flex: 1;
+      padding: 10px 14px;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.55;
+      white-space: pre;
+    }
+
+    .code-actions {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .cell:hover .code-actions {
+      opacity: 1;
+    }
+
+    .btn-cell-action {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-cell-action:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .btn-cell-action svg {
+      width: 12px;
+      height: 12px;
+      fill: currentColor;
+    }
+
+    /* Output Section */
+    .output-area {
+      display: flex;
+      margin-top: 4px;
+    }
+
+    .output-body {
+      flex: 1;
+      padding: 8px 14px;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .output-text {
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--text-main);
+    }
+
+    .output-stream {
+      background: var(--bg-output);
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      padding: 8px 12px;
+      color: var(--text-main);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .output-error {
+      background: var(--danger-bg);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: var(--danger);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .output-image {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 6px 0;
+    }
+
+    .output-image img {
+      max-width: 100%;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: #ffffff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      cursor: zoom-in;
+      transition: transform 0.15s ease;
+    }
+
+    .output-image img:hover {
+      transform: scale(1.005);
+    }
+
+    /* Syntax Highlighting Tokens */
+    .token-keyword { color: var(--token-keyword); font-weight: 600; }
+    .token-builtin { color: var(--token-builtin); }
+    .token-string { color: var(--token-string); }
+    .token-number { color: var(--token-number); }
+    .token-comment { color: var(--token-comment); font-style: italic; }
+    .token-func { color: var(--token-func); }
+    .token-decorator { color: var(--token-decorator); }
+    .token-operator { color: var(--token-operator); }
+
+    /* ANSI Colors */
+    .ansi-black { color: #475569; }
+    .ansi-red { color: #f87171; }
+    .ansi-green { color: #4ade80; }
+    .ansi-yellow { color: #fbbf24; }
+    .ansi-blue { color: #60a5fa; }
+    .ansi-magenta { color: #c084fc; }
+    .ansi-cyan { color: #38bdf8; }
+    .ansi-white { color: #f1f5f9; }
+    .ansi-bold { font-weight: 700; }
+
+    /* Empty / Error States */
+    .state-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 40px;
+    }
+
+    .state-container svg {
+      width: 48px;
+      height: 48px;
+      fill: var(--text-sub);
+    }
+
+    .state-container h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .state-container p {
+      font-size: 13px;
+      max-width: 400px;
+      line-height: 1.5;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-highlight);
+      color: var(--text-main);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.2s ease;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast svg {
+      width: 16px;
+      height: 16px;
+      fill: var(--accent);
+    }
+
+    /* Modal for Image Preview */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      cursor: zoom-out;
+      padding: 24px;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal-img {
+      max-width: 95%;
+      max-height: 95%;
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      cursor: default;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Ribbon Header -->
+  <header>
+    <div class="header-left">
+      <div class="logo-badge" title="Jupyter Notebook">
+        <svg viewBox="0 0 48 48">
+          <defs>
+            <linearGradient id="hdrOrange" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#FF9E43"/>
+              <stop offset="100%" stop-color="#E46114"/>
+            </linearGradient>
+          </defs>
+          <path d="M12 21 C15 13, 33 13, 36 21 C33 16, 15 16, 12 21 Z" fill="url(#hdrOrange)"/>
+          <path d="M12 27 C15 35, 33 35, 36 27 C33 32, 15 32, 12 27 Z" fill="url(#hdrOrange)"/>
+          <circle cx="15" cy="12" r="2.4" fill="#94a3b8"/>
+          <circle cx="34" cy="24" r="2.8" fill="#94a3b8"/>
+          <circle cx="13" cy="35" r="2" fill="#94a3b8"/>
+        </svg>
+      </div>
+      <div class="title-box">
+        <h1 id="nbTitle">Jupyter Notebook</h1>
+        <div class="subtitle">
+          <span class="badge" id="nbKernel">Python 3</span>
+          <span class="badge badge-sub" id="nbStats">Загрузка...</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- Search inside notebook -->
+      <div class="search-box" data-i18n-title="searchTitle" title="Search cells">
+        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <input type="text" id="searchInput" placeholder="Search notebook...">
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="filter-tabs">
+        <div class="filter-tab active" data-filter="all" data-i18n="filterAll" data-i18n-title="filterAllTitle" title="Show all cells">All</div>
+        <div class="filter-tab" data-filter="code" data-i18n="filterCode" data-i18n-title="filterCodeTitle" title="Code cells only">Code</div>
+        <div class="filter-tab" data-filter="output" data-i18n="filterOutput" data-i18n-title="filterOutputTitle" title="Outputs and charts only">Output</div>
+      </div>
+
+      <!-- Copy entire Python code button -->
+      <button class="btn" id="btnCopyAllCode" data-i18n-title="copyPyTitle" title="Export all code cells into single Python script">
+        <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+        <span data-i18n="copyPy">Code .py</span>
+      </button>
+
+      <!-- Language Toggle Switcher -->
+      <button class="btn" id="btnToggleLang" style="padding: 0 7px; font-weight:700; font-family:var(--font-mono); font-size:11px;" title="Switch Language / Сменить язык">EN</button>
+    </div>
+  </header>
+
+  <!-- Main Scrollable Container -->
+  <main id="notebookContainer">
+    <div class="state-container">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+      <h2 data-i18n="loading">Loading notebook...</h2>
+      <p data-i18n="waiting">Waiting for data from PeekIt application</p>
+    </div>
+  </main>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">
+    <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+    <span id="toastMsg">Copied to clipboard</span>
+  </div>
+
+  <!-- Image Zoom Modal -->
+  <div class="modal-overlay" id="imageModal">
+    <img class="modal-img" id="modalImg" src="" alt="Zoomed Plot">
+  </div>
+
+  <script>
+    let notebookData = null;
+    let activeFilter = 'all';
+    let searchQuery = '';
+
+    // --- Localization (i18n) Engine ---
+    const I18N = {
+      ru: {
+        searchTitle: 'Быстрый поиск по ячейкам',
+        searchPlaceholder: 'Поиск в блокноте...',
+        filterAll: 'Все',
+        filterAllTitle: 'Показать всё',
+        filterCode: 'Код',
+        filterCodeTitle: 'Только ячейки с кодом',
+        filterOutput: 'Вывод',
+        filterOutputTitle: 'Только результаты выполнения и графики',
+        copyPy: 'Код .py',
+        copyPyTitle: 'Собрать все ячейки кода в единый Python-скрипт',
+        langToggleTitle: 'Сменить язык (EN / RU)',
+        loading: 'Загрузка блокнота...',
+        waiting: 'Ожидание данных от приложения PeekIt',
+        cells: 'ячеек',
+        codeCells: 'кода',
+        mdCells: 'md',
+        copyCellCode: 'Код',
+        copyCellCodeTitle: 'Копировать код ячейки',
+        cellCodeCopied: 'Код ячейки скопирован',
+        allCodeCopied: 'Весь Python-код скопирован в буфер',
+        noCodeCells: 'В блокноте нет ячеек с кодом',
+        nothingFound: 'Ничего не найдено',
+        notFoundDesc: 'По запросу не найдено подходящих ячеек',
+        invalidFormat: 'Некорректный формат Jupyter Notebook',
+        invalidFormatDesc: 'Файл не содержит валидной структуры ячеек nbformat',
+        clickToZoom: 'Кликните для полноэкранного просмотра',
+        errorTitle: 'Не удалось прочитать блокнот',
+        copied: 'Скопировано в буфер обмена',
+        copyFail: 'Не удалось скопировать в буфер'
+      },
+      en: {
+        searchTitle: 'Quick cell search',
+        searchPlaceholder: 'Search notebook...',
+        filterAll: 'All',
+        filterAllTitle: 'Show all cells',
+        filterCode: 'Code',
+        filterCodeTitle: 'Code cells only',
+        filterOutput: 'Output',
+        filterOutputTitle: 'Execution outputs and charts only',
+        copyPy: 'Code .py',
+        copyPyTitle: 'Export all code cells into single Python script',
+        langToggleTitle: 'Switch language (EN / RU)',
+        loading: 'Loading notebook...',
+        waiting: 'Waiting for data from PeekIt application',
+        cells: 'cells',
+        codeCells: 'code',
+        mdCells: 'md',
+        copyCellCode: 'Code',
+        copyCellCodeTitle: 'Copy cell code',
+        cellCodeCopied: 'Cell code copied to clipboard',
+        allCodeCopied: 'All Python code copied to clipboard',
+        noCodeCells: 'No code cells found in notebook',
+        nothingFound: 'Nothing found',
+        notFoundDesc: 'No cells matching search query',
+        invalidFormat: 'Invalid Jupyter Notebook format',
+        invalidFormatDesc: 'File does not contain valid nbformat cell structure',
+        clickToZoom: 'Click for fullscreen preview',
+        errorTitle: 'Failed to read notebook',
+        copied: 'Copied to clipboard',
+        copyFail: 'Failed to copy to clipboard'
+      }
+    };
+
+    let currentLocale = localStorage.getItem('peekit_jupyter_lang') || 'en';
+
+    function t(key) {
+      return (I18N[currentLocale] || I18N.en)[key] || key;
+    }
+
+    function applyLocale(locale) {
+      if (!locale) return;
+      currentLocale = locale.slice(0, 2).toLowerCase();
+      if (!I18N[currentLocale]) currentLocale = 'en';
+      localStorage.setItem('peekit_jupyter_lang', currentLocale);
+      document.documentElement.setAttribute('lang', currentLocale);
+
+      const toggleBtn = document.getElementById('btnToggleLang');
+      if (toggleBtn) {
+        toggleBtn.textContent = currentLocale.toUpperCase();
+        toggleBtn.title = t('langToggleTitle');
+      }
+
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (key && t(key)) {
+          el.textContent = t(key);
+        }
+      });
+
+      document.querySelectorAll('[data-i18n-title]').forEach(el => {
+        const key = el.getAttribute('data-i18n-title');
+        if (key && t(key)) {
+          el.title = t(key);
+        }
+      });
+
+      const searchInput = document.getElementById('searchInput');
+      if (searchInput) {
+        searchInput.placeholder = t('searchPlaceholder');
+      }
+
+      if (notebookData) {
+        renderNotebook(notebookData);
+      }
+    }
+
+    // Immediately apply locale on DOM ready
+    applyLocale(currentLocale);
+
+    // --- UI Toast & Resilient Clipboard API ---
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    function copyText(str, successMsg = 'Скопировано в буфер обмена') {
+      if (!str) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(str).then(() => {
+          showToast(successMsg);
+        }).catch(() => {
+          fallbackCopy(str, successMsg);
+        });
+      } else {
+        fallbackCopy(str, successMsg);
+      }
+    }
+
+    function fallbackCopy(str, successMsg) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = str;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        ta.style.top = '-9999px';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (ok) {
+          showToast(successMsg);
+        } else {
+          showToast('Не удалось скопировать в буфер');
+        }
+      } catch (e) {
+        console.error('Fallback copy error:', e);
+        showToast('Ошибка копирования в буфер');
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // --- Embedded Lightweight Markdown Renderer ---
+    function renderMarkdown(md) {
+      if (!md) return '';
+      let text = escapeHtml(md);
+
+      // Fenced code blocks ```python ... ```
+      text = text.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (match, lang, code) => {
+        let highlighted = code;
+        if (!lang || lang.toLowerCase() === 'python' || lang.toLowerCase() === 'py') {
+          highlighted = highlightPython(code);
+        }
+        return `<pre><code class="language-${escapeHtml(lang)}">${highlighted}</code></pre>`;
+      });
+
+      // Headers (# Header)
+      text = text.replace(/^###### (.*$)/gim, '<h6>$1</h6>');
+      text = text.replace(/^##### (.*$)/gim, '<h5>$1</h5>');
+      text = text.replace(/^#### (.*$)/gim, '<h4>$1</h4>');
+      text = text.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+      text = text.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+      text = text.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+
+      // Blockquotes (> quote)
+      text = text.replace(/^\> (.*$)/gim, '<blockquote>$1</blockquote>');
+
+      // Horizontal rules (--- or ***)
+      text = text.replace(/^([-*_]){3,}$/gim, '<hr>');
+
+      // Bold and Italic
+      text = text.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
+      text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+      text = text.replace(/___(.*?)___/g, '<strong><em>$1</em></strong>');
+      text = text.replace(/__(.*?)__/g, '<strong>$1</strong>');
+      text = text.replace(/_(.*?)_/g, '<em>$1</em>');
+
+      // Inline Code (`code`)
+      text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+      // Links & Images
+      text = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">');
+      text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+      // Unordered lists (* or -)
+      text = text.replace(/^\s*[\*\-]\s+(.*$)/gim, '<ul><li>$1</li></ul>');
+      text = text.replace(/<\/ul>\s?<ul>/g, '');
+
+      // Ordered lists (1. 2.)
+      text = text.replace(/^\s*\d+\.\s+(.*$)/gim, '<ol><li>$1</li></ol>');
+      text = text.replace(/<\/ol>\s?<ol>/g, '');
+
+      // Paragraphs & Line Breaks
+      const blocks = text.split(/\n\s*\n/);
+      return blocks.map(block => {
+        block = block.trim();
+        if (!block) return '';
+        if (/^<(h[1-6]|pre|ul|ol|blockquote|hr|table)/i.test(block)) {
+          return block;
+        }
+        return `<p>${block.replace(/\n/g, '<br>')}</p>`;
+      }).join('\n');
+    }
+
+    // --- Embedded Python Syntax Highlighter ---
+    const PY_KEYWORDS = new Set([
+      'and', 'as', 'assert', 'async', 'await', 'break', 'class', 'continue',
+      'def', 'del', 'elif', 'else', 'except', 'finally', 'for', 'from',
+      'global', 'if', 'import', 'in', 'is', 'lambda', 'nonlocal', 'not',
+      'or', 'pass', 'raise', 'return', 'try', 'while', 'with', 'yield'
+    ]);
+
+    const PY_BUILTINS = new Set([
+      'abs', 'all', 'any', 'bin', 'bool', 'bytearray', 'bytes', 'callable',
+      'chr', 'classmethod', 'compile', 'complex', 'delattr', 'dict', 'dir',
+      'divmod', 'enumerate', 'eval', 'exec', 'filter', 'float', 'format',
+      'frozenset', 'getattr', 'globals', 'hasattr', 'hash', 'help', 'hex',
+      'id', 'input', 'int', 'isinstance', 'issubclass', 'iter', 'len',
+      'list', 'locals', 'map', 'max', 'memoryview', 'min', 'next', 'object',
+      'oct', 'open', 'ord', 'pow', 'print', 'property', 'range', 'repr',
+      'reversed', 'round', 'set', 'setattr', 'slice', 'sorted', 'staticmethod',
+      'str', 'sum', 'super', 'tuple', 'type', 'vars', 'zip', 'True', 'False',
+      'None', 'self'
+    ]);
+
+    function highlightPython(code) {
+      if (!code) return '';
+      // We parse line by line and token by token
+      const lines = code.split('\n');
+      const highlightedLines = lines.map(line => {
+        let result = '';
+        let i = 0;
+        const len = line.length;
+
+        while (i < len) {
+          // Comment (# ...)
+          if (line[i] === '#') {
+            result += `<span class="token-comment">${escapeHtml(line.slice(i))}</span>`;
+            break;
+          }
+
+          // String literals
+          if (line[i] === '"' || line[i] === "'") {
+            const quote = line[i];
+            const isTriple = line.startsWith(quote + quote + quote, i);
+            const targetQuote = isTriple ? quote + quote + quote : quote;
+            let j = i + targetQuote.length;
+            let strContent = targetQuote;
+
+            while (j < len) {
+              if (line[j] === '\\') {
+                strContent += line[j] + (line[j + 1] || '');
+                j += 2;
+                continue;
+              }
+              if (line.startsWith(targetQuote, j)) {
+                strContent += targetQuote;
+                j += targetQuote.length;
+                break;
+              }
+              strContent += line[j];
+              j++;
+            }
+            result += `<span class="token-string">${escapeHtml(strContent)}</span>`;
+            i = j;
+            continue;
+          }
+
+          // Decorator (@...)
+          if (line[i] === '@' && (i === 0 || /\s/.test(line[i - 1]))) {
+            let j = i + 1;
+            while (j < len && /[a-zA-Z0-9_\.]/.test(line[j])) j++;
+            result += `<span class="token-decorator">${escapeHtml(line.slice(i, j))}</span>`;
+            i = j;
+            continue;
+          }
+
+          // Numbers
+          if (/[0-9]/.test(line[i]) && (i === 0 || /[^a-zA-Z0-9_]/.test(line[i - 1]))) {
+            let j = i;
+            while (j < len && /[0-9a-fA-FxXoObB\._]/.test(line[j])) j++;
+            result += `<span class="token-number">${escapeHtml(line.slice(i, j))}</span>`;
+            i = j;
+            continue;
+          }
+
+          // Words (Keywords, builtins, functions)
+          if (/[a-zA-Z_]/.test(line[i])) {
+            let j = i;
+            while (j < len && /[a-zA-Z0-9_]/.test(line[j])) j++;
+            const word = line.slice(i, j);
+
+            // Check if it's a function call (followed by '(')
+            let isCall = false;
+            let k = j;
+            while (k < len && /\s/.test(line[k])) k++;
+            if (k < len && line[k] === '(') isCall = true;
+
+            if (PY_KEYWORDS.has(word)) {
+              result += `<span class="token-keyword">${escapeHtml(word)}</span>`;
+            } else if (PY_BUILTINS.has(word)) {
+              result += `<span class="token-builtin">${escapeHtml(word)}</span>`;
+            } else if (isCall) {
+              result += `<span class="token-func">${escapeHtml(word)}</span>`;
+            } else {
+              result += escapeHtml(word);
+            }
+            i = j;
+            continue;
+          }
+
+          // Operators
+          if (/[+\-*/%=<>!&|^~]/.test(line[i])) {
+            result += `<span class="token-operator">${escapeHtml(line[i])}</span>`;
+            i++;
+            continue;
+          }
+
+          // Normal character
+          result += escapeHtml(line[i]);
+          i++;
+        }
+        return result;
+      });
+
+      return highlightedLines.join('\n');
+    }
+
+    // --- ANSI Escape Sequences to Colored HTML ---
+    function parseAnsi(text) {
+      if (!text) return '';
+      const ansiMap = {
+        '30': 'ansi-black',
+        '31': 'ansi-red',
+        '32': 'ansi-green',
+        '33': 'ansi-yellow',
+        '34': 'ansi-blue',
+        '35': 'ansi-magenta',
+        '36': 'ansi-cyan',
+        '37': 'ansi-white',
+        '1': 'ansi-bold'
+      };
+
+      let escaped = escapeHtml(text);
+      // Replace ANSI escape codes: \u001b[31m or \u001b[0;31m
+      escaped = escaped.replace(/\u001b\[([0-9;]+)m/g, (match, codeStr) => {
+        if (codeStr === '0' || codeStr === '00') {
+          return '</span>';
+        }
+        const codes = codeStr.split(';');
+        const classes = codes.map(c => ansiMap[c] || '').filter(Boolean);
+        if (classes.length > 0) {
+          return `<span class="${classes.join(' ')}">`;
+        }
+        return '';
+      });
+
+      return escaped;
+    }
+
+    // --- Parse and Render Notebook ---
+    function renderNotebook(nb) {
+      notebookData = nb;
+      const container = document.getElementById('notebookContainer');
+      container.innerHTML = '';
+
+      if (!nb || !Array.isArray(nb.cells)) {
+        container.innerHTML = `
+          <div class="state-container">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+            <h2>${t('invalidFormat')}</h2>
+            <p>${t('invalidFormatDesc')}</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Metadata extraction
+      const kernelName = nb.metadata?.kernelspec?.display_name || nb.metadata?.language_info?.name || 'Python';
+      const kernelVer = nb.metadata?.language_info?.version ? ` v${nb.metadata.language_info.version}` : '';
+      document.getElementById('nbKernel').textContent = `${kernelName}${kernelVer}`;
+
+      let codeCount = 0;
+      let mdCount = 0;
+      nb.cells.forEach(c => {
+        if (c.cell_type === 'code') codeCount++;
+        else if (c.cell_type === 'markdown') mdCount++;
+      });
+      document.getElementById('nbStats').textContent = `${nb.cells.length} ${t('cells')} (${codeCount} ${t('codeCells')}, ${mdCount} ${t('mdCells')})`;
+
+      let renderedCells = 0;
+
+      nb.cells.forEach((cell, idx) => {
+        const sourceText = Array.isArray(cell.source) ? cell.source.join('') : (cell.source || '');
+        
+        // Search filter
+        if (searchQuery) {
+          const matchSource = sourceText.toLowerCase().includes(searchQuery);
+          let matchOutput = false;
+          if (cell.outputs) {
+            matchOutput = JSON.stringify(cell.outputs).toLowerCase().includes(searchQuery);
+          }
+          if (!matchSource && !matchOutput) return;
+        }
+
+        // View Mode Filter
+        if (activeFilter === 'code' && cell.cell_type !== 'code') return;
+        if (activeFilter === 'output' && (!cell.outputs || cell.outputs.length === 0)) return;
+
+        renderedCells++;
+
+        // Render Markdown Cell
+        if (cell.cell_type === 'markdown') {
+          const cellDiv = document.createElement('div');
+          cellDiv.className = 'cell cell-markdown';
+          cellDiv.innerHTML = renderMarkdown(sourceText);
+          container.appendChild(cellDiv);
+          return;
+        }
+
+        // Render Code Cell
+        if (cell.cell_type === 'code') {
+          const cellDiv = document.createElement('div');
+          cellDiv.className = 'cell cell-code';
+
+          // Input Code Area
+          if (activeFilter !== 'output') {
+            const inputArea = document.createElement('div');
+            inputArea.className = 'input-area';
+
+            const inNum = cell.execution_count !== null && cell.execution_count !== undefined ? cell.execution_count : ' ';
+            const gutter = document.createElement('div');
+            gutter.className = 'gutter';
+            gutter.textContent = `In [${inNum}]:`;
+
+            const codeBody = document.createElement('div');
+            codeBody.className = 'code-body';
+            codeBody.innerHTML = highlightPython(sourceText);
+
+            // Action buttons (Copy cell code)
+            const actions = document.createElement('div');
+            actions.className = 'code-actions';
+            
+            const btnCopy = document.createElement('button');
+            btnCopy.className = 'btn-cell-action';
+            btnCopy.title = t('copyCellCodeTitle');
+            btnCopy.innerHTML = `
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+              <span>${t('copyCellCode')}</span>
+            `;
+            btnCopy.onclick = (e) => {
+              e.stopPropagation();
+              copyText(sourceText, `${t('cellCodeCopied')} [${inNum}]`);
+            };
+
+            actions.appendChild(btnCopy);
+            inputArea.appendChild(gutter);
+            inputArea.appendChild(codeBody);
+            inputArea.appendChild(actions);
+            cellDiv.appendChild(inputArea);
+          }
+
+          // Output Area
+          if (Array.isArray(cell.outputs) && cell.outputs.length > 0) {
+            cell.outputs.forEach((out, outIdx) => {
+              const outputArea = document.createElement('div');
+              outputArea.className = 'output-area';
+
+              const outNum = cell.execution_count !== null && cell.execution_count !== undefined ? cell.execution_count : ' ';
+              const outGutter = document.createElement('div');
+              outGutter.className = 'gutter gutter-out';
+              outGutter.textContent = outIdx === 0 ? `Out [${outNum}]:` : '';
+
+              const outBody = document.createElement('div');
+              outBody.className = 'output-body';
+
+              // 1. Plots & Images (PNG, JPEG, SVG)
+              if (out.data) {
+                if (out.data['image/png']) {
+                  const imgContainer = document.createElement('div');
+                  imgContainer.className = 'output-image';
+                  const img = document.createElement('img');
+                  img.src = `data:image/png;base64,${out.data['image/png']}`;
+                  img.title = t('clickToZoom');
+                  img.onclick = () => openImageModal(img.src);
+                  imgContainer.appendChild(img);
+                  outBody.appendChild(imgContainer);
+                } else if (out.data['image/jpeg']) {
+                  const imgContainer = document.createElement('div');
+                  imgContainer.className = 'output-image';
+                  const img = document.createElement('img');
+                  img.src = `data:image/jpeg;base64,${out.data['image/jpeg']}`;
+                  img.title = t('clickToZoom');
+                  img.onclick = () => openImageModal(img.src);
+                  imgContainer.appendChild(img);
+                  outBody.appendChild(imgContainer);
+                } else if (out.data['image/svg+xml']) {
+                  const svgData = Array.isArray(out.data['image/svg+xml']) ? out.data['image/svg+xml'].join('') : out.data['image/svg+xml'];
+                  const svgContainer = document.createElement('div');
+                  svgContainer.className = 'output-image';
+                  svgContainer.innerHTML = svgData;
+                  outBody.appendChild(svgContainer);
+                } else if (out.data['text/html']) {
+                  // 2. HTML Tables (Pandas DataFrame)
+                  const htmlData = Array.isArray(out.data['text/html']) ? out.data['text/html'].join('') : out.data['text/html'];
+                  const htmlDiv = document.createElement('div');
+                  htmlDiv.className = 'output-html';
+                  htmlDiv.innerHTML = htmlData;
+                  outBody.appendChild(htmlDiv);
+                } else if (out.data['text/plain']) {
+                  // 3. Plain Text Output
+                  const txtData = Array.isArray(out.data['text/plain']) ? out.data['text/plain'].join('') : out.data['text/plain'];
+                  const txtDiv = document.createElement('div');
+                  txtDiv.className = 'output-text';
+                  txtDiv.textContent = txtData;
+                  outBody.appendChild(txtDiv);
+                }
+              }
+
+              // 4. Stream (stdout / stderr)
+              if (out.output_type === 'stream') {
+                const streamText = Array.isArray(out.text) ? out.text.join('') : (out.text || '');
+                const streamDiv = document.createElement('div');
+                streamDiv.className = 'output-stream';
+                streamDiv.innerHTML = parseAnsi(streamText);
+                outBody.appendChild(streamDiv);
+              }
+
+              // 5. Error & Traceback
+              if (out.output_type === 'error') {
+                const errDiv = document.createElement('div');
+                errDiv.className = 'output-error';
+                const tb = Array.isArray(out.traceback) ? out.traceback.join('\n') : (out.traceback || `${out.ename}: ${out.evalue}`);
+                errDiv.innerHTML = parseAnsi(tb);
+                outBody.appendChild(errDiv);
+              }
+
+              outputArea.appendChild(outGutter);
+              outputArea.appendChild(outBody);
+              cellDiv.appendChild(outputArea);
+            });
+          }
+
+          container.appendChild(cellDiv);
+          return;
+        }
+
+        // Raw cell
+        if (cell.cell_type === 'raw') {
+          const rawDiv = document.createElement('div');
+          rawDiv.className = 'cell cell-markdown';
+          rawDiv.innerHTML = `<pre><code>${escapeHtml(sourceText)}</code></pre>`;
+          container.appendChild(rawDiv);
+        }
+      });
+
+      if (renderedCells === 0) {
+        container.innerHTML = `
+          <div class="state-container">
+            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            <h2>${t('nothingFound')}</h2>
+            <p>${searchQuery ? `${t('notFoundDesc')}: «${escapeHtml(searchQuery)}»` : t('notFoundDesc')}</p>
+          </div>
+        `;
+      }
+    }
+
+    // --- Fullscreen Image Modal ---
+    const imageModal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('modalImg');
+
+    function openImageModal(src) {
+      modalImg.src = src;
+      imageModal.classList.add('show');
+    }
+
+    imageModal.addEventListener('click', () => {
+      imageModal.classList.remove('show');
+    });
+
+    // --- Copy Entire Python Script ---
+    document.getElementById('btnCopyAllCode').addEventListener('click', () => {
+      if (!notebookData || !Array.isArray(notebookData.cells)) return;
+      const codeCells = notebookData.cells
+        .filter(c => c.cell_type === 'code')
+        .map((c, i) => {
+          const src = Array.isArray(c.source) ? c.source.join('') : (c.source || '');
+          const count = c.execution_count !== null && c.execution_count !== undefined ? c.execution_count : i + 1;
+          return `\n# --- In [${count}] ---\n${src}\n`;
+        });
+
+      if (codeCells.length === 0) {
+        showToast(t('noCodeCells'));
+        return;
+      }
+
+      const fullScript = `# Jupyter Notebook Export: ${document.getElementById('nbTitle').textContent}\n# Generated by PeekIt Jupyter Viewer\n` + codeCells.join('\n');
+      copyText(fullScript, t('allCodeCopied'));
+    });
+
+    // --- Language Switcher Button ---
+    document.getElementById('btnToggleLang').addEventListener('click', () => {
+      applyLocale(currentLocale === 'ru' ? 'en' : 'ru');
+    });
+
+    // --- Search Input ---
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value.trim().toLowerCase();
+      if (notebookData) renderNotebook(notebookData);
+    });
+
+    // --- Filter Tabs ---
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        activeFilter = tab.getAttribute('data-filter');
+        if (notebookData) renderNotebook(notebookData);
+      });
+    });
+
+    // --- Theme & Appearance Engine ---
+    let isSystemTheme = false;
+
+    function applyTheme(themeInput) {
+      let isDark = true;
+      let accentColor = null;
+
+      if (themeInput && typeof themeInput === 'object') {
+        if (typeof themeInput.isDark === 'boolean') {
+          isDark = themeInput.isDark;
+        } else if (typeof themeInput.theme === 'string') {
+          isDark = themeInput.theme.toLowerCase() !== 'light';
+        } else if (typeof themeInput.mode === 'string') {
+          isDark = themeInput.mode.toLowerCase() !== 'light';
+        } else if (themeInput.settings && typeof themeInput.settings.theme === 'string') {
+          isDark = themeInput.settings.theme.toLowerCase() !== 'light';
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+          isDark = false;
+        }
+        accentColor = themeInput.accentColor || themeInput.accent;
+      } else if (typeof themeInput === 'boolean') {
+        isDark = themeInput;
+      } else if (typeof themeInput === 'string') {
+        isDark = themeInput.toLowerCase() !== 'light';
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        isDark = false;
+      }
+
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      if (isDark) {
+        document.body.classList.remove('light-theme');
+        document.body.classList.add('dark-theme');
+      } else {
+        document.body.classList.remove('dark-theme');
+        document.body.classList.add('light-theme');
+      }
+
+      if (accentColor) {
+        document.documentElement.style.setProperty('--accent', accentColor);
+      }
+    }
+
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (isSystemTheme) {
+          applyTheme(e.matches ? 'dark' : 'light');
+        }
+      });
+    }
+
+    // --- IPC Communication with PeekIt Host ---
+    let readyInterval = null;
+
+    window.addEventListener('message', async (event) => {
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      switch (msg.type) {
+        case 'PEEKIT_INIT': {
+          if (readyInterval) {
+            clearInterval(readyInterval);
+            readyInterval = null;
+          }
+
+          const payload = msg.payload || msg;
+          if (payload.fileName) {
+            document.getElementById('nbTitle').textContent = payload.fileName;
+          }
+
+          const langVal = payload.language || payload.locale || payload.lang || 
+                          payload.settings?.language || payload.settings?.locale || payload.settings?.lang;
+          if (langVal) {
+            applyLocale(langVal);
+          } else {
+            applyLocale(currentLocale);
+          }
+
+          applyTheme(payload);
+
+          // Request file data from PeekIt Host
+          window.parent.postMessage({ type: 'PEEKIT_REQUEST_DATA' }, '*');
+          break;
+        }
+
+        case 'PEEKIT_THEME_CHANGED': {
+          const payload = msg.payload || msg;
+          applyTheme(payload);
+          break;
+        }
+
+        case 'PEEKIT_LANGUAGE_CHANGED':
+        case 'PEEKIT_LOCALE_CHANGED': {
+          const payload = msg.payload || msg;
+          const langVal = payload.language || payload.locale || payload.lang || (typeof payload === 'string' ? payload : null);
+          if (langVal) {
+            applyLocale(langVal);
+          }
+          break;
+        }
+
+        case 'PEEKIT_DATA_RESPONSE': {
+          try {
+            const rawData = msg.payload?.data !== undefined ? msg.payload.data : (msg.payload !== undefined ? msg.payload : msg.data);
+            const error = msg.payload?.error || msg.error;
+
+            if (error || !rawData) {
+              throw new Error(error || 'Данные файла не получены от приложения');
+            }
+
+            let jsonText = '';
+            if (typeof rawData === 'string') {
+              if (rawData.trim().startsWith('{')) {
+                jsonText = rawData;
+              } else {
+                try {
+                  const bin = atob(rawData);
+                  const bytes = new Uint8Array(bin.length);
+                  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                  jsonText = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+                } catch(e) {
+                  jsonText = rawData;
+                }
+              }
+            } else if (rawData instanceof ArrayBuffer) {
+              jsonText = new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(rawData));
+            } else if (ArrayBuffer.isView(rawData)) {
+              jsonText = new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(rawData.buffer, rawData.byteOffset, rawData.byteLength));
+            } else if (typeof rawData === 'object') {
+              // Direct JSON object
+              renderNotebook(rawData);
+              return;
+            } else {
+              throw new Error('Неподдерживаемый формат данных блокнота');
+            }
+
+            const parsed = JSON.parse(jsonText);
+            renderNotebook(parsed);
+
+            // IMPORTANT: Never post PEEKIT_READY here. PeekIt host treats PEEKIT_READY as iframe initialization and re-sends PEEKIT_INIT, causing an infinite re-render loop.
+          } catch (err) {
+            console.error('Jupyter parser error:', err);
+            document.getElementById('notebookContainer').innerHTML = `
+              <div class="state-container">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                <h2>Не удалось прочитать блокнот</h2>
+                <p>${escapeHtml(err.message || 'Ошибка парсинга JSON структуры')}</p>
+              </div>
+            `;
+          }
+          break;
+        }
+      }
+    });
+
+    // Send READY to Host until acknowledged with PEEKIT_INIT
+    readyInterval = setInterval(() => {
+      window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
+    }, 100);
+    window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
+
+    // Keyboard Shortcuts: Ctrl+F to focus search, Esc to clear modal or search
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        searchInput.focus();
+        searchInput.select();
+      } else if (e.key === 'Escape') {
+        if (imageModal.classList.contains('show')) {
+          imageModal.classList.remove('show');
+        } else if (document.activeElement === searchInput) {
+          searchInput.value = '';
+          searchQuery = '';
+          searchInput.blur();
+          if (notebookData) renderNotebook(notebookData);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
