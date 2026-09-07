@@ -872,6 +872,10 @@ body {
   background-size: 40px 40px;
 }
 
+#map.dark-tiles .leaflet-tile {
+  filter: brightness(0.65) invert(1) contrast(2.2) hue-rotate(200deg) saturate(0.35) brightness(0.9);
+}
+
 .leaflet-control-zoom {
   border: 1px solid var(--bg-card-border) !important;
   border-radius: 8px !important;
@@ -1099,6 +1103,7 @@ canvas#profileCanvas {
     <div class="header-controls">
       <button class="ctrl-btn active" id="btnLayerDark" title="Тёмная карта">🌙 Dark</button>
       <button class="ctrl-btn" id="btnLayerLight" title="Светлая карта">☀️ Light</button>
+      <button class="ctrl-btn" id="btnLayerTopo" title="Топографическая карта">⛰️ Topo</button>
       <button class="ctrl-btn" id="btnLayerSat" title="Спутник">🛰️ Sat</button>
 
       <button class="ctrl-btn" id="btnFitBounds" title="Центрировать маршрут">
@@ -1203,6 +1208,7 @@ canvas#profileCanvas {
         valDescent: document.getElementById('valDescent'),
         btnLayerDark: document.getElementById('btnLayerDark'),
         btnLayerLight: document.getElementById('btnLayerLight'),
+        btnLayerTopo: document.getElementById('btnLayerTopo'),
         btnLayerSat: document.getElementById('btnLayerSat'),
         btnFitBounds: document.getElementById('btnFitBounds'),
         btnToggleProfile: document.getElementById('btnToggleProfile'),
@@ -1213,22 +1219,28 @@ canvas#profileCanvas {
 
       const TILE_PROVIDERS = {
         dark: {
-          url: 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png',
-          subdomains: 'abcd',
+          url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           maxZoom: 19,
-          attribution: '&copy; CartoDB & OpenStreetMap'
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          isDark: true
         },
         light: {
-          url: 'https://{s}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png',
-          subdomains: 'abcd',
+          url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           maxZoom: 19,
-          attribution: '&copy; CartoDB & OpenStreetMap'
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          isDark: false
+        },
+        topo: {
+          url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+          maxZoom: 19,
+          attribution: '&copy; Esri & OpenStreetMap',
+          isDark: false
         },
         sat: {
           url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-          subdomains: 'abcd',
           maxZoom: 19,
-          attribution: '&copy; Esri & OpenStreetMap'
+          attribution: '&copy; Esri & OpenStreetMap',
+          isDark: false
         }
       };
 
@@ -1251,19 +1263,26 @@ canvas#profileCanvas {
         activeLayerType = type;
         const config = TILE_PROVIDERS[type] || TILE_PROVIDERS.dark;
 
+        const mapEl = document.getElementById('map');
+        if (config.isDark) {
+          mapEl.classList.add('dark-tiles');
+        } else {
+          mapEl.classList.remove('dark-tiles');
+        }
+
         if (currentTileLayer) {
           map.removeLayer(currentTileLayer);
         }
 
         currentTileLayer = L.tileLayer(config.url, {
-          subdomains: config.subdomains,
           maxZoom: config.maxZoom,
           attribution: config.attribution
         }).addTo(map);
 
-        [el.btnLayerDark, el.btnLayerLight, el.btnLayerSat].forEach(btn => btn?.classList.remove('active'));
+        [el.btnLayerDark, el.btnLayerLight, el.btnLayerTopo, el.btnLayerSat].forEach(btn => btn?.classList.remove('active'));
         if (type === 'dark') el.btnLayerDark?.classList.add('active');
         else if (type === 'light') el.btnLayerLight?.classList.add('active');
+        else if (type === 'topo') el.btnLayerTopo?.classList.add('active');
         else if (type === 'sat') el.btnLayerSat?.classList.add('active');
       }
 
@@ -1636,6 +1655,7 @@ canvas#profileCanvas {
 
       el.btnLayerDark?.addEventListener('click', () => setTileLayer('dark'));
       el.btnLayerLight?.addEventListener('click', () => setTileLayer('light'));
+      el.btnLayerTopo?.addEventListener('click', () => setTileLayer('topo'));
       el.btnLayerSat?.addEventListener('click', () => setTileLayer('sat'));
 
       el.btnFitBounds?.addEventListener('click', () => {
