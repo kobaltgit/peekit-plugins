@@ -674,6 +674,65 @@
       text-align: center;
       font-size: 13px;
     }
+
+    .oversized-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 36px 32px;
+      max-width: 500px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .oversized-icon-wrapper {
+      width: 60px;
+      height: 60px;
+      border-radius: 16px;
+      background: rgba(249, 115, 22, 0.15);
+      border: 1px solid rgba(249, 115, 22, 0.3);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 4px;
+    }
+
+    .oversized-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .oversized-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .oversized-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
   </style>
   <script>
 /*!
@@ -1590,6 +1649,30 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         }
       }
 
+      function showOversizedWarning(msg) {
+        const sizeMatch = msg.match(/\(([^)]+)\)/);
+        const sizeInfo = sizeMatch ? sizeMatch[1] : '';
+
+        loading.innerHTML = `
+          <div class="oversized-card">
+            <div class="oversized-icon-wrapper">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/>
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-dasharray="2 3"/>
+              </svg>
+            </div>
+            <div class="oversized-title">Архив слишком велик для предпросмотра</div>
+            ${sizeInfo ? `<div class="oversized-badge">Размер: ${sizeInfo}</div>` : ''}
+            <div class="oversized-desc">
+              Для сохранения быстродействия системы и защиты оперативной памяти файлы размером в несколько гигабайт не загружаются в легковесный просмотрщик.
+            </div>
+            <div style="font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-top: 4px;">
+              Используйте внешний архиватор (7-Zip, WinRAR или системный проводник) через кнопку <strong>«Открыть в приложении»</strong> вверху окна.
+            </div>
+          </div>
+        `;
+      }
+
       function showError(msg) {
         loading.innerHTML = `<div class="error-box">${msg}</div>`;
         window.parent.postMessage({
@@ -1636,6 +1719,12 @@ https://github.com/nodeca/pako/blob/main/LICENSE
             const error = msg.payload?.error;
 
             if (error || !rawData) {
+              const errStr = String(error || '');
+              const errLower = errStr.toLowerCase();
+              if (errLower.includes('велик') || errLower.includes('large') || errLower.includes('размер') || errLower.includes('memory') || errLower.includes('size')) {
+                showOversizedWarning(errStr);
+                return;
+              }
               showError('Ошибка чтения архива: ' + (error || 'Нет данных'));
               return;
             }
