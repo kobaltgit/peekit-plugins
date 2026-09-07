@@ -1,7 +1,7 @@
 {
   "$schema": "./plugin-schema.json",
   "version": 1,
-  "updated_at": "2026-09-07T04:11:50.825Z",
+  "updated_at": "2026-09-07T04:16:08.870Z",
   "plugins": [
     {
       "id": "com.peekit.3d-viewer",
@@ -286,8 +286,8 @@
       "min_peekit_version": "1.0.0",
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.geo-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.geo-viewer-1.0.0.pkit",
-      "size_kb": "54.5",
-      "sha256": "9bc99f96a96ac92326024c4dc072acecf42863ba0f5d7c5d5e0894d48688b313",
+      "size_kb": "54.1",
+      "sha256": "e5353ce52d1f3c49a412781243d74821c0e6a8770d789ebad23c5ca268c7eff2",
       "icon": "icon.svg",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     }
