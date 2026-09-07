@@ -943,6 +943,40 @@ body {
   animation: pulse-ring 1.5s infinite;
 }
 
+.marker-waypoint {
+  background: #f59e0b;
+  border: 2px solid #ffffff;
+  color: #ffffff;
+}
+
+.marker-km {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1.5px solid #38bdf8;
+  color: #38bdf8;
+  font-size: 9px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.leaflet-popup-content-wrapper {
+  background: var(--bg-card) !important;
+  color: var(--text-main) !important;
+  border: 1px solid var(--bg-card-border) !important;
+  border-radius: 8px !important;
+  backdrop-filter: blur(12px) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
+}
+
+.leaflet-popup-tip {
+  background: var(--bg-card) !important;
+}
+
+.leaflet-popup-content {
+  margin: 8px 12px !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+}
+
 @keyframes pulse-ring {
   0% { transform: scale(0.9); }
   50% { transform: scale(1.2); }
@@ -1097,6 +1131,10 @@ canvas#profileCanvas {
         <span class="metric-label">⚡ Скорость:</span>
         <span class="metric-val" id="valSpeed">0 км/ч</span>
       </div>
+      <div class="metric-chip" id="chipWaypoints" style="display: none;">
+        <span class="metric-label">📍 Точки:</span>
+        <span class="metric-val" id="valWaypoints">0</span>
+      </div>
     </div>
 
     <!-- Header Controls -->
@@ -1105,6 +1143,8 @@ canvas#profileCanvas {
       <button class="ctrl-btn" id="btnLayerLight" title="Светлая карта">☀️ Light</button>
       <button class="ctrl-btn" id="btnLayerTopo" title="Топографическая карта">⛰️ Topo</button>
       <button class="ctrl-btn" id="btnLayerSat" title="Спутник">🛰️ Sat</button>
+
+      <button class="ctrl-btn active" id="btnTogglePoints" title="Показать/скрыть путевые точки и отметки">📍 Точки</button>
 
       <button class="ctrl-btn" id="btnFitBounds" title="Центрировать маршрут">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1181,17 +1221,21 @@ canvas#profileCanvas {
 
       let map = null;
       let trackLayer = null;
+      let waypointsLayer = null;
+      let kmMarkersLayer = null;
       let currentTileLayer = null;
       let startMarker = null;
       let finishMarker = null;
       let cursorMarker = null;
       let trackPoints = [];
+      let trackWaypoints = [];
       let totalDistanceKm = 0;
       let minEle = 0;
       let maxEle = 0;
       let totalAscent = 0;
       let totalDescent = 0;
       let activeLayerType = 'dark';
+      let showPoints = true;
 
       const el = {
         loadingOverlay: document.getElementById('loadingOverlay'),
@@ -1203,6 +1247,8 @@ canvas#profileCanvas {
         valSpeed: document.getElementById('valSpeed'),
         chipDuration: document.getElementById('chipDuration'),
         chipSpeed: document.getElementById('chipSpeed'),
+        chipWaypoints: document.getElementById('chipWaypoints'),
+        valWaypoints: document.getElementById('valWaypoints'),
         valMinEle: document.getElementById('valMinEle'),
         valMaxEle: document.getElementById('valMaxEle'),
         valDescent: document.getElementById('valDescent'),
@@ -1210,6 +1256,7 @@ canvas#profileCanvas {
         btnLayerLight: document.getElementById('btnLayerLight'),
         btnLayerTopo: document.getElementById('btnLayerTopo'),
         btnLayerSat: document.getElementById('btnLayerSat'),
+        btnTogglePoints: document.getElementById('btnTogglePoints'),
         btnFitBounds: document.getElementById('btnFitBounds'),
         btnToggleProfile: document.getElementById('btnToggleProfile'),
         elevationPanel: document.getElementById('elevationPanel'),
@@ -1297,31 +1344,66 @@ canvas#profileCanvas {
         return R * c;
       }
 
+      function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
       function parseTrackData(content, extension) {
         const ext = (extension || '').toLowerCase().replace(/^\./, '');
-        let points = [];
+        let result = { points: [], waypoints: [] };
 
         if (ext === 'geojson' || (typeof content === 'string' && content.trim().startsWith('{'))) {
-          points = parseGeoJson(content);
+          result = parseGeoJson(content);
         } else if (ext === 'kml' || (typeof content === 'string' && content.includes('<kml'))) {
-          points = parseKml(content);
+          result = parseKml(content);
         } else {
-          points = parseGpx(content);
+          result = parseGpx(content);
         }
 
-        return points;
+        return result;
       }
 
       function parseGpx(xmlStr) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(xmlStr, 'application/xml');
         const points = [];
+        const waypoints = [];
 
         const nameEl = doc.querySelector('trk > name') || doc.querySelector('metadata > name');
         if (nameEl && nameEl.textContent) {
           el.trackName.textContent = nameEl.textContent.trim();
         }
 
+        // 1. Waypoints (<wpt>)
+        const wpts = doc.querySelectorAll('wpt');
+        for (let i = 0; i < wpts.length; i++) {
+          const w = wpts[i];
+          const lat = parseFloat(w.getAttribute('lat'));
+          const lon = parseFloat(w.getAttribute('lon'));
+          if (isNaN(lat) || isNaN(lon)) continue;
+
+          const nEl = w.querySelector('name');
+          const dEl = w.querySelector('desc') || w.querySelector('cmt');
+          const eEl = w.querySelector('ele');
+          const sEl = w.querySelector('sym');
+
+          waypoints.push({
+            lat,
+            lon,
+            name: nEl ? nEl.textContent.trim() : ('Точка ' + (waypoints.length + 1)),
+            desc: dEl ? dEl.textContent.trim() : '',
+            ele: eEl ? parseFloat(eEl.textContent) : null,
+            sym: sEl ? sEl.textContent.trim() : ''
+          });
+        }
+
+        // 2. Track points (<trkpt>, <rtept>)
         const trkpts = doc.querySelectorAll('trkpt, rtept');
         for (let i = 0; i < trkpts.length; i++) {
           const pt = trkpts[i];
@@ -1347,47 +1429,124 @@ canvas#profileCanvas {
           }
         }
 
-        return points;
+        // Fallback waypoints regex
+        if (waypoints.length === 0) {
+          const wptRegex = /<wpt\s+[^>]*lat=["']([0-9.-]+)["']\s+[^>]*lon=["']([0-9.-]+)["']/gi;
+          let m;
+          while ((m = wptRegex.exec(xmlStr)) !== null) {
+            waypoints.push({
+              lat: parseFloat(m[1]),
+              lon: parseFloat(m[2]),
+              name: 'Точка ' + (waypoints.length + 1),
+              desc: '',
+              ele: null
+            });
+          }
+        }
+
+        return { points, waypoints };
       }
 
       function parseKml(xmlStr) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(xmlStr, 'application/xml');
         const points = [];
+        const waypoints = [];
 
         const nameEl = doc.querySelector('Placemark > name') || doc.querySelector('Document > name');
         if (nameEl && nameEl.textContent) {
           el.trackName.textContent = nameEl.textContent.trim();
         }
 
-        const coordsEls = doc.querySelectorAll('coordinates');
-        coordsEls.forEach(cEl => {
-          const text = cEl.textContent.trim();
-          const tokens = text.split(/\s+/);
-          tokens.forEach(tok => {
-            const parts = tok.split(',');
-            if (parts.length >= 2) {
-              const lon = parseFloat(parts[0]);
-              const lat = parseFloat(parts[1]);
-              const ele = parts.length >= 3 ? parseFloat(parts[2]) : null;
+        const placemarks = doc.querySelectorAll('Placemark');
+        placemarks.forEach(pm => {
+          // Check if it's a Point / Waypoint
+          const ptEl = pm.querySelector('Point coordinates');
+          if (ptEl) {
+            const coords = ptEl.textContent.trim().split(',');
+            if (coords.length >= 2) {
+              const lon = parseFloat(coords[0]);
+              const lat = parseFloat(coords[1]);
+              const ele = coords.length >= 3 ? parseFloat(coords[2]) : null;
               if (!isNaN(lat) && !isNaN(lon)) {
-                points.push({ lat, lon, ele, time: null });
+                const n = pm.querySelector('name');
+                const d = pm.querySelector('description');
+                waypoints.push({
+                  lat,
+                  lon,
+                  ele,
+                  name: n ? n.textContent.trim() : ('Точка ' + (waypoints.length + 1)),
+                  desc: d ? d.textContent.trim() : ''
+                });
               }
             }
-          });
+          }
+
+          // Check if it's a LineString / Track
+          const lineEl = pm.querySelector('LineString coordinates, gx\:Track, Track');
+          if (lineEl) {
+            const text = lineEl.textContent.trim();
+            const tokens = text.split(/\s+/);
+            tokens.forEach(tok => {
+              const parts = tok.split(',');
+              if (parts.length >= 2) {
+                const lon = parseFloat(parts[0]);
+                const lat = parseFloat(parts[1]);
+                const ele = parts.length >= 3 ? parseFloat(parts[2]) : null;
+                if (!isNaN(lat) && !isNaN(lon)) {
+                  points.push({ lat, lon, ele, time: null });
+                }
+              }
+            });
+          }
         });
 
-        return points;
+        // Fallback for general coordinates if not captured in LineString
+        if (points.length === 0) {
+          const coordsEls = doc.querySelectorAll('coordinates');
+          coordsEls.forEach(cEl => {
+            const text = cEl.textContent.trim();
+            const tokens = text.split(/\s+/);
+            if (tokens.length > 1) {
+              tokens.forEach(tok => {
+                const parts = tok.split(',');
+                if (parts.length >= 2) {
+                  const lon = parseFloat(parts[0]);
+                  const lat = parseFloat(parts[1]);
+                  const ele = parts.length >= 3 ? parseFloat(parts[2]) : null;
+                  if (!isNaN(lat) && !isNaN(lon)) {
+                    points.push({ lat, lon, ele, time: null });
+                  }
+                }
+              });
+            }
+          });
+        }
+
+        return { points, waypoints };
       }
 
       function parseGeoJson(jsonStr) {
         const points = [];
+        const waypoints = [];
         try {
           const obj = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
 
-          function extractFromGeom(geom) {
+          function extractFromFeature(feat) {
+            if (!feat) return;
+            const geom = feat.geometry || feat;
             if (!geom || !geom.coordinates) return;
-            if (geom.type === 'LineString') {
+
+            if (geom.type === 'Point') {
+              const c = geom.coordinates;
+              waypoints.push({
+                lat: c[1],
+                lon: c[0],
+                ele: c[2] !== undefined ? c[2] : null,
+                name: feat.properties?.name || feat.properties?.title || ('Точка ' + (waypoints.length + 1)),
+                desc: feat.properties?.description || feat.properties?.desc || ''
+              });
+            } else if (geom.type === 'LineString') {
               geom.coordinates.forEach(c => {
                 points.push({ lat: c[1], lon: c[0], ele: c[2] !== undefined ? c[2] : null, time: null });
               });
@@ -1401,148 +1560,229 @@ canvas#profileCanvas {
           }
 
           if (obj.type === 'FeatureCollection' && Array.isArray(obj.features)) {
-            obj.features.forEach(f => extractFromGeom(f.geometry));
+            obj.features.forEach(f => extractFromFeature(f));
           } else if (obj.type === 'Feature') {
-            extractFromGeom(obj.geometry);
+            extractFromFeature(obj);
           } else if (obj.type) {
-            extractFromGeom(obj);
+            extractFromFeature({ geometry: obj });
           }
         } catch (e) {
           console.error('[GeoPlugin] GeoJSON parse error:', e);
         }
-        return points;
+        return { points, waypoints };
       }
 
-      function displayTrack(points) {
+      function displayTrack(trackData) {
         initMap();
 
-        if (!points || points.length === 0) {
-          el.loadingOverlay.innerHTML = '<span style="color:#ef4444;padding:20px;">Не удалось обнаружить координаты в файле</span>';
+        const points = Array.isArray(trackData) ? trackData : (trackData?.points || []);
+        const waypoints = (trackData && !Array.isArray(trackData) ? trackData.waypoints : []) || [];
+        trackPoints = points;
+        trackWaypoints = waypoints;
+
+        if (points.length === 0 && waypoints.length === 0) {
+          el.loadingOverlay.innerHTML = '<span style="color:#ef4444;padding:20px;">Не удалось обнаружить координаты или путевые точки в файле</span>';
           return;
         }
 
-        let cumDistM = 0;
-        let hasElevation = false;
-        minEle = Infinity;
-        maxEle = -Infinity;
-        totalAscent = 0;
-        totalDescent = 0;
+        // Clean up previous layers
+        if (trackLayer) { map.removeLayer(trackLayer); trackLayer = null; }
+        if (startMarker) { map.removeLayer(startMarker); startMarker = null; }
+        if (finishMarker) { map.removeLayer(finishMarker); finishMarker = null; }
+        if (cursorMarker) { map.removeLayer(cursorMarker); cursorMarker = null; }
+        if (waypointsLayer) { map.removeLayer(waypointsLayer); waypointsLayer = null; }
+        if (kmMarkersLayer) { map.removeLayer(kmMarkersLayer); kmMarkersLayer = null; }
 
-        points[0].distKm = 0;
-        if (points[0].ele !== null && !isNaN(points[0].ele)) {
-          hasElevation = true;
-          minEle = points[0].ele;
-          maxEle = points[0].ele;
+        // Process Waypoints
+        if (waypoints.length > 0) {
+          el.valWaypoints.textContent = waypoints.length;
+          el.chipWaypoints.style.display = 'inline-flex';
+
+          waypointsLayer = L.layerGroup();
+          const wpIcon = L.divIcon({
+            className: 'map-marker-pin marker-waypoint',
+            html: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+          });
+
+          waypoints.forEach(wp => {
+            const marker = L.marker([wp.lat, wp.lon], { icon: wpIcon });
+            let popupHtml = '<div style="font-weight:600;margin-bottom:4px;color:var(--text-main);">' + escapeHtml(wp.name) + '</div>';
+            if (wp.desc) {
+              popupHtml += '<div style="color:var(--text-muted);font-size:11px;margin-bottom:6px;max-height:80px;overflow:auto;">' + escapeHtml(wp.desc) + '</div>';
+            }
+            const meta = [];
+            if (wp.ele !== null && !isNaN(wp.ele)) meta.push('Высота: <b>' + Math.round(wp.ele) + ' м</b>');
+            meta.push(wp.lat.toFixed(5) + ', ' + wp.lon.toFixed(5));
+            popupHtml += '<div style="font-size:10px;color:var(--text-dim);">' + meta.join(' • ') + '</div>';
+
+            marker.bindPopup(popupHtml);
+            waypointsLayer.addLayer(marker);
+          });
+
+          if (showPoints) {
+            waypointsLayer.addTo(map);
+          }
+        } else {
+          el.chipWaypoints.style.display = 'none';
         }
 
-        for (let i = 1; i < points.length; i++) {
-          const prev = points[i - 1];
-          const curr = points[i];
-          const d = haversineDist(prev.lat, prev.lon, curr.lat, curr.lon);
-          cumDistM += d;
-          curr.distKm = cumDistM / 1000;
+        // Process Track Points
+        if (points.length > 0) {
+          let cumDistM = 0;
+          let hasElevation = false;
+          minEle = Infinity;
+          maxEle = -Infinity;
+          totalAscent = 0;
+          totalDescent = 0;
 
-          if (curr.ele !== null && !isNaN(curr.ele)) {
+          points[0].distKm = 0;
+          if (points[0].ele !== null && !isNaN(points[0].ele)) {
             hasElevation = true;
-            if (curr.ele < minEle) minEle = curr.ele;
-            if (curr.ele > maxEle) maxEle = curr.ele;
+            minEle = points[0].ele;
+            maxEle = points[0].ele;
+          }
 
-            if (prev.ele !== null) {
-              const diff = curr.ele - prev.ele;
-              if (diff > 1.5) totalAscent += diff;
-              else if (diff < -1.5) totalDescent += Math.abs(diff);
+          for (let i = 1; i < points.length; i++) {
+            const prev = points[i - 1];
+            const curr = points[i];
+            const d = haversineDist(prev.lat, prev.lon, curr.lat, curr.lon);
+            cumDistM += d;
+            curr.distKm = cumDistM / 1000;
+
+            if (curr.ele !== null && !isNaN(curr.ele)) {
+              hasElevation = true;
+              if (curr.ele < minEle) minEle = curr.ele;
+              if (curr.ele > maxEle) maxEle = curr.ele;
+
+              if (prev.ele !== null) {
+                const diff = curr.ele - prev.ele;
+                if (diff > 1.5) totalAscent += diff;
+                else if (diff < -1.5) totalDescent += Math.abs(diff);
+              }
+            }
+          }
+
+          totalDistanceKm = cumDistM / 1000;
+
+          el.valDistance.textContent = totalDistanceKm >= 10 
+            ? totalDistanceKm.toFixed(1) + ' км' 
+            : totalDistanceKm.toFixed(2) + ' км';
+
+          if (hasElevation) {
+            el.valAscent.textContent = '+' + Math.round(totalAscent) + ' м';
+            el.valDescent.textContent = '-' + Math.round(totalDescent) + ' м';
+            el.valMinEle.textContent = Math.round(minEle) + ' м';
+            el.valMaxEle.textContent = Math.round(maxEle) + ' м';
+            el.elevationPanel?.classList.remove('collapsed');
+            renderElevationProfile();
+          } else {
+            el.elevationPanel?.classList.add('collapsed');
+            if (el.btnToggleProfile) el.btnToggleProfile.style.display = 'none';
+          }
+
+          const firstTime = points[0].time;
+          const lastTime = points[points.length - 1].time;
+          if (firstTime && lastTime && lastTime > firstTime) {
+            const durationMs = lastTime - firstTime;
+            const totalSec = Math.floor(durationMs / 1000);
+            const hours = Math.floor(totalSec / 3600);
+            const mins = Math.floor((totalSec % 3600) / 60);
+
+            el.valDuration.textContent = hours > 0 ? hours + 'ч ' + mins + 'мин' : mins + ' мин';
+            el.chipDuration.style.display = 'inline-flex';
+
+            const speedKmh = (totalDistanceKm / (durationMs / 3600000)).toFixed(1);
+            el.valSpeed.textContent = speedKmh + ' км/ч';
+            el.chipSpeed.style.display = 'inline-flex';
+          }
+
+          const latLngs = points.map(p => [p.lat, p.lon]);
+
+          const shadowLine = L.polyline(latLngs, {
+            color: '#0284c7',
+            weight: 7,
+            opacity: 0.5,
+            lineJoin: 'round'
+          });
+
+          const mainLine = L.polyline(latLngs, {
+            color: '#38bdf8',
+            weight: 4,
+            opacity: 0.95,
+            lineJoin: 'round'
+          });
+
+          trackLayer = L.featureGroup([shadowLine, mainLine]).addTo(map);
+
+          const startIcon = L.divIcon({
+            className: 'map-marker-pin marker-start',
+            html: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>',
+            iconSize: [26, 26],
+            iconAnchor: [13, 13]
+          });
+
+          const finishIcon = L.divIcon({
+            className: 'map-marker-pin marker-finish',
+            html: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>',
+            iconSize: [26, 26],
+            iconAnchor: [13, 13]
+          });
+
+          const cursorIcon = L.divIcon({
+            className: 'map-marker-pin marker-cursor',
+            html: '<div style="width:10px;height:10px;background:#fff;border-radius:50%;"></div>',
+            iconSize: [18, 18],
+            iconAnchor: [9, 9]
+          });
+
+          startMarker = L.marker(latLngs[0], { icon: startIcon, title: 'Старт' }).addTo(map);
+          finishMarker = L.marker(latLngs[latLngs.length - 1], { icon: finishIcon, title: 'Финиш' }).addTo(map);
+          cursorMarker = L.marker(latLngs[0], { icon: cursorIcon, opacity: 0 }).addTo(map);
+
+          // Add kilometer markers along route
+          if (totalDistanceKm >= 1) {
+            kmMarkersLayer = L.layerGroup();
+            const kmStep = totalDistanceKm > 60 ? 5 : (totalDistanceKm > 20 ? 2 : 1);
+            let nextKm = kmStep;
+
+            for (let i = 1; i < points.length; i++) {
+              const p = points[i];
+              if (p.distKm >= nextKm && nextKm <= totalDistanceKm - 0.25) {
+                const kmIcon = L.divIcon({
+                  className: 'map-marker-pin marker-km',
+                  html: '<span>' + nextKm + '</span>',
+                  iconSize: [20, 20],
+                  iconAnchor: [10, 10]
+                });
+                const kmMarker = L.marker([p.lat, p.lon], { icon: kmIcon });
+                const eleInfo = p.ele !== null ? '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Высота: <b>' + Math.round(p.ele) + ' м</b></div>' : '';
+                kmMarker.bindPopup('<div style="font-weight:600;font-size:12px;color:var(--accent);">Отметка: ' + nextKm + ' км</div>' + eleInfo);
+                kmMarkersLayer.addLayer(kmMarker);
+                nextKm += kmStep;
+              }
+            }
+
+            if (showPoints) {
+              kmMarkersLayer.addTo(map);
             }
           }
         }
 
-        totalDistanceKm = cumDistM / 1000;
-        trackPoints = points;
-
-        el.valDistance.textContent = totalDistanceKm >= 10 
-          ? totalDistanceKm.toFixed(1) + ' км' 
-          : totalDistanceKm.toFixed(2) + ' км';
-
-        if (hasElevation) {
-          el.valAscent.textContent = '+' + Math.round(totalAscent) + ' м';
-          el.valDescent.textContent = '-' + Math.round(totalDescent) + ' м';
-          el.valMinEle.textContent = Math.round(minEle) + ' м';
-          el.valMaxEle.textContent = Math.round(maxEle) + ' м';
-          el.elevationPanel?.classList.remove('collapsed');
-          renderElevationProfile();
-        } else {
-          el.elevationPanel?.classList.add('collapsed');
-          if (el.btnToggleProfile) el.btnToggleProfile.style.display = 'none';
-        }
-
-        const firstTime = points[0].time;
-        const lastTime = points[points.length - 1].time;
-        if (firstTime && lastTime && lastTime > firstTime) {
-          const durationMs = lastTime - firstTime;
-          const totalSec = Math.floor(durationMs / 1000);
-          const hours = Math.floor(totalSec / 3600);
-          const mins = Math.floor((totalSec % 3600) / 60);
-
-          el.valDuration.textContent = hours > 0 ? hours + 'ч ' + mins + 'мин' : mins + ' мин';
-          el.chipDuration.style.display = 'inline-flex';
-
-          const speedKmh = (totalDistanceKm / (durationMs / 3600000)).toFixed(1);
-          el.valSpeed.textContent = speedKmh + ' км/ч';
-          el.chipSpeed.style.display = 'inline-flex';
-        }
-
-        const latLngs = points.map(p => [p.lat, p.lon]);
-
-        if (trackLayer) map.removeLayer(trackLayer);
-        if (startMarker) map.removeLayer(startMarker);
-        if (finishMarker) map.removeLayer(finishMarker);
-        if (cursorMarker) map.removeLayer(cursorMarker);
-
-        const shadowLine = L.polyline(latLngs, {
-          color: '#0284c7',
-          weight: 7,
-          opacity: 0.5,
-          lineJoin: 'round'
-        });
-
-        const mainLine = L.polyline(latLngs, {
-          color: '#38bdf8',
-          weight: 4,
-          opacity: 0.95,
-          lineJoin: 'round'
-        });
-
-        trackLayer = L.featureGroup([shadowLine, mainLine]).addTo(map);
-
-        const startIcon = L.divIcon({
-          className: 'map-marker-pin marker-start',
-          html: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>',
-          iconSize: [26, 26],
-          iconAnchor: [13, 13]
-        });
-
-        const finishIcon = L.divIcon({
-          className: 'map-marker-pin marker-finish',
-          html: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>',
-          iconSize: [26, 26],
-          iconAnchor: [13, 13]
-        });
-
-        const cursorIcon = L.divIcon({
-          className: 'map-marker-pin marker-cursor',
-          html: '<div style="width:10px;height:10px;background:#fff;border-radius:50%;"></div>',
-          iconSize: [18, 18],
-          iconAnchor: [9, 9]
-        });
-
-        startMarker = L.marker(latLngs[0], { icon: startIcon, title: 'Старт' }).addTo(map);
-        finishMarker = L.marker(latLngs[latLngs.length - 1], { icon: finishIcon, title: 'Финиш' }).addTo(map);
-        cursorMarker = L.marker(latLngs[0], { icon: cursorIcon, opacity: 0 }).addTo(map);
-
+        // Fit map bounds to encompass all active layers
         map.invalidateSize();
-        map.fitBounds(trackLayer.getBounds(), {
-          padding: [50, 50],
-          maxZoom: 16
-        });
+        const boundsGroup = [];
+        if (trackLayer) boundsGroup.push(trackLayer);
+        if (waypointsLayer && waypoints.length > 0) boundsGroup.push(waypointsLayer);
+
+        if (boundsGroup.length > 0) {
+          const combined = L.featureGroup(boundsGroup);
+          map.fitBounds(combined.getBounds(), {
+            padding: [50, 50],
+            maxZoom: 16
+          });
+        }
 
         el.loadingOverlay.style.display = 'none';
       }
@@ -1659,8 +1899,25 @@ canvas#profileCanvas {
       el.btnLayerSat?.addEventListener('click', () => setTileLayer('sat'));
 
       el.btnFitBounds?.addEventListener('click', () => {
-        if (trackLayer && map) {
-          map.fitBounds(trackLayer.getBounds(), { padding: [50, 50] });
+        const boundsGroup = [];
+        if (trackLayer) boundsGroup.push(trackLayer);
+        if (waypointsLayer && trackWaypoints.length > 0) boundsGroup.push(waypointsLayer);
+        if (boundsGroup.length > 0 && map) {
+          const combined = L.featureGroup(boundsGroup);
+          map.fitBounds(combined.getBounds(), { padding: [50, 50] });
+        }
+      });
+
+      el.btnTogglePoints?.addEventListener('click', () => {
+        showPoints = !showPoints;
+        el.btnTogglePoints.classList.toggle('active', showPoints);
+        if (waypointsLayer) {
+          if (showPoints) map.addLayer(waypointsLayer);
+          else map.removeLayer(waypointsLayer);
+        }
+        if (kmMarkersLayer) {
+          if (showPoints) map.addLayer(kmMarkersLayer);
+          else map.removeLayer(kmMarkersLayer);
         }
       });
 
@@ -1734,8 +1991,8 @@ canvas#profileCanvas {
         }
 
         const ext = el.formatPill?.textContent?.toLowerCase() || 'gpx';
-        const points = parseTrackData(textContent, ext);
-        displayTrack(points);
+        const trackData = parseTrackData(textContent, ext);
+        displayTrack(trackData);
       }
 
     })();
