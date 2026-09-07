@@ -1,0 +1,30 @@
+{
+  "$schema": "https://raw.githubusercontent.com/kobaltgit/peekit-plugins/main/plugin-schema.json",
+  "id": "com.peekit.archive-viewer",
+  "name": "Archive Explorer",
+  "version": "1.0.0",
+  "author": "Kobalt",
+  "description": "Fast offline archive explorer for ZIP, TAR, GZ, TGZ, JAR, CBZ, and XPI files with folder tree, compression ratio metrics, live search, and instant file peek",
+  "extensions": [
+    ".zip",
+    ".tar",
+    ".gz",
+    ".tgz",
+    ".jar",
+    ".cbz",
+    ".xpi"
+  ],
+  "entry": "index.html",
+  "min_peekit_version": "1.0.0",
+  "permissions": [
+    "read_file",
+    "clipboard_write"
+  ],
+  "icon": "icon.svg",
+  "category": "Archive",
+  "homepage": "https://github.com/kobaltgit/peekit-plugins",
+  "default_dimensions": {
+    "width": 880,
+    "height": 600
+  }
+}

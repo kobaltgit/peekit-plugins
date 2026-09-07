@@ -1,7 +1,7 @@
 {
   "$schema": "./plugin-schema.json",
   "version": 1,
-  "updated_at": "2026-09-07T21:04:17.785Z",
+  "updated_at": "2026-09-07T21:26:35.389Z",
   "plugins": [
     {
       "id": "com.peekit.3d-viewer",
@@ -350,6 +350,31 @@
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.svg-studio-1.0.0.pkit",
       "size_kb": "17.4",
       "sha256": "1cc0ef381461f60cca1ffc2dcb50ebf111011d21d5664463aabe95ab23502484",
+      "icon": "icon.svg",
+      "homepage": "https://github.com/kobaltgit/peekit-plugins"
+    },
+    {
+      "id": "com.peekit.archive-viewer",
+      "name": "Archive Explorer",
+      "version": "1.0.0",
+      "author": "Kobalt",
+      "description": "Fast offline archive explorer for ZIP, TAR, GZ, TGZ, JAR, CBZ, and XPI files with folder tree, compression ratio metrics, live search, and instant file peek",
+      "category": "Archive",
+      "extensions": [
+        ".zip",
+        ".tar",
+        ".gz",
+        ".tgz",
+        ".jar",
+        ".cbz",
+        ".xpi"
+      ],
+      "entry": "index.html",
+      "min_peekit_version": "1.0.0",
+      "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.archive-viewer-1.0.0.pkit",
+      "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.archive-viewer-1.0.0.pkit",
+      "size_kb": "69.5",
+      "sha256": "a9e8175b8c5185f3d721031de9102d8d52c444ae5576e271dde7c0f8d30dd4b5",
       "icon": "icon.svg",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     }
