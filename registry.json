@@ -1,7 +1,7 @@
 {
   "$schema": "./plugin-schema.json",
   "version": 1,
-  "updated_at": "2026-09-07T21:40:50.055Z",
+  "updated_at": "2026-09-07T22:15:37.290Z",
   "plugins": [
     {
       "id": "com.peekit.3d-viewer",
@@ -375,6 +375,31 @@
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.archive-viewer-1.0.0.pkit",
       "size_kb": "70.2",
       "sha256": "0b02b0c4e096e0eb878720d8f24ae9a6a4682192a4a08e1b96f4a4893206cba1",
+      "icon": "icon.svg",
+      "homepage": "https://github.com/kobaltgit/peekit-plugins"
+    },
+    {
+      "id": "com.peekit.cert-inspector",
+      "name": "Certificate & Security Key Inspector",
+      "version": "1.0.0",
+      "author": "Kobalt",
+      "description": "Fast offline inspector for X.509 SSL/TLS certificates, certificate chains, CSR requests, OpenSSH public keys, and private key metadata",
+      "category": "Utilities",
+      "extensions": [
+        ".crt",
+        ".cer",
+        ".pem",
+        ".der",
+        ".pub",
+        ".key",
+        ".csr"
+      ],
+      "entry": "index.html",
+      "min_peekit_version": "1.0.0",
+      "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.cert-inspector-1.0.0.pkit",
+      "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.cert-inspector-1.0.0.pkit",
+      "size_kb": "18.3",
+      "sha256": "9dbabcf8d8dd0822a5957cc4ccf86d01e57d670ae3b21d4b95003eb39edf5759",
       "icon": "icon.svg",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     }

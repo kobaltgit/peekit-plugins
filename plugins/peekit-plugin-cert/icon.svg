@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <rect width="48" height="48" rx="12" fill="#10B981" fill-opacity="0.15"/>
+  <!-- Security Shield -->
+  <path d="M24 8L36 12.5V23C36 30.5 30.8 37.2 24 40C17.2 37.2 12 30.5 12 23V12.5L24 8Z" fill="#059669"/>
+  <path d="M24 10.5L34 14.2V23C34 29.3 29.8 35.1 24 37.6C18.2 35.1 14 29.3 14 23V14.2L24 10.5Z" fill="#10B981"/>
+  <!-- Certificate / Key badge inside shield -->
+  <path d="M20 18C18.8954 18 18 18.8954 18 20V30C18 31.1046 18.8954 32 20 32H28C29.1046 32 30 31.1046 30 30V20C30 18.8954 29.1046 18 28 18H20Z" fill="#FFFFFF" fill-opacity="0.95"/>
+  <!-- Certificate Lines -->
+  <line x1="21" y1="21.5" x2="27" y2="21.5" stroke="#059669" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="21" y1="24.5" x2="27" y2="24.5" stroke="#059669" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="21" y1="27.5" x2="25" y2="27.5" stroke="#059669" stroke-width="1.2" stroke-linecap="round"/>
+  <!-- Seal rosette / stamp in bottom right of cert -->
+  <circle cx="27" cy="28.5" r="2" fill="#F59E0B"/>
+</svg>

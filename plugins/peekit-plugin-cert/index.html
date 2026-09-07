@@ -1,0 +1,2098 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Certificate & Security Key Inspector</title>
+  <style>
+    :root, [data-theme="dark"] {
+      --bg-base: #0f172a;
+      --bg-surface: #1e293b;
+      --bg-card: rgba(30, 41, 59, 0.75);
+      --bg-card-hover: rgba(51, 65, 85, 0.85);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-highlight: rgba(16, 185, 129, 0.3);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-sub: #64748b;
+      --accent: #10b981;
+      --accent-glow: rgba(16, 185, 129, 0.2);
+      --accent-hover: #059669;
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.15);
+      --warning: #f59e0b;
+      --warning-bg: rgba(245, 158, 11, 0.15);
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.15);
+      --info: #38bdf8;
+      --info-bg: rgba(56, 189, 248, 0.15);
+      --chain-bar-bg: #090e1a;
+      --chain-tab-bg: #1e293b;
+      --chain-tab-text: #cbd5e1;
+      --chain-tab-border: rgba(255, 255, 255, 0.1);
+      --timeline-box-bg: #131c2e;
+      --progress-bg: rgba(255, 255, 255, 0.1);
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    [data-theme="light"], body.light-theme {
+      --bg-base: #f1f5f9;
+      --bg-surface: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f8fafc;
+      --border-color: rgba(0, 0, 0, 0.1);
+      --border-highlight: rgba(16, 185, 129, 0.4);
+      --text-main: #0f172a;
+      --text-muted: #334155;
+      --text-sub: #64748b;
+      --accent: #059669;
+      --accent-glow: rgba(5, 150, 105, 0.15);
+      --accent-hover: #047857;
+      --danger: #dc2626;
+      --danger-bg: #fee2e2;
+      --warning: #b45309;
+      --warning-bg: #fef3c7;
+      --success: #15803d;
+      --success-bg: #dcfce7;
+      --info: #0369a1;
+      --info-bg: #e0f2fe;
+      --chain-bar-bg: #e2e8f0;
+      --chain-tab-bg: #ffffff;
+      --chain-tab-text: #0f172a;
+      --chain-tab-border: #cbd5e1;
+      --timeline-box-bg: #f8fafc;
+      --progress-bg: #cbd5e1;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      scrollbar-width: thin;
+      scrollbar-color: var(--text-sub) transparent;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      user-select: text;
+    }
+
+    /* Top Ribbon Header */
+    header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-shrink: 0;
+      backdrop-filter: blur(12px);
+      z-index: 10;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .cert-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: var(--accent-glow);
+      border: 1px solid var(--border-highlight);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--accent);
+    }
+
+    .cert-icon svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+    }
+
+    .title-box {
+      min-width: 0;
+    }
+
+    .title-box h1 {
+      font-size: 15px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: -0.01em;
+    }
+
+    .title-box .subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    /* Badges / Pills */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .pill-valid {
+      background: var(--success-bg);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .pill-expiring {
+      background: var(--warning-bg);
+      color: var(--warning);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .pill-expired {
+      background: var(--danger-bg);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .pill-info {
+      background: var(--info-bg);
+      color: var(--info);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 6px currentColor;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-main);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-highlight);
+      color: var(--text-main);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+
+    .btn svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    /* Chain Tabs (for multi-cert bundles) */
+    .chain-bar {
+      background: var(--chain-bar-bg);
+      border-bottom: 1px solid var(--border-color);
+      padding: 8px 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+
+    .chain-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--chain-tab-text);
+      background: var(--chain-tab-bg);
+      border: 1px solid var(--chain-tab-border);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .chain-tab:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .chain-tab.active {
+      background: var(--bg-surface);
+      color: var(--accent);
+      border-color: var(--accent);
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .chain-arrow {
+      color: var(--text-sub);
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    /* Mode Navigation Tabs */
+    .nav-tabs {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 20px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+
+    .nav-tab {
+      padding: 9px 14px;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-tab:hover {
+      color: var(--text-main);
+    }
+
+    .nav-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Main Scrollable Content */
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Grid Layout for Cards */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 16px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      transition: border-color 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+    }
+
+    .card-title-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title-left svg {
+      width: 16px;
+      height: 16px;
+      fill: var(--accent);
+    }
+
+    /* Key-Value Pair Rows */
+    .kv-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .kv-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .kv-key {
+      color: var(--text-muted);
+      font-size: 12px;
+      white-space: nowrap;
+      min-width: 110px;
+    }
+
+    .kv-val {
+      color: var(--text-main);
+      font-weight: 500;
+      text-align: right;
+      word-break: break-all;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+
+    .kv-val.mono {
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    /* Validity Timeline Widget */
+    .timeline-box {
+      background: var(--timeline-box-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .timeline-dates {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .timeline-date-block {
+      min-width: 0;
+    }
+
+    .timeline-date-label {
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: 4px;
+    }
+
+    .timeline-date-val {
+      font-weight: 600;
+      font-size: 12.5px;
+      color: var(--text-main);
+      word-break: break-word;
+      line-height: 1.35;
+    }
+
+    .progress-bar-bg {
+      height: 8px;
+      background: var(--progress-bg);
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--accent);
+      transition: width 0.3s ease;
+    }
+
+    .progress-bar-fill.expiring {
+      background: var(--warning);
+    }
+
+    .progress-bar-fill.expired {
+      background: var(--danger);
+    }
+
+    .timeline-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* SAN Chips & Chips Grid */
+    .chips-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-height: 150px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .chip {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--text-main);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .chip.wildcard {
+      border-color: rgba(59, 130, 246, 0.3);
+      color: #60a5fa;
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    .chip-search {
+      width: 100%;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 12px;
+      color: var(--text-main);
+      outline: none;
+      margin-bottom: 6px;
+    }
+
+    .chip-search:focus {
+      border-color: var(--accent);
+    }
+
+    /* Copy Button Inside Value */
+    .copy-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      padding: 2px 4px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      transition: color 0.15s ease;
+    }
+
+    .copy-btn:hover {
+      color: var(--accent);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .copy-btn svg {
+      width: 13px;
+      height: 13px;
+      fill: currentColor;
+    }
+
+    /* Raw PEM / Text Viewer */
+    .raw-viewer {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--text-main);
+      white-space: pre-wrap;
+      word-break: break-all;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    /* OpenSSH Randomart Card */
+    .randomart-box {
+      background: #000000;
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      line-height: 1.25;
+      white-space: pre;
+      letter-spacing: 0.08em;
+      display: inline-block;
+      box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.8);
+    }
+
+    /* Private Key Alert Banner */
+    .private-key-alert {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(245, 158, 11, 0.08));
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .private-key-alert svg {
+      width: 28px;
+      height: 28px;
+      fill: var(--danger);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .private-key-alert-text h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 4px;
+    }
+
+    .private-key-alert-text p {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-highlight);
+      color: var(--text-main);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.2s ease;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast svg {
+      width: 16px;
+      height: 16px;
+      fill: var(--accent);
+    }
+
+    /* Empty / Loading States */
+    .state-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 30px;
+    }
+
+    .state-container svg {
+      width: 48px;
+      height: 48px;
+      fill: var(--text-sub);
+    }
+
+    .state-container h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header Ribbon -->
+  <header>
+    <div class="header-left">
+      <div class="cert-icon" id="headerIcon">
+        <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 2.18l7 3.12v4.7c0 4.67-3.13 8.96-7 10.02-3.87-1.06-7-5.35-7-10.02V6.3l7-3.12zM12 6a3 3 0 0 0-3 3c0 1.3.84 2.4 2 2.82V15a1 1 0 1 0 2 0v-3.18c1.16-.42 2-1.52 2-2.82a3 3 0 0 0-3-3zm0 2a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>
+      </div>
+      <div class="title-box">
+        <h1 id="headerTitle">Инспектор сертификатов и ключей</h1>
+        <div class="subtitle">
+          <span id="headerSubtitle">Загрузка файла...</span>
+        </div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div id="statusPillContainer"></div>
+      <button class="btn" id="btnCopyFingerprint" title="Копировать SHA-256 отпечаток">
+        <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+        <span>SHA-256</span>
+      </button>
+      <button class="btn" id="btnCopyRaw" title="Копировать исходный текст">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        <span>Копировать</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Certificate Chain Bar (Visible if multiple certs in bundle) -->
+  <div class="chain-bar" id="chainBar" style="display: none;"></div>
+
+  <!-- Mode Navigation Tabs -->
+  <div class="nav-tabs" id="navTabs">
+    <div class="nav-tab active" data-tab="overview">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      <span>Сводка</span>
+    </div>
+    <div class="nav-tab" data-tab="raw">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
+      <span>Исходник</span>
+    </div>
+  </div>
+
+  <!-- Main Content Area -->
+  <main class="content-area" id="mainContent">
+    <div class="state-container" id="loadingState">
+      <div class="spinner"></div>
+      <h2>Чтение сертификата...</h2>
+      <p>Выполняется анализ криптографических структур ASN.1</p>
+    </div>
+  </main>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">
+    <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+    <span id="toastMsg">Скопировано в буфер обмена</span>
+  </div>
+
+  <script>
+    // --- State & Variables ---
+    let currentTheme = { isDark: true, accentColor: '#10b981' };
+    let parsedData = null;
+    let selectedCertIndex = 0;
+    let activeTab = 'overview';
+    let currentRawText = '';
+
+    // --- UI Toast ---
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    function copyText(text, successMsg = 'Скопировано в буфер обмена') {
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast(successMsg);
+        }).catch(() => {
+          fallbackCopy(text, successMsg);
+        });
+      } else {
+        fallbackCopy(text, successMsg);
+      }
+    }
+
+    function fallbackCopy(text, successMsg) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        ta.style.top = '-9999px';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (ok) {
+          showToast(successMsg);
+        } else {
+          showToast('Не удалось скопировать в буфер');
+        }
+      } catch (e) {
+        console.error('Fallback copy error:', e);
+        showToast('Ошибка копирования в буфер');
+      }
+    }
+
+    // --- ASN.1 DER Parser & OID Dictionary ---
+    const OID_NAMES = {
+      '2.5.4.3': 'Common Name (CN)',
+      '2.5.4.6': 'Страна (C)',
+      '2.5.4.7': 'Город / Локация (L)',
+      '2.5.4.8': 'Регион / Область (ST)',
+      '2.5.4.10': 'Организация (O)',
+      '2.5.4.11': 'Подразделение (OU)',
+      '1.2.840.113549.1.9.1': 'E-mail',
+      '2.5.29.17': 'Subject Alternative Name (SAN)',
+      '2.5.29.19': 'Basic Constraints',
+      '2.5.29.15': 'Key Usage',
+      '2.5.29.37': 'Extended Key Usage',
+      '2.5.29.14': 'Subject Key Identifier',
+      '2.5.29.35': 'Authority Key Identifier',
+      '1.2.840.113549.1.1.1': 'RSA Encryption',
+      '1.2.840.113549.1.1.5': 'SHA-1 with RSA',
+      '1.2.840.113549.1.1.11': 'SHA-256 with RSA',
+      '1.2.840.113549.1.1.12': 'SHA-384 with RSA',
+      '1.2.840.113549.1.1.13': 'SHA-512 with RSA',
+      '1.2.840.10045.2.1': 'EC Public Key (ECDSA)',
+      '1.2.840.10045.4.3.2': 'ECDSA with SHA-256',
+      '1.2.840.10045.4.3.3': 'ECDSA with SHA-384',
+      '1.2.840.10045.4.3.4': 'ECDSA with SHA-512',
+      '1.2.840.10045.3.1.7': 'NIST P-256 (secp256r1)',
+      '1.3.132.0.34': 'NIST P-384 (secp384r1)',
+      '1.3.132.0.35': 'NIST P-521 (secp521r1)',
+      '1.3.101.112': 'Ed25519',
+      '1.3.101.113': 'Ed448',
+      '1.3.6.1.5.5.7.3.1': 'Аутентификация сервера (TLS Web Server)',
+      '1.3.6.1.5.5.7.3.2': 'Аутентификация клиента (TLS Web Client)',
+      '1.3.6.1.5.5.7.3.3': 'Подпись кода (Code Signing)',
+      '1.3.6.1.5.5.7.3.4': 'Защита электронной почты (S/MIME)',
+      '1.3.6.1.5.5.7.3.8': 'Метка времени (Time Stamping)',
+      '1.3.6.1.5.5.7.1.1': 'Authority Info Access (AIA)'
+    };
+
+    function parseASN1(bytes, offset = 0, maxEnd = bytes.length) {
+      if (offset >= maxEnd) return null;
+
+      const start = offset;
+      const tag = bytes[offset++];
+      const isConstructed = Boolean(tag & 0x20);
+
+      if (offset >= maxEnd) return null;
+      let lenByte = bytes[offset++];
+      let length = 0;
+
+      if (lenByte < 0x80) {
+        length = lenByte;
+      } else {
+        const numBytes = lenByte & 0x7F;
+        if (numBytes > 4 || offset + numBytes > maxEnd) return null;
+        for (let i = 0; i < numBytes; i++) {
+          length = (length << 8) | bytes[offset++];
+        }
+      }
+
+      const headerLen = offset - start;
+      const contentEnd = offset + length;
+      if (contentEnd > maxEnd) return null;
+
+      const rawContent = bytes.subarray(offset, contentEnd);
+      const sub = [];
+
+      // If constructed (or context-specific [0]..[3]), parse child elements
+      if (isConstructed || (tag >= 0xA0 && tag <= 0xAF)) {
+        let childOff = offset;
+        while (childOff < contentEnd) {
+          const child = parseASN1(bytes, childOff, contentEnd);
+          if (!child) break;
+          sub.push(child);
+          childOff = child.end;
+        }
+      }
+
+      return {
+        tag,
+        isConstructed,
+        offset: start,
+        headerLen,
+        length,
+        end: contentEnd,
+        raw: rawContent,
+        sub
+      };
+    }
+
+    function decodeOID(bytes) {
+      if (!bytes || bytes.length === 0) return '';
+      let oid = Math.floor(bytes[0] / 40) + '.' + (bytes[0] % 40);
+      let val = 0;
+      for (let i = 1; i < bytes.length; i++) {
+        const b = bytes[i];
+        val = (val << 7) | (b & 0x7F);
+        if (!(b & 0x80)) {
+          oid += '.' + val;
+          val = 0;
+        }
+      }
+      return oid;
+    }
+
+    function decodeString(bytes, tag) {
+      const decoder = new TextDecoder('utf-8', { fatal: false });
+      return decoder.decode(bytes);
+    }
+
+    function decodeTime(bytes, tag) {
+      const str = new TextDecoder('ascii').decode(bytes);
+      let year, month, day, hour, min, sec;
+      if (tag === 0x17) { // UTCTime: YYMMDDhhmmssZ
+        year = parseInt(str.substring(0, 2), 10);
+        year = year >= 50 ? 1900 + year : 2000 + year;
+        month = parseInt(str.substring(2, 4), 10) - 1;
+        day = parseInt(str.substring(4, 6), 10);
+        hour = parseInt(str.substring(6, 8), 10);
+        min = parseInt(str.substring(8, 10), 10);
+        sec = parseInt(str.substring(10, 12), 10) || 0;
+      } else { // GeneralizedTime: YYYYMMDDhhmmssZ
+        year = parseInt(str.substring(0, 4), 10);
+        month = parseInt(str.substring(4, 6), 10) - 1;
+        day = parseInt(str.substring(6, 8), 10);
+        hour = parseInt(str.substring(8, 10), 10);
+        min = parseInt(str.substring(10, 12), 10);
+        sec = parseInt(str.substring(12, 14), 10) || 0;
+      }
+      return new Date(Date.UTC(year, month, day, hour, min, sec));
+    }
+
+    function bytesToHex(bytes, sep = ':') {
+      return Array.from(bytes).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(sep);
+    }
+
+    function decodeRDN(node) {
+      const attrs = {};
+      if (!node || !node.sub) return attrs;
+
+      for (const setNode of node.sub) {
+        if (!setNode.sub) continue;
+        for (const seqNode of setNode.sub) {
+          if (!seqNode.sub || seqNode.sub.length < 2) continue;
+          const oidNode = seqNode.sub[0];
+          const valNode = seqNode.sub[1];
+          if (oidNode.tag === 0x06) {
+            const oid = decodeOID(oidNode.raw);
+            const val = decodeString(valNode.raw, valNode.tag);
+            attrs[oid] = val;
+          }
+        }
+      }
+      return attrs;
+    }
+
+    // --- Extract X.509 Certificate Details ---
+    async function extractCertificateInfo(derBytes) {
+      const root = parseASN1(derBytes);
+      if (!root || root.tag !== 0x30 || root.sub.length < 3) {
+        throw new Error('Некорректная структура ASN.1 DER сертификата');
+      }
+
+      const tbs = root.sub[0];
+      let subIdx = 0;
+
+      // Version (optional [0])
+      let version = 1;
+      if (tbs.sub[subIdx].tag === 0xA0) {
+        const vNode = tbs.sub[subIdx].sub[0];
+        if (vNode && vNode.raw.length > 0) {
+          version = vNode.raw[0] + 1;
+        }
+        subIdx++;
+      }
+
+      // Serial Number (INTEGER)
+      const serialNode = tbs.sub[subIdx++];
+      let serialHex = '';
+      if (serialNode && serialNode.raw) {
+        serialHex = bytesToHex(serialNode.raw, ' ');
+      }
+
+      // Signature Algorithm
+      const sigAlgNode = tbs.sub[subIdx++];
+      let sigAlgOid = '';
+      if (sigAlgNode && sigAlgNode.sub && sigAlgNode.sub[0]) {
+        sigAlgOid = decodeOID(sigAlgNode.sub[0].raw);
+      }
+
+      // Issuer RDN
+      const issuerNode = tbs.sub[subIdx++];
+      const issuerAttrs = decodeRDN(issuerNode);
+
+      // Validity (notBefore, notAfter)
+      const validityNode = tbs.sub[subIdx++];
+      let notBefore = null, notAfter = null;
+      if (validityNode && validityNode.sub && validityNode.sub.length >= 2) {
+        notBefore = decodeTime(validityNode.sub[0].raw, validityNode.sub[0].tag);
+        notAfter = decodeTime(validityNode.sub[1].raw, validityNode.sub[1].tag);
+      }
+
+      // Subject RDN
+      const subjectNode = tbs.sub[subIdx++];
+      const subjectAttrs = decodeRDN(subjectNode);
+
+      // Subject Public Key Info
+      const spkiNode = tbs.sub[subIdx++];
+      let pkAlgOid = '';
+      let pkCurveOid = '';
+      let pkBits = 0;
+      let pkType = 'Неизвестно';
+
+      if (spkiNode && spkiNode.sub && spkiNode.sub.length >= 2) {
+        const algSeq = spkiNode.sub[0];
+        if (algSeq.sub && algSeq.sub[0]) {
+          pkAlgOid = decodeOID(algSeq.sub[0].raw);
+          if (algSeq.sub.length > 1 && algSeq.sub[1].tag === 0x06) {
+            pkCurveOid = decodeOID(algSeq.sub[1].raw);
+          }
+        }
+
+        const pubKeyBitStr = spkiNode.sub[1];
+        if (pkAlgOid === '1.2.840.113549.1.1.1') { // RSA
+          pkType = 'RSA';
+          // Bit string has 1 unused-bits byte followed by ASN.1 SEQUENCE of (modulus, exponent)
+          if (pubKeyBitStr.raw.length > 1) {
+            const rsaSeq = parseASN1(pubKeyBitStr.raw.subarray(1));
+            if (rsaSeq && rsaSeq.sub && rsaSeq.sub[0]) {
+              const modBytes = rsaSeq.sub[0].raw;
+              // strip leading zero byte if present
+              const effectiveLen = (modBytes[0] === 0x00) ? modBytes.length - 1 : modBytes.length;
+              pkBits = effectiveLen * 8;
+            }
+          }
+        } else if (pkAlgOid === '1.2.840.10045.2.1') { // ECC
+          pkType = 'ECDSA (Elliptic Curve)';
+          if (pkCurveOid === '1.2.840.10045.3.1.7') pkBits = 256;
+          else if (pkCurveOid === '1.3.132.0.34') pkBits = 384;
+          else if (pkCurveOid === '1.3.132.0.35') pkBits = 521;
+          else pkBits = 256;
+        } else if (pkAlgOid === '1.3.101.112') {
+          pkType = 'Ed25519';
+          pkBits = 256;
+        } else if (pkAlgOid === '1.3.101.113') {
+          pkType = 'Ed448';
+          pkBits = 448;
+        }
+      }
+
+      // Extensions (tag [3])
+      const extensions = [];
+      let sans = [];
+      let isCA = false;
+      let keyUsages = [];
+
+      while (subIdx < tbs.sub.length) {
+        const extContainer = tbs.sub[subIdx++];
+        if (extContainer.tag === 0xA3 && extContainer.sub && extContainer.sub[0]) {
+          const extSeq = extContainer.sub[0];
+          if (extSeq.sub) {
+            for (const extItem of extSeq.sub) {
+              if (!extItem.sub || extItem.sub.length < 2) continue;
+              const extOid = decodeOID(extItem.sub[0].raw);
+              let valNode = extItem.sub[extItem.sub.length - 1];
+
+              // SAN
+              if (extOid === '2.5.29.17' && valNode.tag === 0x04) {
+                const sanSeq = parseASN1(valNode.raw);
+                if (sanSeq && sanSeq.sub) {
+                  for (const sanItem of sanSeq.sub) {
+                    if (sanItem.tag === 0x82) { // dNSName
+                      sans.push(decodeString(sanItem.raw));
+                    } else if (sanItem.tag === 0x87) { // iPAddress
+                      if (sanItem.raw.length === 4) {
+                        sans.push(Array.from(sanItem.raw).join('.'));
+                      }
+                    }
+                  }
+                }
+              }
+
+              // Basic Constraints
+              if (extOid === '2.5.29.19' && valNode.tag === 0x04) {
+                const bcSeq = parseASN1(valNode.raw);
+                if (bcSeq && bcSeq.sub && bcSeq.sub.length > 0 && bcSeq.sub[0].tag === 0x01) {
+                  isCA = Boolean(bcSeq.sub[0].raw[0]);
+                }
+              }
+
+              // Key Usage
+              if (extOid === '2.5.29.15' && valNode.tag === 0x04) {
+                const kuNode = parseASN1(valNode.raw);
+                if (kuNode && kuNode.tag === 0x03 && kuNode.raw.length > 1) {
+                  const b = kuNode.raw[1];
+                  if (b & 0x80) keyUsages.push('Цифровая подпись');
+                  if (b & 0x40) keyUsages.push('Неотрекаемость');
+                  if (b & 0x20) keyUsages.push('Шифрование ключей');
+                  if (b & 0x10) keyUsages.push('Шифрование данных');
+                  if (b & 0x08) keyUsages.push('Согласование ключей');
+                  if (b & 0x04) keyUsages.push('Подпись сертификатов');
+                  if (b & 0x02) keyUsages.push('Подпись CRL');
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Calculate SHA-256 and SHA-1 Fingerprints via WebCrypto
+      const sha256Buf = await crypto.subtle.digest('SHA-256', derBytes);
+      const sha1Buf = await crypto.subtle.digest('SHA-1', derBytes);
+
+      const sha256 = bytesToHex(new Uint8Array(sha256Buf));
+      const sha1 = bytesToHex(new Uint8Array(sha1Buf));
+
+      // Is self-signed?
+      const isSelfSigned = (subjectAttrs['2.5.4.3'] === issuerAttrs['2.5.4.3']) &&
+                           (subjectAttrs['2.5.4.10'] === issuerAttrs['2.5.4.10']);
+
+      return {
+        type: 'X509',
+        version,
+        serialHex,
+        sigAlg: OID_NAMES[sigAlgOid] || sigAlgOid || 'Неизвестно',
+        sigAlgOid,
+        issuer: issuerAttrs,
+        subject: subjectAttrs,
+        notBefore,
+        notAfter,
+        pkType,
+        pkBits,
+        pkCurve: OID_NAMES[pkCurveOid] || pkCurveOid,
+        isCA,
+        isSelfSigned,
+        sans,
+        keyUsages,
+        sha256,
+        sha1,
+        rawDer: derBytes
+      };
+    }
+
+    // --- OpenSSH Randomart Algorithm ---
+    function generateRandomart(bytes, keyType, bits) {
+      // 17 columns (0..16), 9 rows (0..8), start at center (8, 4)
+      const W = 17, H = 9;
+      const board = Array.from({ length: H }, () => Array(W).fill(0));
+      let x = 8, y = 4;
+
+      for (let i = 0; i < bytes.length; i++) {
+        let b = bytes[i];
+        for (let s = 0; s < 4; s++) {
+          const dx = (b & 1) ? 1 : -1;
+          const dy = (b & 2) ? 1 : -1;
+          b >>= 2;
+          x = Math.min(W - 1, Math.max(0, x + dx));
+          y = Math.min(H - 1, Math.max(0, y + dy));
+          board[y][x]++;
+        }
+      }
+
+      const symbols = ' .o+=*BOX@%&#/^';
+      const lines = [];
+      const title = `[${keyType} ${bits}]`;
+      const padLeft = Math.floor((17 - title.length) / 2);
+      const padRight = 17 - title.length - padLeft;
+      lines.push('+' + '-'.repeat(padLeft) + title + '-'.repeat(padRight) + '+');
+
+      for (let r = 0; r < H; r++) {
+        let rowStr = '|';
+        for (let c = 0; c < W; c++) {
+          if (r === 4 && c === 8) {
+            rowStr += 'S'; // Start
+          } else if (r === y && c === x) {
+            rowStr += 'E'; // End
+          } else {
+            const count = board[r][c];
+            rowStr += symbols[Math.min(symbols.length - 1, count)];
+          }
+        }
+        rowStr += '|';
+        lines.push(rowStr);
+      }
+      lines.push('+---[RSA 2048]----+'.length === lines[0].length ? '+-----------------+' : '+-----------------+');
+      return lines.join('\n');
+    }
+
+    // --- OpenSSH Wire Parser ---
+    async function parseOpenSSHPublicKey(text) {
+      const parts = text.trim().split(/\s+/);
+      if (parts.length < 2) throw new Error('Некорректный формат OpenSSH ключа');
+
+      const keyType = parts[0];
+      const b64 = parts[1];
+      const comment = parts.slice(2).join(' ') || 'Без комментария';
+
+      const binStr = atob(b64);
+      const wireBytes = new Uint8Array(binStr.length);
+      for (let i = 0; i < binStr.length; i++) wireBytes[i] = binStr.charCodeAt(i);
+
+      let offset = 0;
+      function readString() {
+        if (offset + 4 > wireBytes.length) return null;
+        const len = (wireBytes[offset] << 24) | (wireBytes[offset + 1] << 16) | (wireBytes[offset + 2] << 8) | wireBytes[offset + 3];
+        offset += 4;
+        if (offset + len > wireBytes.length) return null;
+        const s = wireBytes.subarray(offset, offset + len);
+        offset += len;
+        return s;
+      }
+
+      const parsedType = new TextDecoder().decode(readString());
+      let bits = 0;
+
+      if (parsedType === 'ssh-rsa') {
+        const e = readString();
+        const n = readString();
+        if (n) {
+          const effLen = (n[0] === 0) ? n.length - 1 : n.length;
+          bits = effLen * 8;
+        }
+      } else if (parsedType === 'ssh-ed25519') {
+        bits = 256;
+      } else if (parsedType.startsWith('ecdsa-sha2-')) {
+        const curve = new TextDecoder().decode(readString());
+        if (curve.includes('256')) bits = 256;
+        else if (curve.includes('384')) bits = 384;
+        else if (curve.includes('521')) bits = 521;
+      }
+
+      // SHA256 Fingerprint
+      const sha256Buf = await crypto.subtle.digest('SHA-256', wireBytes);
+      const b64Sha256 = btoa(String.fromCharCode(...new Uint8Array(sha256Buf))).replace(/=+$/, '');
+      const sha256Fp = `SHA256:${b64Sha256}`;
+
+      // MD5 Fingerprint approximation for randomart walk
+      const sha256Arr = new Uint8Array(sha256Buf);
+      const randomart = generateRandomart(sha256Arr.subarray(0, 16), keyType.toUpperCase().replace('SSH-', ''), bits || 256);
+
+      return {
+        type: 'SSH_PUB',
+        keyType,
+        bits: bits || 'N/A',
+        comment,
+        sha256: sha256Fp,
+        randomart,
+        rawText: text
+      };
+    }
+
+    // --- Private Key Metadata Detector ---
+    function parsePrivateKeyMetadata(text) {
+      let keyType = 'Закрытый ключ (Private Key)';
+      let isEncrypted = false;
+      let cipher = 'Нет';
+
+      if (text.includes('BEGIN RSA PRIVATE KEY')) keyType = 'RSA Private Key (PKCS#1)';
+      else if (text.includes('BEGIN EC PRIVATE KEY')) keyType = 'EC Private Key (SEC1)';
+      else if (text.includes('BEGIN OPENSSH PRIVATE KEY')) keyType = 'OpenSSH Private Key';
+      else if (text.includes('BEGIN ENCRYPTED PRIVATE KEY')) {
+        keyType = 'Encrypted Private Key (PKCS#8)';
+        isEncrypted = true;
+      } else if (text.includes('BEGIN PRIVATE KEY')) {
+        keyType = 'Private Key (PKCS#8)';
+      }
+
+      if (text.includes('Proc-Type: 4,ENCRYPTED')) {
+        isEncrypted = true;
+        const match = text.match(/DEK-Info:\s*([^\r\n]+)/i);
+        if (match) cipher = match[1];
+      }
+
+      return {
+        type: 'PRIVATE_KEY',
+        keyType,
+        isEncrypted,
+        cipher,
+        rawText: text
+      };
+    }
+
+    // --- Certificate Signing Request (CSR) Detector ---
+    async function parseCSR(derBytes) {
+      const root = parseASN1(derBytes);
+      if (!root || root.tag !== 0x30 || root.sub.length < 3) {
+        throw new Error('Некорректная структура CSR');
+      }
+
+      const reqInfo = root.sub[0];
+      let subIdx = 0;
+
+      // Version
+      let version = 1;
+      if (reqInfo.sub[subIdx].tag === 0x02) {
+        version = reqInfo.sub[subIdx].raw[0] + 1;
+        subIdx++;
+      }
+
+      // Subject
+      const subjectNode = reqInfo.sub[subIdx++];
+      const subjectAttrs = decodeRDN(subjectNode);
+
+      // SPKI
+      const spkiNode = reqInfo.sub[subIdx++];
+      let pkType = 'RSA';
+      let pkBits = 2048;
+
+      const sha256Buf = await crypto.subtle.digest('SHA-256', derBytes);
+      const sha256 = bytesToHex(new Uint8Array(sha256Buf));
+
+      return {
+        type: 'CSR',
+        version,
+        subject: subjectAttrs,
+        pkType,
+        pkBits,
+        sha256,
+        rawDer: derBytes
+      };
+    }
+
+    // --- Main File Dispatcher ---
+    async function inspectFile(bytes, text) {
+      currentRawText = text;
+
+      // 1. Check for PEM Certificate(s)
+      if (text.includes('-----BEGIN CERTIFICATE-----')) {
+        const certRegex = /-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----/g;
+        const matches = text.match(certRegex);
+        if (matches && matches.length > 0) {
+          const certList = [];
+          for (const pemBlock of matches) {
+            const b64 = pemBlock.replace(/-----BEGIN CERTIFICATE-----/, '')
+                                .replace(/-----END CERTIFICATE-----/, '')
+                                .replace(/\s+/g, '');
+            const binStr = atob(b64);
+            const der = new Uint8Array(binStr.length);
+            for (let i = 0; i < binStr.length; i++) der[i] = binStr.charCodeAt(i);
+            const certInfo = await extractCertificateInfo(der);
+            certInfo.rawPem = pemBlock;
+            certList.push(certInfo);
+          }
+          return { type: 'MULTI_CERT', list: certList };
+        }
+      }
+
+      // 2. Check for CSR
+      if (text.includes('BEGIN CERTIFICATE REQUEST') || text.includes('BEGIN NEW CERTIFICATE REQUEST')) {
+        const b64 = text.replace(/-----BEGIN[^-]+-----/, '')
+                        .replace(/-----END[^-]+-----/, '')
+                        .replace(/\s+/g, '');
+        const binStr = atob(b64);
+        const der = new Uint8Array(binStr.length);
+        for (let i = 0; i < binStr.length; i++) der[i] = binStr.charCodeAt(i);
+        const csrInfo = await parseCSR(der);
+        csrInfo.rawPem = text;
+        return { type: 'CSR', data: csrInfo };
+      }
+
+      // 3. Check for Private Keys
+      if (text.includes('PRIVATE KEY-----')) {
+        return parsePrivateKeyMetadata(text);
+      }
+
+      // 4. Check for OpenSSH Public Keys
+      if (text.startsWith('ssh-') || text.startsWith('ecdsa-') || text.startsWith('sk-ssh-')) {
+        return await parseOpenSSHPublicKey(text);
+      }
+
+      // 5. Check for Binary DER X.509
+      if (bytes[0] === 0x30) {
+        try {
+          const certInfo = await extractCertificateInfo(bytes);
+          return { type: 'MULTI_CERT', list: [certInfo] };
+        } catch (e) {
+          // Might be DER CSR
+          try {
+            const csrInfo = await parseCSR(bytes);
+            return { type: 'CSR', data: csrInfo };
+          } catch (e2) {
+            throw new Error('Файл не является распознанным сертификатом или ключом');
+          }
+        }
+      }
+
+      throw new Error('Не удалось распознать формат сертификата или ключа');
+    }
+
+    // --- Render Functions ---
+    function renderOverview(data) {
+      if (data.type === 'MULTI_CERT') {
+        const cert = data.list[selectedCertIndex] || data.list[0];
+        renderCertCard(cert, data.list.length);
+      } else if (data.type === 'SSH_PUB') {
+        renderSSHPublicKeyCard(data);
+      } else if (data.type === 'PRIVATE_KEY') {
+        renderPrivateKeyCard(data);
+      } else if (data.type === 'CSR') {
+        renderCSRCard(data.data);
+      }
+    }
+
+    function renderCertCard(cert, totalInBundle) {
+      const container = document.getElementById('mainContent');
+
+      // Update Header Title & Status
+      const cn = cert.subject['2.5.4.3'] || cert.subject['2.5.4.10'] || currentFileName || 'Сертификат X.509';
+      document.getElementById('headerTitle').textContent = cn;
+
+      const certRole = cert.isCA ? 'Центр сертификации (CA)' : (cert.isSelfSigned ? 'Самоподписанный сертификат' : 'Конечный сертификат (Leaf)');
+      const bundleInfo = totalInBundle > 1 ? `Сертификат ${selectedCertIndex + 1} из ${totalInBundle} • ` : '';
+      const filePrefix = currentFileName ? `${currentFileName} • ` : '';
+      document.getElementById('headerSubtitle').textContent = `${filePrefix}${bundleInfo}${certRole}`;
+
+      // Calculate Remaining Days & Status
+      const now = new Date();
+      let statusHtml = '';
+      let progressClass = '';
+      let progressPercent = 100;
+      let daysText = '';
+
+      if (cert.notAfter) {
+        const totalDuration = cert.notAfter - cert.notBefore;
+        const elapsed = now - cert.notBefore;
+        progressPercent = Math.min(100, Math.max(0, Math.round((elapsed / totalDuration) * 100)));
+
+        const diffDays = Math.ceil((cert.notAfter - now) / (1000 * 60 * 60 * 24));
+        if (diffDays < 0) {
+          statusHtml = `<div class="pill pill-expired"><span class="pill-dot"></span>Просрочен (${Math.abs(diffDays)} дн. назад)</div>`;
+          progressClass = 'expired';
+          daysText = `Истёк ${Math.abs(diffDays)} дн. назад`;
+        } else if (diffDays <= 30) {
+          statusHtml = `<div class="pill pill-expiring"><span class="pill-dot"></span>Истекает через ${diffDays} дн.</div>`;
+          progressClass = 'expiring';
+          daysText = `Осталось ${diffDays} дн.`;
+        } else {
+          statusHtml = `<div class="pill pill-valid"><span class="pill-dot"></span>Действителен (${diffDays} дн.)</div>`;
+          daysText = `Осталось ${diffDays} дн.`;
+        }
+      }
+
+      document.getElementById('statusPillContainer').innerHTML = statusHtml;
+
+      // Render Chain Bar if bundle
+      const chainBar = document.getElementById('chainBar');
+      if (totalInBundle > 1) {
+        chainBar.style.display = 'flex';
+        let tabsHtml = '';
+        parsedData.list.forEach((c, idx) => {
+          const tabCn = c.subject['2.5.4.3'] || c.subject['2.5.4.10'] || `Узел ${idx + 1}`;
+          const isAct = idx === selectedCertIndex ? 'active' : '';
+          const role = idx === 0 ? 'Leaf' : (idx === totalInBundle - 1 ? 'Root' : 'Intermediate');
+          tabsHtml += `
+            <div class="chain-tab ${isAct}" onclick="switchCert(${idx})">
+              <span>${idx + 1}. ${tabCn}</span>
+              <span class="pill pill-info" style="padding: 1px 6px; font-size: 10px;">${role}</span>
+            </div>
+          `;
+          if (idx < totalInBundle - 1) {
+            tabsHtml += `<span class="chain-arrow">➔</span>`;
+          }
+        });
+        chainBar.innerHTML = tabsHtml;
+      } else {
+        chainBar.style.display = 'none';
+      }
+
+      // Format Dates
+      const fmtOptions = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+      const nbStr = cert.notBefore ? cert.notBefore.toLocaleDateString('ru-RU', fmtOptions) : 'Н/Д';
+      const naStr = cert.notAfter ? cert.notAfter.toLocaleDateString('ru-RU', fmtOptions) : 'Н/Д';
+
+      // Build HTML Cards
+      container.innerHTML = `
+        <div class="cards-grid">
+
+          <!-- Card 1: Срок действия -->
+          <div class="card">
+            <div class="card-title">
+              <div class="card-title-left">
+                <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
+                <span>Срок действия</span>
+              </div>
+              <span style="font-size: 11px; color: var(--text-sub);">X.509 v${cert.version}</span>
+            </div>
+
+            <div class="timeline-box">
+              <div class="timeline-dates">
+                <div class="timeline-date-block">
+                  <div class="timeline-date-label">Выдан (Not Before)</div>
+                  <div class="timeline-date-val">${nbStr}</div>
+                </div>
+                <div class="timeline-date-block" style="text-align: right;">
+                  <div class="timeline-date-label">Истекает (Not After)</div>
+                  <div class="timeline-date-val">${naStr}</div>
+                </div>
+              </div>
+
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill ${progressClass}" style="width: ${progressPercent}%;"></div>
+              </div>
+
+              <div class="timeline-footer">
+                <span>Прошло: ${progressPercent}%</span>
+                <span style="font-weight: 600;">${daysText}</span>
+              </div>
+            </div>
+
+            <div class="kv-list">
+              <div class="kv-row">
+                <span class="kv-key">Серийный №</span>
+                <span class="kv-val mono">
+                  ${cert.serialHex || 'Н/Д'}
+                  <button class="copy-btn" onclick="copyText('${cert.serialHex}', 'Серийный номер скопирован')" title="Копировать">
+                    <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                  </button>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Криптографические параметры -->
+          <div class="card">
+            <div class="card-title">
+              <div class="card-title-left">
+                <svg viewBox="0 0 24 24"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
+                <span>Ключ и Алгоритмы</span>
+              </div>
+            </div>
+            <div class="kv-list">
+              <div class="kv-row">
+                <span class="kv-key">Тип ключа</span>
+                <span class="kv-val">
+                  <span class="pill pill-info" style="padding: 2px 8px;">${cert.pkType}</span>
+                </span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-key">Длина ключа</span>
+                <span class="kv-val mono">${cert.pkBits ? cert.pkBits + ' бит' : 'Н/Д'}</span>
+              </div>
+              ${cert.pkCurve ? `
+              <div class="kv-row">
+                <span class="kv-key">Эллиптическая кривая</span>
+                <span class="kv-val mono">${cert.pkCurve}</span>
+              </div>` : ''}
+              <div class="kv-row">
+                <span class="kv-key">Алгоритм подписи</span>
+                <span class="kv-val mono">${cert.sigAlg}</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-key">Стойкость шифра</span>
+                <span class="kv-val">
+                  <span class="pill ${cert.pkBits >= 2048 ? 'pill-valid' : 'pill-expiring'}" style="padding: 2px 8px;">
+                    ${cert.pkBits >= 2048 ? '🛡️ Надёжный' : '⚠️ Устаревший'}
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 3: Кому выдан (Subject) -->
+          <div class="card">
+            <div class="card-title">
+              <div class="card-title-left">
+                <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                <span>Кому выдан (Subject)</span>
+              </div>
+            </div>
+            <div class="kv-list">
+              <div class="kv-row">
+                <span class="kv-key">Common Name (CN)</span>
+                <span class="kv-val mono" style="font-weight: 600;">${cert.subject['2.5.4.3'] || '—'}</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-key">Организация (O)</span>
+                <span class="kv-val">${cert.subject['2.5.4.10'] || '—'}</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-key">Подразделение (OU)</span>
+                <span class="kv-val">${cert.subject['2.5.4.11'] || '—'}</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-key">Страна (C)</span>
+                <span class="kv-val">${cert.subject['2.5.4.6'] || '—'}</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-key">Город / Регион</span>
+                <span class="kv-val">${[cert.subject['2.5.4.7'], cert.subject['2.5.4.8']].filter(Boolean).join(', ') || '—'}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 4: Кем выдан (Issuer) -->
+          <div class="card">
+            <div class="card-title">
+              <div class="card-title-left">
+                <svg viewBox="0 0 24 24"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
+                <span>Кем выдан (Issuer)</span>
+              </div>
+            </div>
+            <div class="kv-list">
+              <div class="kv-row">
+                <span class="kv-key">Common Name (CN)</span>
+                <span class="kv-val mono" style="font-weight: 600;">${cert.issuer['2.5.4.3'] || '—'}</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-key">Организация (O)</span>
+                <span class="kv-val">${cert.issuer['2.5.4.10'] || '—'}</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-key">Страна (C)</span>
+                <span class="kv-val">${cert.issuer['2.5.4.6'] || '—'}</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-key">Тип эмитента</span>
+                <span class="kv-val">
+                  <span class="pill ${cert.isSelfSigned ? 'pill-expiring' : 'pill-info'}" style="padding: 2px 8px;">
+                    ${cert.isSelfSigned ? 'Самоподписанный' : 'Удостоверяющий центр (CA)'}
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 5: SAN (Альтернативные имена) -->
+          <div class="card" style="grid-column: 1 / -1;">
+            <div class="card-title">
+              <div class="card-title-left">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                <span>Альтернативные имена (SAN)</span>
+              </div>
+              <span style="font-size: 11px; color: var(--text-sub);">Всего доменов: ${cert.sans.length}</span>
+            </div>
+
+            ${cert.sans.length > 8 ? `
+              <input type="text" class="chip-search" id="sanFilter" placeholder="Поиск домена..." oninput="filterSANs(this.value)">
+            ` : ''}
+
+            <div class="chips-grid" id="sanChips">
+              ${cert.sans.length > 0 ? cert.sans.map(san => `
+                <div class="chip ${san.startsWith('*.') ? 'wildcard' : ''}" data-domain="${san.toLowerCase()}">
+                  ${san.startsWith('*.') ? '★ ' : ''}${san}
+                </div>
+              `).join('') : '<span style="color: var(--text-sub); font-size: 12px;">Альтернативные имена отсутствуют</span>'}
+            </div>
+          </div>
+
+          <!-- Card 6: Отпечатки (Fingerprints) -->
+          <div class="card" style="grid-column: 1 / -1;">
+            <div class="card-title">
+              <div class="card-title-left">
+                <svg viewBox="0 0 24 24"><path d="M17.81 4.47c-.08 0-.16-.02-.23-.06C15.66 3.42 14 3 12.01 3c-1.98 0-3.86.47-5.57 1.41-.24.13-.54.04-.68-.2-.13-.24-.04-.55.2-.68C7.82 2.52 9.86 2 12.01 2c2.13 0 3.99.47 6.03 1.52.25.13.34.43.21.67-.09.18-.26.28-.44.28zM3.5 9.72c-.1 0-.2-.03-.29-.09-.23-.16-.28-.47-.12-.7.99-1.4 2.25-2.5 3.75-3.27.24-.12.54-.03.67.21.12.24.03.54-.21.67-1.39.72-2.56 1.73-3.49 3.02-.08.11-.19.16-.31.16zm16.99 0c-.12 0-.23-.05-.31-.16-.92-1.29-2.09-2.3-3.48-3.02-.24-.13-.33-.43-.21-.67.13-.24.43-.33.67-.21 1.5.77 2.76 1.87 3.75 3.27.16.23.11.54-.12.7-.09.06-.19.09-.3.09zM12 5.5c-3.59 0-6.5 2.91-6.5 6.5 0 .28-.22.5-.5.5s-.5-.22-.5-.5c0-4.14 3.36-7.5 7.5-7.5s7.5 3.36 7.5 7.5c0 .28-.22.5-.5.5s-.5-.22-.5-.5c0-3.59-2.91-6.5-6.5-6.5zm-5 6.5c0-2.76 2.24-5 5-5s5 2.24 5 5c0 .28-.22.5-.5.5s-.5-.22-.5-.5c0-2.21-1.79-4-4-4s-4 1.79-4 4c0 .28-.22.5-.5.5s-.5-.22-.5-.5zm5 2c-1.1 0-2 .9-2 2 0 1.55-1.11 2.86-2.61 3.12-.27.05-.46.3-.41.57.05.28.3.46.57.41 1.97-.34 3.45-2.05 3.45-4.1 0-.55.45-1 1-1s1 .45 1 1c0 2.05 1.48 3.76 3.45 4.1.27.05.52-.13.57-.41.05-.27-.14-.52-.41-.57-1.5-.26-2.61-1.57-2.61-3.12 0-1.1-.9-2-2-2z"/></svg>
+                <span>Отпечатки (Fingerprints)</span>
+              </div>
+            </div>
+            <div class="kv-list">
+              <div class="kv-row">
+                <span class="kv-key">SHA-256</span>
+                <span class="kv-val mono">
+                  ${cert.sha256}
+                  <button class="copy-btn" onclick="copyText('${cert.sha256}', 'SHA-256 скопирован')" title="Копировать">
+                    <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                  </button>
+                </span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-key">SHA-1</span>
+                <span class="kv-val mono">
+                  ${cert.sha1}
+                  <button class="copy-btn" onclick="copyText('${cert.sha1}', 'SHA-1 скопирован')" title="Копировать">
+                    <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                  </button>
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      `;
+    }
+
+    function renderSSHPublicKeyCard(ssh) {
+      const container = document.getElementById('mainContent');
+      document.getElementById('headerTitle').textContent = `SSH Public Key (${ssh.keyType.toUpperCase()})`;
+      document.getElementById('headerSubtitle').textContent = ssh.comment;
+      document.getElementById('statusPillContainer').innerHTML = `<div class="pill pill-valid"><span class="pill-dot"></span>Публичный ключ</div>`;
+
+      container.innerHTML = `
+        <div class="cards-grid">
+          <div class="card">
+            <div class="card-title">
+              <div class="card-title-left">
+                <svg viewBox="0 0 24 24"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
+                <span>Свойства ключа</span>
+              </div>
+            </div>
+            <div class="kv-list">
+              <div class="kv-row">
+                <span class="kv-key">Тип алгоритма</span>
+                <span class="kv-val mono">${ssh.keyType}</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-key">Длина ключа</span>
+                <span class="kv-val mono">${ssh.bits} бит</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-key">Комментарий</span>
+                <span class="kv-val">${ssh.comment}</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-key">Отпечаток SHA-256</span>
+                <span class="kv-val mono">
+                  ${ssh.sha256}
+                  <button class="copy-btn" onclick="copyText('${ssh.sha256}', 'Отпечаток скопирован')" title="Копировать">
+                    <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                  </button>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <div class="card-title-left">
+                <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-1 14H5V8h14v10z"/></svg>
+                <span>Визуальный отпечаток (Randomart)</span>
+              </div>
+            </div>
+            <div style="display: flex; justify-content: center; padding: 6px 0;">
+              <div class="randomart-box">${ssh.randomart}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPrivateKeyCard(pk) {
+      const container = document.getElementById('mainContent');
+      document.getElementById('headerTitle').textContent = pk.keyType;
+      document.getElementById('headerSubtitle').textContent = 'Закрытый ключ (Private Key)';
+      document.getElementById('statusPillContainer').innerHTML = `<div class="pill pill-expiring"><span class="pill-dot"></span>Секретный ключ</div>`;
+
+      container.innerHTML = `
+        <div class="private-key-alert">
+          <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+          <div class="private-key-alert-text">
+            <h3>Обнаружен закрытый ключ (Private Key)</h3>
+            <p>В целях информационной безопасности закрытый ключ не расшифровывается и не передаётся в незащищённый буфер. Ниже приведены доступные метаданные файла.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <div class="card-title-left">
+              <svg viewBox="0 0 24 24"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
+              <span>Параметры контейнера</span>
+            </div>
+          </div>
+          <div class="kv-list">
+            <div class="kv-row">
+              <span class="kv-key">Формат</span>
+              <span class="kv-val mono">${pk.keyType}</span>
+            </div>
+            <div class="kv-row">
+              <span class="kv-key">Защищён паролем</span>
+              <span class="kv-val">
+                <span class="pill ${pk.isEncrypted ? 'pill-valid' : 'pill-expiring'}" style="padding: 2px 8px;">
+                  ${pk.isEncrypted ? '🔒 Да (Зашифрован)' : '⚠️ Нет (Открытый)'}
+                </span>
+              </span>
+            </div>
+            ${pk.isEncrypted ? `
+            <div class="kv-row">
+              <span class="kv-key">Шифр контейнера</span>
+              <span class="kv-val mono">${pk.cipher}</span>
+            </div>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCSRCard(csr) {
+      const container = document.getElementById('mainContent');
+      const cn = csr.subject['2.5.4.3'] || csr.subject['2.5.4.10'] || 'Запрос на подпись сертификата';
+      document.getElementById('headerTitle').textContent = cn;
+      document.getElementById('headerSubtitle').textContent = 'Запрос на сертификат (CSR)';
+      document.getElementById('statusPillContainer').innerHTML = `<div class="pill pill-info"><span class="pill-dot"></span>CSR Request</div>`;
+
+      container.innerHTML = `
+        <div class="cards-grid">
+          <div class="card">
+            <div class="card-title">
+              <div class="card-title-left">
+                <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                <span>Запрошенный Субъект</span>
+              </div>
+            </div>
+            <div class="kv-list">
+              <div class="kv-row">
+                <span class="kv-key">Common Name (CN)</span>
+                <span class="kv-val mono">${csr.subject['2.5.4.3'] || '—'}</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-key">Организация (O)</span>
+                <span class="kv-val">${csr.subject['2.5.4.10'] || '—'}</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-key">Страна (C)</span>
+                <span class="kv-val">${csr.subject['2.5.4.6'] || '—'}</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-key">Город / Регион</span>
+                <span class="kv-val">${[csr.subject['2.5.4.7'], csr.subject['2.5.4.8']].filter(Boolean).join(', ') || '—'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <div class="card-title-left">
+                <svg viewBox="0 0 24 24"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
+                <span>Открытый ключ запроса</span>
+              </div>
+            </div>
+            <div class="kv-list">
+              <div class="kv-row">
+                <span class="kv-key">Тип ключа</span>
+                <span class="kv-val mono">${csr.pkType}</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-key">Длина</span>
+                <span class="kv-val mono">${csr.pkBits} бит</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-key">Отпечаток SHA-256</span>
+                <span class="kv-val mono">${csr.sha256}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function filterSANs(query) {
+      const q = query.trim().toLowerCase();
+      const chips = document.querySelectorAll('#sanChips .chip');
+      chips.forEach(chip => {
+        const dom = chip.getAttribute('data-domain') || '';
+        chip.style.display = dom.includes(q) ? 'inline-flex' : 'none';
+      });
+    }
+
+    function switchCert(index) {
+      selectedCertIndex = index;
+      renderOverview(parsedData);
+    }
+
+    // --- Navigation Tabs Switching ---
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        activeTab = tab.getAttribute('data-tab');
+
+        if (activeTab === 'overview') {
+          renderOverview(parsedData);
+        } else if (activeTab === 'raw') {
+          const container = document.getElementById('mainContent');
+          container.innerHTML = `<div class="raw-viewer">${escapeHtml(currentRawText || 'Нет текстового представления')}</div>`;
+        }
+      });
+    });
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function derToPem(derBytes, header = 'CERTIFICATE') {
+      let binary = '';
+      for (let i = 0; i < derBytes.length; i++) {
+        binary += String.fromCharCode(derBytes[i]);
+      }
+      const b64 = btoa(binary);
+      const lines = b64.match(/.{1,64}/g) || [b64];
+      return `-----BEGIN ${header}-----\n` + lines.join('\n') + `\n-----END ${header}-----\n`;
+    }
+
+    // --- Button Event Listeners ---
+    document.getElementById('btnCopyFingerprint').addEventListener('click', () => {
+      if (!parsedData) return;
+      let fp = '';
+      if (parsedData.type === 'MULTI_CERT') {
+        const cert = parsedData.list[selectedCertIndex] || parsedData.list[0];
+        fp = cert?.sha256;
+      } else if (parsedData.type === 'SSH_PUB') {
+        fp = parsedData.sha256;
+      } else if (parsedData.type === 'CSR') {
+        fp = parsedData.data?.sha256;
+      }
+      if (fp) {
+        copyText(fp, 'Отпечаток скопирован в буфер');
+      } else {
+        showToast('Отпечаток не найден');
+      }
+    });
+
+    document.getElementById('btnCopyRaw').addEventListener('click', () => {
+      let textToCopy = '';
+      if (activeTab === 'raw' && currentRawText) {
+        textToCopy = currentRawText;
+      } else if (parsedData && parsedData.type === 'MULTI_CERT') {
+        const cert = parsedData.list[selectedCertIndex] || parsedData.list[0];
+        if (cert && cert.rawPem) {
+          textToCopy = cert.rawPem;
+        } else if (cert && cert.rawDer) {
+          textToCopy = derToPem(cert.rawDer, 'CERTIFICATE');
+        } else {
+          textToCopy = currentRawText;
+        }
+      } else if (parsedData && parsedData.type === 'CSR') {
+        textToCopy = parsedData.data?.rawPem || (parsedData.data?.rawDer ? derToPem(parsedData.data.rawDer, 'CERTIFICATE REQUEST') : currentRawText);
+      } else if (parsedData && parsedData.type === 'SSH_PUB') {
+        textToCopy = currentRawText;
+      } else {
+        textToCopy = currentRawText;
+      }
+
+      if (textToCopy) {
+        copyText(textToCopy, 'Содержимое скопировано в буфер');
+      } else {
+        showToast('Нет данных для копирования');
+      }
+    });
+
+    // --- Theme & Appearance Engine ---
+    let isSystemTheme = false;
+
+    function applyTheme(themeInput) {
+      let isDark = true;
+      let accentColor = null;
+
+      if (themeInput && typeof themeInput === 'object') {
+        if (typeof themeInput.isDark === 'boolean') {
+          isDark = themeInput.isDark;
+        } else if (typeof themeInput.theme === 'string') {
+          isDark = themeInput.theme.toLowerCase() !== 'light';
+        } else if (typeof themeInput.mode === 'string') {
+          isDark = themeInput.mode.toLowerCase() !== 'light';
+        } else if (themeInput.settings && typeof themeInput.settings.theme === 'string') {
+          isDark = themeInput.settings.theme.toLowerCase() !== 'light';
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+          isDark = false;
+        }
+        accentColor = themeInput.accentColor || themeInput.accent;
+      } else if (typeof themeInput === 'boolean') {
+        isDark = themeInput;
+      } else if (typeof themeInput === 'string') {
+        isDark = themeInput.toLowerCase() !== 'light';
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        isDark = false;
+      }
+
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      if (isDark) {
+        document.body.classList.remove('light-theme');
+        document.body.classList.add('dark-theme');
+      } else {
+        document.body.classList.remove('dark-theme');
+        document.body.classList.add('light-theme');
+      }
+
+      if (accentColor) {
+        document.documentElement.style.setProperty('--accent', accentColor);
+      }
+    }
+
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (isSystemTheme) {
+          applyTheme(e.matches ? 'dark' : 'light');
+        }
+      });
+    }
+
+    // --- IPC Communication with PeekIt Host ---
+    let currentFileName = '';
+    let readyInterval = null;
+
+    window.addEventListener('message', async (event) => {
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      switch (msg.type) {
+        case 'PEEKIT_INIT': {
+          if (readyInterval) {
+            clearInterval(readyInterval);
+            readyInterval = null;
+          }
+
+          const payload = msg.payload || msg;
+          if (payload.fileName) {
+            currentFileName = payload.fileName;
+          }
+
+          applyTheme(payload);
+
+          // Request file data from Host
+          window.parent.postMessage({ type: 'PEEKIT_REQUEST_DATA' }, '*');
+          break;
+        }
+
+        case 'PEEKIT_THEME_CHANGED': {
+          const payload = msg.payload || msg;
+          applyTheme(payload);
+          break;
+        }
+
+        case 'PEEKIT_DATA_RESPONSE': {
+          try {
+            const rawData = msg.payload?.data !== undefined ? msg.payload.data : (msg.payload !== undefined ? msg.payload : msg.data);
+            const error = msg.payload?.error || msg.error;
+
+            if (error || !rawData) {
+              throw new Error(error || 'Данные файла не получены от приложения');
+            }
+
+            let bytes = null;
+            let text = '';
+
+            if (typeof rawData === 'string') {
+              if (rawData.includes('-----BEGIN') || rawData.startsWith('ssh-')) {
+                text = rawData;
+                bytes = new TextEncoder().encode(rawData);
+              } else {
+                try {
+                  const bin = atob(rawData);
+                  bytes = new Uint8Array(bin.length);
+                  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                  text = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+                } catch(e) {
+                  text = rawData;
+                  bytes = new TextEncoder().encode(rawData);
+                }
+              }
+            } else if (rawData instanceof ArrayBuffer) {
+              bytes = new Uint8Array(rawData);
+              text = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+            } else if (ArrayBuffer.isView(rawData)) {
+              bytes = new Uint8Array(rawData.buffer, rawData.byteOffset, rawData.byteLength);
+              text = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+            } else if (Array.isArray(rawData)) {
+              bytes = new Uint8Array(rawData);
+              text = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+            } else {
+              throw new Error('Неподдерживаемый формат данных сертификата');
+            }
+
+            parsedData = await inspectFile(bytes, text);
+            selectedCertIndex = 0;
+            renderOverview(parsedData);
+
+            // IMPORTANT: Never post PEEKIT_READY here. PeekIt host treats PEEKIT_READY as iframe initialization and re-sends PEEKIT_INIT, causing an infinite re-render loop.
+          } catch (err) {
+            console.error('Cert inspector error:', err);
+            document.getElementById('mainContent').innerHTML = `
+              <div class="state-container">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                <h2>Не удалось прочитать сертификат</h2>
+                <p>${err.message || 'Ошибка парсинга криптографических структур'}</p>
+              </div>
+            `;
+          }
+          break;
+        }
+      }
+    });
+
+    // Send READY to Host until acknowledged with PEEKIT_INIT
+    readyInterval = setInterval(() => {
+      window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
+    }, 100);
+    window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
+
+    // Keyboard navigation: Ctrl+C / Cmd+C for quick copy
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !window.getSelection().toString()) {
+        document.getElementById('btnCopyFingerprint').click();
+      }
+    });
+  </script>
+</body>
+</html>
