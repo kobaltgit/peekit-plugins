@@ -1,7 +1,7 @@
 {
   "$schema": "./plugin-schema.json",
   "version": 1,
-  "updated_at": "2026-09-07T12:21:13.370Z",
+  "updated_at": "2026-09-07T21:04:17.785Z",
   "plugins": [
     {
       "id": "com.peekit.3d-viewer",
@@ -29,20 +29,19 @@
     {
       "id": "com.peekit.docx-viewer",
       "name": "Word Document Viewer",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": "PeekIt Team",
-      "description": "Fast offline viewer for Word documents (DOCX, DOC) with realistic page layout, styles, and tables",
+      "description": "Fast offline viewer for Word documents (DOCX) with realistic page layout, styles, and tables",
       "category": "Documents",
       "extensions": [
-        ".docx",
-        ".doc"
+        ".docx"
       ],
       "entry": "index.html",
       "min_peekit_version": "1.0.0",
-      "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.docx-viewer-1.0.0.pkit",
-      "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.docx-viewer-1.0.0.pkit",
-      "size_kb": "100.0",
-      "sha256": "6f7730fada632ee160ccda524a86b8aff6449dae5b7497115b96b69d52689636",
+      "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.docx-viewer-1.0.1.pkit",
+      "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.1/com.peekit.docx-viewer-1.0.1.pkit",
+      "size_kb": "100.3",
+      "sha256": "38fd780fc9353fd9ae91dd32179e3e92737d023c03009e13f33e34e69679e3b6",
       "icon": "file-text",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     },

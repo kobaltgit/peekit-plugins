@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -354,8 +354,19 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         document.body.classList.toggle('dark-paper', isDarkPaper);
       });
 
+      function isOleCompoundDoc(buf) {
+        if (!buf || buf.byteLength < 4) return false;
+        const u = new Uint8Array(buf, 0, 4);
+        return u[0] === 0xD0 && u[1] === 0xCF && u[2] === 0x11 && u[3] === 0xE0;
+      }
+
       async function renderDocx(buffer) {
         try {
+          if (isOleCompoundDoc(buffer)) {
+            showError('Формат Word 97-2003 (.doc) устарел и не поддерживается. Пожалуйста, откройте файл и сохраните его в современном формате .docx.');
+            return;
+          }
+
           docxContainer.innerHTML = '';
 
           await docx.renderAsync(buffer, docxContainer, null, {
@@ -376,7 +387,11 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           loading.style.display = 'none';
         } catch (err) {
           console.error('[DocxViewer] Render error:', err);
-          showError('Не удалось отобразить документ: ' + err.message);
+          if (err.message && err.message.includes("Can't find end of central directory")) {
+            showError('Не удалось открыть документ: файл не является форматом .docx (возможно, это бинарный .doc или повреждённый архив).');
+          } else {
+            showError('Не удалось отобразить документ: ' + err.message);
+          }
         }
       }
 
