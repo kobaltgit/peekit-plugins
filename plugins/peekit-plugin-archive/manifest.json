@@ -21,7 +21,7 @@
     "clipboard_write"
   ],
   "icon": "icon.svg",
-  "category": "Archive",
+  "category": "Utilities",
   "homepage": "https://github.com/kobaltgit/peekit-plugins",
   "default_dimensions": {
     "width": 880,
