@@ -1008,6 +1008,7 @@
       let inPoint = 0;
       let outPoint = 0;
       let loopMode = 'none'; // 'none' | 'all' | 'range'
+      let isExporting = false;
 
       let isTimelineDragging = false;
       let isDraggingInHandle = false;
@@ -1466,7 +1467,7 @@
       video.loop = false;
 
       function checkLoop() {
-        if (!video.paused && !isTimelineDragging) {
+        if (!isExporting && !video.paused && !isTimelineDragging) {
           const cur = video.currentTime;
           const dur = video.duration || 0;
 
@@ -1497,6 +1498,7 @@
 
       // Ended event fallback
       video.addEventListener('ended', () => {
+        if (isExporting) return;
         if (loopMode === 'all') {
           video.currentTime = 0;
           const p = video.play();
@@ -1708,9 +1710,14 @@
         exportProgressWrap.style.display = 'flex';
         progressFill.style.width = '0%';
         progressStatus.textContent = 'Подготовка видеопотока...';
+        isExporting = true;
 
         try {
-          const stream = video.captureStream ? video.captureStream() : video.mozCaptureStream();
+          const stream = video.captureStream ? video.captureStream() : (video.mozCaptureStream ? video.mozCaptureStream() : null);
+          if (!stream) {
+            throw new Error('captureStream не поддерживается браузером');
+          }
+
           let mime = 'video/webm;codecs=vp9,opus';
           if (!MediaRecorder.isTypeSupported(mime)) {
             mime = 'video/webm';
@@ -1723,36 +1730,59 @@
             if (e.data && e.data.size > 0) chunks.push(e.data);
           };
 
-          recorder.onstop = () => {
+          recorder.onstop = async () => {
+            isExporting = false;
+            progressStatus.textContent = 'Открытие проводника...';
             const blob = new Blob(chunks, { type: mime });
             const clipName = `${fileNameBase}_clip_${Math.round(inPoint)}s-${Math.round(outPoint)}s.webm`;
-            saveExportedFile(blob, clipName, 'Видеоклип');
+            await saveExportedFile(blob, clipName, 'Видеоклип');
             exportModal.style.display = 'none';
           };
 
+          video.pause();
           video.currentTime = inPoint;
-          await new Promise(r => setTimeout(r, 150));
+          await new Promise(r => {
+            const onSeeked = () => {
+              video.removeEventListener('seeked', onSeeked);
+              r();
+            };
+            video.addEventListener('seeked', onSeeked);
+            setTimeout(r, 200);
+          });
 
           recorder.start(100);
-          video.play();
+          video.play().catch(() => {});
 
-          const totalTrimDur = outPoint - inPoint;
+          const totalTrimDur = Math.max(0.1, outPoint - inPoint);
           const pollInterval = setInterval(() => {
+            if (!isExporting) {
+              clearInterval(pollInterval);
+              return;
+            }
+
             const curRecorded = video.currentTime - inPoint;
             const pct = Math.min(100, Math.max(0, (curRecorded / totalTrimDur) * 100));
             progressFill.style.width = pct + '%';
             progressStatus.textContent = `Запись отрезка: ${Math.max(0, curRecorded).toFixed(1)} / ${totalTrimDur.toFixed(1)} сек...`;
 
-            if (video.currentTime >= outPoint || video.ended) {
+            if (video.currentTime >= outPoint - 0.04 || video.ended) {
               clearInterval(pollInterval);
               video.pause();
-              recorder.stop();
+              video.currentTime = inPoint;
+              if (recorder.state === 'recording') {
+                recorder.stop();
+              }
             }
-          }, 50);
+          }, 30);
 
         } catch (err) {
+          isExporting = false;
           console.error('[VideoPlayer] Export error:', err);
           progressStatus.textContent = 'Ошибка экспорта: ' + err.message;
+          setTimeout(() => {
+            exportBtnGrid.style.display = 'grid';
+            exportProgressWrap.style.display = 'none';
+          }, 3000);
         }
       });
 
@@ -1762,6 +1792,7 @@
         exportProgressWrap.style.display = 'flex';
         progressFill.style.width = '0%';
         progressStatus.textContent = 'Захват кадров для GIF...';
+        isExporting = true;
 
         try {
           const targetFps = 10;
@@ -1769,7 +1800,6 @@
           const totalDur = outPoint - inPoint;
           const frameCount = Math.min(120, Math.floor(totalDur * targetFps)); // Cap at 120 frames for performance
 
-          // Scaled down dimensions for GIF (max width 480)
           const scale = Math.min(1, 480 / video.videoWidth);
           const gw = Math.round(video.videoWidth * scale);
           const gh = Math.round(video.videoHeight * scale);
@@ -1791,6 +1821,7 @@
                 r();
               };
               video.addEventListener('seeked', onSeeked);
+              setTimeout(r, 100);
             });
 
             ctx.drawImage(video, 0, 0, gw, gh);
@@ -1804,19 +1835,21 @@
           progressStatus.textContent = 'Кодирование GIF анимации...';
           await new Promise(r => setTimeout(r, 20));
 
-          // Minimalist Animated GIF Encoder in Pure JS
           const gifBlob = encodeGifFrames(frames, gw, gh, Math.round(interval * 100));
           progressFill.style.width = '100%';
 
           const gifName = `${fileNameBase}_animation.gif`;
-          saveExportedFile(gifBlob, gifName, 'GIF-анимация');
+          isExporting = false;
+          await saveExportedFile(gifBlob, gifName, 'GIF-анимация');
           exportModal.style.display = 'none';
-
-          exportModal.style.display = 'none';
-          showToast('🎞️ GIF анимация успешно сохранена!');
         } catch (err) {
+          isExporting = false;
           console.error('[VideoPlayer] GIF export error:', err);
           progressStatus.textContent = 'Ошибка создания GIF: ' + err.message;
+          setTimeout(() => {
+            exportBtnGrid.style.display = 'grid';
+            exportProgressWrap.style.display = 'none';
+          }, 3000);
         }
       });
 
