@@ -139,7 +139,10 @@ class _HomePageState extends State<HomePage> {
                 version: 'v1.0.0',
                 isRussian: widget.locale == 'ru',
                 onLanguageToggle: widget.onToggleLocale,
+                isDark: widget.isDark,
+                onThemeToggle: widget.onToggleTheme,
                 accentColor: AppTheme.primary,
+                downloadLabel: widget.locale == 'ru' ? 'Каталог' : 'Catalog',
                 navLinks: [
                   KobaltNavLink(
                     label: widget.locale == 'ru' ? 'Каталог' : 'Catalog',
@@ -159,17 +162,6 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ],
                 onDownloadTap: () => _scrollToKey(_catalogKey),
-                extraActions: [
-                  IconButton(
-                    icon: Icon(
-                      widget.isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                      size: 18,
-                      color: widget.isDark ? AppTheme.darkTextMuted : AppTheme.lightTextMuted,
-                    ),
-                    onPressed: widget.onToggleTheme,
-                    tooltip: widget.locale == 'ru' ? 'Переключить тему' : 'Toggle theme',
-                  ),
-                ],
               ),
               Expanded(
                 child: CustomScrollView(
