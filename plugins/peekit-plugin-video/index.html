@@ -859,13 +859,6 @@
           </button>
           <input type="range" class="volume-slider" id="sliderVolume" min="0" max="1" step="0.05" value="1">
         </div>
-
-        <!-- Fullscreen -->
-        <button class="ctrl-btn" id="btnFullscreen" title="Полноэкранный режим (F)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-          </svg>
-        </button>
       </div>
     </div>
   </footer>
@@ -986,7 +979,6 @@
       const btnZoomOut = document.getElementById('btnZoomOut');
       const lblZoom = document.getElementById('lblZoom');
       const btnSnapshot = document.getElementById('btnSnapshot');
-      const btnFullscreen = document.getElementById('btnFullscreen');
       const actionRipple = document.getElementById('actionRipple');
       const iconRipple = document.getElementById('iconRipple');
 
@@ -1032,10 +1024,38 @@
       let originalFileDir = '';
       let autoHideTimer = null;
 
-      // Helper to save file with native Save Picker dialog or clear download notification
+      // Helper to save file with native Save Picker dialog, host IPC, or download fallback
       async function saveExportedFile(blob, defaultFileName, formatTitle) {
-        // 1. Попытка через File System Access API (открывает системный диалог проводника "Сохранить как...",
-        // где пользователь сразу видит папку и может сохранить файл рядом с видео)
+        // Конвертируем blob в base64 для надежной передачи хосту PeekIt
+        let base64Data = '';
+        try {
+          const buffer = await blob.arrayBuffer();
+          const bytes = new Uint8Array(buffer);
+          let binary = '';
+          const len = bytes.byteLength;
+          for (let i = 0; i < len; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          base64Data = btoa(binary);
+        } catch (e) {
+          console.warn('[VideoPlayer] Base64 conversion error:', e);
+        }
+
+        const destPath = originalFileDir
+          ? (originalFileDir + (originalFileDir.includes('/') ? '/' : '\\') + defaultFileName)
+          : defaultFileName;
+
+        // 1. Отправляем IPC команду хосту PeekIt (открывает системный диалог или сохраняет рядом)
+        sendToHost('PEEKIT_SAVE_FILE', {
+          path: destPath,
+          filePath: destPath,
+          dir: originalFileDir,
+          fileName: defaultFileName,
+          data: base64Data,
+          mimeType: blob.type
+        });
+
+        // 2. Если File System Access API доступен (при allow="file-system-access")
         if (window.showSaveFilePicker) {
           try {
             const extMatch = defaultFileName.match(/\.[^.]+$/);
@@ -1055,36 +1075,12 @@
             return true;
           } catch (e) {
             if (e.name === 'AbortError') {
-              // Пользователь сам нажал "Отмена" в проводнике
               return false;
             }
-            console.warn('[VideoPlayer] showSaveFilePicker fallback:', e);
           }
         }
 
-        // 2. Отправка команды хосту PeekIt
-        const destPath = originalFileDir
-          ? (originalFileDir + (originalFileDir.includes('/') ? '/' : '\\') + defaultFileName)
-          : defaultFileName;
-
-        try {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const res = reader.result ? String(reader.result) : '';
-            const base64Data = res.includes(',') ? res.split(',')[1] : res;
-            sendToHost('PEEKIT_SAVE_FILE', {
-              path: destPath,
-              filePath: destPath,
-              dir: originalFileDir,
-              fileName: defaultFileName,
-              data: base64Data,
-              mimeType: blob.type
-            });
-          };
-          reader.readAsDataURL(blob);
-        } catch (e) {}
-
-        // 3. Скачивание через браузер (файл попадает в системную папку Загрузки/Downloads)
+        // 3. Fallback браузерного скачивания
         try {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -1097,14 +1093,10 @@
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
           }, 2000);
+        } catch (err) {}
 
-          showToast(`💾 Сохранено в "Загрузки": ${defaultFileName}`);
-          return true;
-        } catch (err) {
-          console.error('[VideoPlayer] Download error:', err);
-          showToast(`❌ Ошибка сохранения: ${err.message}`);
-          return false;
-        }
+        showToast(`💾 Сохранение: ${defaultFileName}`);
+        return true;
       }
 
       // Formatting helper
@@ -1270,21 +1262,7 @@
 
         txtCurrentTime.textContent = formatTime(cur);
 
-        // A-B Loop Range Check
-        if (trimMode && outPoint > inPoint) {
-          if (cur >= outPoint - 0.05) {
-            if (loopMode === 'range' || loopMode === 'all') {
-              video.currentTime = inPoint;
-              if (video.paused) {
-                const p = video.play();
-                if (p !== undefined) p.catch(() => {});
-              }
-            } else {
-              video.pause();
-              video.currentTime = outPoint;
-            }
-          }
-        }
+        // Loop checks are processed in the dedicated high-precision requestAnimationFrame engine
 
         if (dur > 0 && !isTimelineDragging) {
           const pct = (cur / dur) * 100;
@@ -1483,10 +1461,48 @@
         isDraggingOutHandle = false;
       });
 
-      // Native Loop & Ended Handlers
+      // High-Precision Loop Engine (60fps requestAnimationFrame)
+      // Never use buggy video.loop = true on blob sources in WebView2
+      video.loop = false;
+
+      function checkLoop() {
+        if (!video.paused && !isTimelineDragging) {
+          const cur = video.currentTime;
+          const dur = video.duration || 0;
+
+          if (trimMode && outPoint > inPoint) {
+            // Фрагмент [In - Out]
+            if (cur >= outPoint - 0.04) {
+              if (loopMode === 'range' || loopMode === 'all') {
+                video.currentTime = inPoint;
+                const p = video.play();
+                if (p !== undefined) p.catch(() => {});
+              } else {
+                video.pause();
+                video.currentTime = outPoint;
+              }
+            }
+          } else if (loopMode === 'all' && dur > 0) {
+            // Все видео: перезапуск за 0.06 сек до физического конца
+            if (cur >= dur - 0.06) {
+              video.currentTime = 0;
+              const p = video.play();
+              if (p !== undefined) p.catch(() => {});
+            }
+          }
+        }
+        requestAnimationFrame(checkLoop);
+      }
+      requestAnimationFrame(checkLoop);
+
+      // Ended event fallback
       video.addEventListener('ended', () => {
-        if (loopMode === 'all' || loopMode === 'range') {
-          video.currentTime = trimMode ? inPoint : 0;
+        if (loopMode === 'all') {
+          video.currentTime = 0;
+          const p = video.play();
+          if (p !== undefined) p.catch(() => {});
+        } else if (loopMode === 'range' || (trimMode && loopMode !== 'none')) {
+          video.currentTime = inPoint;
           const p = video.play();
           if (p !== undefined) p.catch(() => {});
         } else {
@@ -1496,22 +1512,50 @@
 
       // Loop Mode Toggle
       btnLoop.addEventListener('click', () => {
-        if (loopMode === 'none') {
-          loopMode = trimMode ? 'range' : 'all';
-          video.loop = !trimMode;
-          btnLoop.classList.add(trimMode ? 'trim-active' : 'active');
-          showToast(trimMode ? '🔁 Зацикливание фрагмента [In - Out] вкл' : '🔁 Повтор всего видео вкл');
-        } else if (loopMode === 'all' && trimMode) {
-          loopMode = 'range';
-          video.loop = false;
-          btnLoop.classList.remove('active');
-          btnLoop.classList.add('trim-active');
-          showToast('🔁 Зацикливание фрагмента [In - Out] вкл');
+        if (trimMode) {
+          if (loopMode === 'none') {
+            loopMode = 'range';
+            btnLoop.classList.remove('active');
+            btnLoop.classList.add('trim-active');
+            btnLoop.title = 'Зацикливание: Фрагмент [In - Out] (кликните для смены)';
+            showToast('🔁 Зацикливание фрагмента [In - Out] вкл');
+          } else if (loopMode === 'range') {
+            loopMode = 'all';
+            btnLoop.classList.remove('trim-active');
+            btnLoop.classList.add('active');
+            btnLoop.title = 'Зацикливание: Все видео (кликните для смены)';
+            showToast('🔁 Повтор всего видео вкл');
+          } else {
+            loopMode = 'none';
+            btnLoop.classList.remove('active', 'trim-active');
+            btnLoop.title = 'Зацикливание: Выкл (кликните для включения)';
+            showToast('🔁 Зацикливание выкл');
+          }
         } else {
-          loopMode = 'none';
-          video.loop = false;
-          btnLoop.classList.remove('active', 'trim-active');
-          showToast('🔁 Зацикливание выкл');
+          if (loopMode === 'none') {
+            loopMode = 'all';
+            btnLoop.classList.add('active');
+            btnLoop.classList.remove('trim-active');
+            btnLoop.title = 'Зацикливание: Все видео (кликните для смены)';
+            showToast('🔁 Повтор всего видео вкл');
+          } else {
+            loopMode = 'none';
+            btnLoop.classList.remove('active', 'trim-active');
+            btnLoop.title = 'Зацикливание: Выкл (кликните для включения)';
+            showToast('🔁 Зацикливание выкл');
+          }
+        }
+
+        // Если видео уже на паузе в конце или у выхода — сразу перезапускаем
+        if (loopMode !== 'none') {
+          const dur = video.duration || 0;
+          if (video.ended || (dur > 0 && video.currentTime >= dur - 0.1)) {
+            video.currentTime = (trimMode && loopMode === 'range') ? inPoint : 0;
+            video.play().catch(() => {});
+          } else if (trimMode && loopMode === 'range' && video.currentTime >= outPoint - 0.05) {
+            video.currentTime = inPoint;
+            video.play().catch(() => {});
+          }
         }
       });
 
@@ -1625,92 +1669,6 @@
 
       btnSnapshot.addEventListener('click', captureSnapshot);
 
-      // Fullscreen (Host IPC + Standard Fullscreen + Immersive In-Window Mode)
-      let isFullscreen = false;
-
-      function updateFullscreenUI() {
-        if (isFullscreen) {
-          document.body.classList.add('in-window-fullscreen');
-          btnFullscreen.innerHTML = `
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 14h6v6m10-10h-6V4m0 6l7-7M10 14l-7 7"/>
-            </svg>
-          `;
-          btnFullscreen.title = 'Выйти из полноэкранного режима (F / Esc)';
-        } else {
-          document.body.classList.remove('in-window-fullscreen');
-          btnFullscreen.innerHTML = `
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-            </svg>
-          `;
-          btnFullscreen.title = 'Полноэкранный режим (F)';
-        }
-      }
-
-      async function toggleFullscreen() {
-        sendToHost('PEEKIT_TOGGLE_FULLSCREEN');
-        sendToHost('PEEKIT_ACTION', { action: 'toggle_fullscreen' });
-        sendToHost('PEEKIT_ACTION', { action: 'maximize' });
-
-        const isCurrentlyFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
-
-        if (!isCurrentlyFs) {
-          let fsSuccess = false;
-          // 1. Пробуем нативный video.requestFullscreen
-          if (video.requestFullscreen) {
-            try {
-              await video.requestFullscreen();
-              fsSuccess = true;
-            } catch (err) {}
-          } else if (video.webkitRequestFullscreen) {
-            try {
-              video.webkitRequestFullscreen();
-              fsSuccess = true;
-            } catch (err) {}
-          }
-
-          // 2. Пробуем document requestFullscreen
-          if (!fsSuccess && document.documentElement.requestFullscreen) {
-            try {
-              await document.documentElement.requestFullscreen();
-              fsSuccess = true;
-            } catch (err) {}
-          }
-
-          if (fsSuccess) {
-            isFullscreen = true;
-          } else {
-            // Если движок заблокировал fullscreen в iframe
-            isFullscreen = !isFullscreen;
-            if (isFullscreen) {
-              showToast('💡 Для полного экрана разверните окно PeekIt (кнопка 🗖)');
-            }
-          }
-        } else {
-          try {
-            if (document.exitFullscreen) {
-              await document.exitFullscreen();
-            } else if (document.webkitExitFullscreen) {
-              await document.webkitExitFullscreen();
-            }
-          } catch (err) {}
-          isFullscreen = false;
-        }
-
-        updateFullscreenUI();
-      }
-
-      const onFullscreenChanged = () => {
-        isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
-        updateFullscreenUI();
-      };
-      document.addEventListener('fullscreenchange', onFullscreenChanged);
-      document.addEventListener('webkitfullscreenchange', onFullscreenChanged);
-      video.addEventListener('fullscreenchange', onFullscreenChanged);
-      video.addEventListener('webkitfullscreenchange', onFullscreenChanged);
-
-      btnFullscreen.addEventListener('click', toggleFullscreen);
 
       // Export Dialog
       btnExportDialog.addEventListener('click', openExportDialog);
@@ -2050,14 +2008,6 @@
             break;
           case 'KeyM':
             btnMute.click();
-            break;
-          case 'KeyF':
-            toggleFullscreen();
-            break;
-          case 'Escape':
-            if (isFullscreen) {
-              toggleFullscreen();
-            }
             break;
           case 'Equal':
           case 'NumpadAdd':
