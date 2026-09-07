@@ -1,7 +1,7 @@
 {
   "$schema": "./plugin-schema.json",
   "version": 1,
-  "updated_at": "2026-09-07T04:36:47.389Z",
+  "updated_at": "2026-09-07T05:03:24.483Z",
   "plugins": [
     {
       "id": "com.peekit.3d-viewer",
@@ -294,7 +294,7 @@
     {
       "id": "com.peekit.video-player",
       "name": "Pro Video Player & Trimmer",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": "Kobalt",
       "description": "Professional video player with frame-by-frame stepping, lossless trimming, GIF export, frame snapshotting, pan & zoom, and 200% volume boost",
       "category": "Media",
@@ -308,10 +308,10 @@
       ],
       "entry": "index.html",
       "min_peekit_version": "1.0.0",
-      "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.video-player-1.0.0.pkit",
-      "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.video-player-1.0.0.pkit",
-      "size_kb": "15.4",
-      "sha256": "75919a270a0a4bb78c5d8e8c6b141dbaa98450a3796e0457ba00229d562f47c3",
+      "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.video-player-1.0.1.pkit",
+      "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.1/com.peekit.video-player-1.0.1.pkit",
+      "size_kb": "17.4",
+      "sha256": "1a6008eb7ff4eded7b42c8d6b32a75b4bcd010e1767a091547c103364d3c4907",
       "icon": "icon.svg",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     }

@@ -153,6 +153,25 @@
       color: var(--trim-accent);
     }
 
+    /* Immersive In-Window Fullscreen */
+    body.in-window-fullscreen .header-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 60;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      background: linear-gradient(180deg, rgba(9, 13, 22, 0.95) 0%, transparent 100%);
+    }
+
+    body.in-window-fullscreen:hover .header-bar,
+    body.in-window-fullscreen .header-bar:focus-within {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
     /* Main Video Viewport */
     .viewport {
       position: relative;
@@ -307,13 +326,15 @@
       border-radius: 50%;
       background: #ffffff;
       box-shadow: 0 0 10px rgba(56, 189, 248, 0.8), 0 2px 4px rgba(0,0,0,0.5);
-      transform: translate(-50%, -50%) scale(0);
-      transition: transform 0.15s ease;
+      transform: translate(-50%, -50%) scale(0.65);
+      transition: transform 0.12s ease;
       pointer-events: none;
+      z-index: 5;
     }
 
-    .timeline-container:hover .timeline-playhead {
-      transform: translate(-50%, -50%) scale(1);
+    .timeline-container:hover .timeline-playhead,
+    .timeline-playhead.dragging {
+      transform: translate(-50%, -50%) scale(1.2);
     }
 
     /* Trim Handles */
@@ -719,16 +740,20 @@
         🔄 <span id="lblRotate">0°</span>
       </button>
 
-      <button class="btn-top" id="btnResetZoom" title="Сбросить масштаб (Двойной клик)">
-        🔍 <span id="lblZoom">100%</span>
-      </button>
+      <div class="zoom-controls-group" style="display:inline-flex;align-items:center;background:var(--bg-card);border:1px solid var(--bg-card-border);border-radius:6px;overflow:hidden;">
+        <button class="btn-top" id="btnZoomOut" title="Уменьшить масштаб (Колёсико вниз)" style="border:none;border-radius:0;padding:0 8px;height:28px;">−</button>
+        <button class="btn-top" id="btnResetZoom" title="Сбросить масштаб (100%)" style="border:none;border-radius:0;border-left:1px solid rgba(255,255,255,0.08);border-right:1px solid rgba(255,255,255,0.08);padding:0 8px;height:28px;">
+          🔍 <span id="lblZoom">100%</span>
+        </button>
+        <button class="btn-top" id="btnZoomIn" title="Увеличить масштаб (Колёсико вверх)" style="border:none;border-radius:0;padding:0 8px;height:28px;">+</button>
+      </div>
     </div>
   </header>
 
   <!-- Main Viewport Area -->
   <main class="viewport" id="viewport">
     <div class="video-canvas-container" id="videoContainer">
-      <video id="mainVideo" playsinline preload="auto"></video>
+      <video id="mainVideo" playsinline autoplay preload="auto"></video>
     </div>
 
     <!-- Center Play/Pause Ripple Indicator -->
@@ -777,7 +802,7 @@
         <button class="ctrl-btn" id="btnStepForward" title="Шаг на 1 кадр вперёд (Точка >)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
             <polygon points="5 4 15 12 5 20 5 4"/>
-            <line x1="19" y1="4" x2="19" y2="20" stroke="currentColor" stroke-width="3"/>
+            <line x1="19" y1="19" x2="19" y2="20" stroke="currentColor" stroke-width="3"/>
           </svg>
         </button>
 
@@ -868,6 +893,10 @@
           <span class="label">Длительность:</span>
           <span class="val" id="lblExportDur" style="color: var(--accent);">0.00 сек</span>
         </div>
+        <div class="export-stat-row">
+          <span class="label">Папка:</span>
+          <span class="val" id="lblExportFolder" style="font-size:11px;color:var(--text-muted);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="Рядом с исходным файлом">Рядом с исходным файлом</span>
+        </div>
       </div>
 
       <div class="export-btn-grid" id="exportBtnGrid">
@@ -953,6 +982,8 @@
       const btnRotate = document.getElementById('btnRotate');
       const lblRotate = document.getElementById('lblRotate');
       const btnResetZoom = document.getElementById('btnResetZoom');
+      const btnZoomIn = document.getElementById('btnZoomIn');
+      const btnZoomOut = document.getElementById('btnZoomOut');
       const lblZoom = document.getElementById('lblZoom');
       const btnSnapshot = document.getElementById('btnSnapshot');
       const btnFullscreen = document.getElementById('btnFullscreen');
@@ -964,6 +995,7 @@
       const lblExportStart = document.getElementById('lblExportStart');
       const lblExportEnd = document.getElementById('lblExportEnd');
       const lblExportDur = document.getElementById('lblExportDur');
+      const lblExportFolder = document.getElementById('lblExportFolder');
       const exportBtnGrid = document.getElementById('exportBtnGrid');
       const exportProgressWrap = document.getElementById('exportProgressWrap');
       const progressFill = document.getElementById('progressFill');
@@ -996,7 +1028,40 @@
 
       let rawBlobUrl = null;
       let fileNameBase = 'video';
+      let originalFilePath = '';
+      let originalFileDir = '';
       let autoHideTimer = null;
+
+      // Helper to save file to source video folder
+      function saveExportedFile(blob, defaultFileName, formatTitle) {
+        const destPath = originalFileDir
+          ? (originalFileDir + (originalFileDir.includes('/') ? '/' : '\\') + defaultFileName)
+          : defaultFileName;
+
+        // Try reading base64 and requesting Host IPC save to destination path
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const res = reader.result ? String(reader.result) : '';
+          const base64Data = res.includes(',') ? res.split(',')[1] : res;
+          sendToHost('PEEKIT_SAVE_FILE', {
+            path: destPath,
+            filePath: destPath,
+            dir: originalFileDir,
+            fileName: defaultFileName,
+            data: base64Data,
+            mimeType: blob.type
+          });
+        };
+        reader.readAsDataURL(blob);
+
+        // Standard browser download trigger (respects native WebView2 download routing)
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = defaultFileName;
+        a.click();
+
+        showToast(`💾 ${formatTitle} сохранён в папку с видео!`);
+      }
 
       // Formatting helper
       function formatTime(seconds) {
@@ -1196,9 +1261,45 @@
         updateTrimUI();
 
         loadingOverlay.style.display = 'none';
+
+        // Auto-play immediately on load
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            svgPlay.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+          }).catch(err => {
+            console.warn('[VideoPlayer] Autoplay prevented, trying muted:', err);
+            video.muted = true;
+            sliderVolume.value = 0;
+            video.play().then(() => {
+              svgPlay.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+            }).catch(e => console.warn('[VideoPlayer] Muted autoplay prevented:', e));
+          });
+        }
       });
 
       // Timeline Interaction
+      let wasPlayingBeforeDrag = false;
+
+      function seekToMouseEvent(e) {
+        const rect = timelineTrack.getBoundingClientRect();
+        const dur = video.duration || 0;
+        if (!dur || rect.width <= 0) return 0;
+
+        const pos = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+        const pct = (pos / rect.width) * 100;
+        const targetTime = (pos / rect.width) * dur;
+
+        // Мгновенно двигаем визуальные элементы ползунка и прогресса
+        timelineProgress.style.width = pct + '%';
+        playhead.style.left = pct + '%';
+        txtCurrentTime.textContent = formatTime(targetTime);
+
+        // Устанавливаем текущее время видео
+        video.currentTime = targetTime;
+        return targetTime;
+      }
+
       function getTimeFromMouseEvent(e) {
         const rect = timelineTrack.getBoundingClientRect();
         const pos = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
@@ -1208,8 +1309,12 @@
       timelineContainer.addEventListener('mousedown', (e) => {
         if (e.target === handleIn || e.target === handleOut) return;
         isTimelineDragging = true;
-        const t = getTimeFromMouseEvent(e);
-        video.currentTime = t;
+        playhead.classList.add('dragging');
+        wasPlayingBeforeDrag = !video.paused;
+        if (wasPlayingBeforeDrag) {
+          video.pause();
+        }
+        seekToMouseEvent(e);
       });
 
       timelineContainer.addEventListener('mousemove', (e) => {
@@ -1221,20 +1326,10 @@
         timelineTooltip.style.display = 'block';
         timelineTooltip.style.left = pct + '%';
         timelineTooltip.textContent = formatTime(t);
-
-        if (isTimelineDragging) {
-          video.currentTime = t;
-        }
       });
 
       timelineContainer.addEventListener('mouseleave', () => {
         if (!isTimelineDragging) timelineTooltip.style.display = 'none';
-      });
-
-      window.addEventListener('mouseup', () => {
-        isTimelineDragging = false;
-        isDraggingInHandle = false;
-        isDraggingOutHandle = false;
       });
 
       // Trim Mode & In/Out Handles
@@ -1304,16 +1399,40 @@
       });
 
       window.addEventListener('mousemove', (e) => {
-        if (!isDraggingInHandle && !isDraggingOutHandle) return;
-        const t = getTimeFromMouseEvent(e);
+        if (isTimelineDragging) {
+          seekToMouseEvent(e);
+          return;
+        }
+
         if (isDraggingInHandle) {
+          const t = getTimeFromMouseEvent(e);
           inPoint = Math.max(0, Math.min(t, outPoint - 0.1));
           video.currentTime = inPoint;
-        } else if (isDraggingOutHandle) {
+          updateTrimUI();
+          return;
+        }
+
+        if (isDraggingOutHandle) {
+          const t = getTimeFromMouseEvent(e);
           outPoint = Math.max(inPoint + 0.1, Math.min(t, video.duration));
           video.currentTime = outPoint;
+          updateTrimUI();
+          return;
         }
-        updateTrimUI();
+      });
+
+      window.addEventListener('mouseup', (e) => {
+        if (isTimelineDragging) {
+          isTimelineDragging = false;
+          playhead.classList.remove('dragging');
+          timelineTooltip.style.display = 'none';
+          seekToMouseEvent(e);
+          if (wasPlayingBeforeDrag) {
+            video.play();
+          }
+        }
+        isDraggingInHandle = false;
+        isDraggingOutHandle = false;
       });
 
       // Loop Mode Toggle
@@ -1386,9 +1505,26 @@
         updateTransform();
       });
 
-      btnResetZoom.addEventListener('click', resetZoom);
+      if (btnResetZoom) btnResetZoom.addEventListener('click', resetZoom);
+      if (btnZoomIn) {
+        btnZoomIn.addEventListener('click', () => {
+          zoomLevel = Math.min(5.0, zoomLevel * 1.25);
+          updateTransform();
+        });
+      }
+      if (btnZoomOut) {
+        btnZoomOut.addEventListener('click', () => {
+          zoomLevel = Math.max(1.0, zoomLevel / 1.25);
+          if (zoomLevel <= 1.05) {
+            panX = 0;
+            panY = 0;
+            zoomLevel = 1.0;
+          }
+          updateTransform();
+        });
+      }
 
-      // Snapshot to Clipboard (Ctrl+C / 📷)
+      // Snapshot to Source Folder & Clipboard (Ctrl+C / 📷)
       async function captureSnapshot() {
         if (!video.videoWidth) return;
         const canvas = document.createElement('canvas');
@@ -1399,32 +1535,78 @@
 
         canvas.toBlob(async (blob) => {
           if (!blob) return;
+          const curSec = video.currentTime;
+          const timeStr = formatTime(curSec).replace(/:/g, '-').replace('.', '_');
+          const snapName = `${fileNameBase}_snapshot_${timeStr}.png`;
+
+          // 1. Всегда сохраняем в папку рядом с исходным файлом видео
+          saveExportedFile(blob, snapName, 'Снапшот кадра');
+
+          // 2. Дополнительно копируем в буфер обмена для мгновенной вставки
           try {
             await navigator.clipboard.write([
               new ClipboardItem({ 'image/png': blob })
             ]);
-            showToast('📷 Кадр скопирован в буфер обмена!');
+            showToast(`📷 Снапшот сохранён рядом с видео (+ скопирован в буфер)!`);
           } catch (e) {
-            // Fallback download if clipboard item write fails in sandbox
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `${fileNameBase}_frame_${Math.round(video.currentTime * 1000)}.png`;
-            a.click();
-            showToast('📷 Кадр сохранён в файл PNG!');
+            // Если буфер недоступен, тост от saveExportedFile уже показан
           }
         }, 'image/png');
       }
 
       btnSnapshot.addEventListener('click', captureSnapshot);
 
-      // Fullscreen
-      function toggleFullscreen() {
-        if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen().catch(() => {});
+      // Fullscreen (Host IPC + Standard Fullscreen + Immersive In-Window Mode)
+      let isFullscreen = false;
+
+      function updateFullscreenUI() {
+        if (isFullscreen) {
+          document.body.classList.add('in-window-fullscreen');
+          btnFullscreen.innerHTML = `
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 14h6v6m10-10h-6V4m0 6l7-7M10 14l-7 7"/>
+            </svg>
+          `;
+          btnFullscreen.title = 'Выйти из полноэкранного режима (F / Esc)';
         } else {
-          document.exitFullscreen().catch(() => {});
+          document.body.classList.remove('in-window-fullscreen');
+          btnFullscreen.innerHTML = `
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+            </svg>
+          `;
+          btnFullscreen.title = 'Полноэкранный режим (F)';
         }
       }
+
+      function toggleFullscreen() {
+        isFullscreen = !isFullscreen;
+
+        // 1. Отправляем хосту PeekIt запрос на переключение полноэкранного режима
+        sendToHost('PEEKIT_TOGGLE_FULLSCREEN');
+        sendToHost('PEEKIT_FULLSCREEN', { enabled: isFullscreen });
+
+        // 2. Пробуем стандартный browser Fullscreen API
+        try {
+          if (isFullscreen) {
+            if (document.documentElement.requestFullscreen) {
+              document.documentElement.requestFullscreen().catch(() => {});
+            }
+          } else {
+            if (document.fullscreenElement && document.exitFullscreen) {
+              document.exitFullscreen().catch(() => {});
+            }
+          }
+        } catch (e) {}
+
+        // 3. Переключаем иммерсивный вид плагина
+        updateFullscreenUI();
+      }
+
+      document.addEventListener('fullscreenchange', () => {
+        isFullscreen = !!document.fullscreenElement;
+        updateFullscreenUI();
+      });
 
       btnFullscreen.addEventListener('click', toggleFullscreen);
 
@@ -1433,9 +1615,23 @@
 
       function openExportDialog() {
         video.pause();
+        if (!trimMode) {
+          setTrimMode(true);
+        }
         lblExportStart.textContent = formatTime(inPoint);
         lblExportEnd.textContent = formatTime(outPoint);
-        lblExportDur.textContent = (outPoint - inPoint).toFixed(2) + ' сек';
+        const dur = Math.max(0, outPoint - inPoint);
+        lblExportDur.textContent = dur.toFixed(2) + ' сек';
+
+        if (lblExportFolder) {
+          if (originalFileDir) {
+            lblExportFolder.textContent = originalFileDir;
+            lblExportFolder.title = originalFileDir;
+          } else {
+            lblExportFolder.textContent = 'Рядом с исходным файлом';
+            lblExportFolder.title = 'Рядом с исходным файлом';
+          }
+        }
 
         exportBtnGrid.style.display = 'grid';
         exportProgressWrap.style.display = 'none';
@@ -1469,13 +1665,9 @@
 
           recorder.onstop = () => {
             const blob = new Blob(chunks, { type: mime });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `${fileNameBase}_clip_${Math.round(inPoint)}s-${Math.round(outPoint)}s.webm`;
-            a.click();
-
+            const clipName = `${fileNameBase}_clip_${Math.round(inPoint)}s-${Math.round(outPoint)}s.webm`;
+            saveExportedFile(blob, clipName, 'Видеоклип');
             exportModal.style.display = 'none';
-            showToast('🎬 Клип успешно сохранён!');
           };
 
           video.currentTime = inPoint;
@@ -1556,10 +1748,9 @@
           const gifBlob = encodeGifFrames(frames, gw, gh, Math.round(interval * 100));
           progressFill.style.width = '100%';
 
-          const a = document.createElement('a');
-          a.href = URL.createObjectURL(gifBlob);
-          a.download = `${fileNameBase}_animation.gif`;
-          a.click();
+          const gifName = `${fileNameBase}_animation.gif`;
+          saveExportedFile(gifBlob, gifName, 'GIF-анимация');
+          exportModal.style.display = 'none';
 
           exportModal.style.display = 'none';
           showToast('🎞️ GIF анимация успешно сохранена!');
@@ -1761,6 +1952,23 @@
           case 'KeyF':
             toggleFullscreen();
             break;
+          case 'Escape':
+            if (isFullscreen) {
+              toggleFullscreen();
+            }
+            break;
+          case 'Equal':
+          case 'NumpadAdd':
+            if (btnZoomIn) btnZoomIn.click();
+            break;
+          case 'Minus':
+          case 'NumpadSubtract':
+            if (btnZoomOut) btnZoomOut.click();
+            break;
+          case 'Digit0':
+          case 'Numpad0':
+            resetZoom();
+            break;
           case 'BracketLeft': // [
             selSpeed.selectedIndex = Math.max(0, selSpeed.selectedIndex - 1);
             selSpeed.dispatchEvent(new Event('change'));
@@ -1794,6 +2002,13 @@
 
       function handleInit(payload) {
         if (!payload) return;
+        if (payload.filePath) {
+          originalFilePath = payload.filePath;
+          const sep = Math.max(originalFilePath.lastIndexOf('\\'), originalFilePath.lastIndexOf('/'));
+          if (sep !== -1) {
+            originalFileDir = originalFilePath.substring(0, sep);
+          }
+        }
         if (payload.fileName) {
           videoTitle.textContent = payload.fileName;
           fileNameBase = payload.fileName.replace(/\.[^/.]+$/, '');
