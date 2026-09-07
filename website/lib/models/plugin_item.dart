@@ -41,40 +41,31 @@ class PluginItem {
     final name = json['name'] as String? ?? '';
     final version = json['version'] as String? ?? '1.0.0';
 
-    // Infer category and packaging details based on ID
-    String cat = 'Other';
-    String size = '100 KB';
-    String sha = '';
-
-    if (id.contains('3d')) {
-      cat = '3D';
-      size = '368.8 KB';
-      sha = 'f7434f82fa3a491ae79c4ba59cf72db4ba960fc060d4b99859f9c7e09ea9da6f';
-    } else if (id.contains('docx')) {
-      cat = 'Documents';
-      size = '100.0 KB';
-      sha = '93f64d4970d82380590a597a731efcceb7bf1b20f4c3a372e90f230aa706603a';
-    } else if (id.contains('font')) {
-      cat = 'Fonts';
-      size = '101.5 KB';
-      sha = 'c4e8be7b35f24b04c818b2cba1b22e11e0e84c98a3c5a6109f2913fa394a1793';
-    } else if (id.contains('sheet')) {
-      cat = 'Spreadsheets';
-      size = '659.8 KB';
-      sha = '9aba447f77373012929fa59dcba9b87a875a5c6d3bc01bdf2555627f12e873ad';
-    } else if (id.contains('slides')) {
-      cat = 'Presentations';
-      size = '67.5 KB';
-      sha = 'a2d31c039f2e5a397858c49e1be281aa00a12e2c2fbf5dfd07ca2f458ca64147';
-    } else if (id.contains('ai')) {
-      cat = 'Graphics';
-      size = '523.3 KB';
-      sha = 'f23df7a681704a437786d417f6355c8c8cce1e3be114bb6da6e5a731ad99c69f';
-    } else if (id.contains('psd')) {
-      cat = 'Graphics';
-      size = '100.2 KB';
-      sha = '313e8c34005145cd8982732a67ab89cab2f81c370f0665deb8d36c07d2073786';
+    // Read category from JSON, or infer based on ID if absent
+    String cat = (json['category'] as String?)?.trim() ?? '';
+    if (cat.isEmpty) {
+      if (id.contains('3d')) {
+        cat = '3D';
+      } else if (id.contains('docx') || id.contains('ebook')) {
+        cat = 'Documents';
+      } else if (id.contains('font')) {
+        cat = 'Fonts';
+      } else if (id.contains('sheet')) {
+        cat = 'Spreadsheets';
+      } else if (id.contains('slides')) {
+        cat = 'Presentations';
+      } else if (id.contains('ai') || id.contains('psd') || id.contains('eps') || id.contains('dds')) {
+        cat = 'Graphics';
+      } else if (id.contains('apk') || id.contains('sqlite')) {
+        cat = 'Utilities';
+      } else {
+        cat = 'Utilities';
+      }
     }
+
+    final rawSize = json['size_kb'];
+    final size = rawSize != null ? '$rawSize KB' : '100 KB';
+    final sha = (json['sha256'] as String?) ?? '';
 
     return PluginItem(
       id: id,
@@ -91,8 +82,8 @@ class PluginItem {
       homepage: json['homepage'] as String? ??
           'https://github.com/kobaltgit/peekit-plugins',
       category: cat,
-      sizeKb: json['size_kb'] != null ? '${json['size_kb']} KB' : size,
-      sha256: (json['sha256'] as String?) ?? sha,
+      sizeKb: size,
+      sha256: sha,
     );
   }
 }

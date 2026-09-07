@@ -9,6 +9,7 @@
   ],
   "entry": "index.html",
   "min_peekit_version": "1.0.0",
+  "category": "Graphics",
   "icon": "image",
   "homepage": "https://github.com/kobaltgit/peekit-plugins"
 }

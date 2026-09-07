@@ -8,3 +8,4 @@ build/
 .dart_tool/
 website/build/
 website/.dart_tool/
+scratch/

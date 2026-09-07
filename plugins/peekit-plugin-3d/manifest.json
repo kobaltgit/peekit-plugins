@@ -7,5 +7,6 @@
   "extensions": [".stl", ".obj", ".gltf", ".glb", ".ply"],
   "entry": "index.html",
   "minPeekitVersion": "1.0.0",
+  "category": "3D",
   "permissions": ["read_file"]
 }

@@ -1,4 +1,4 @@
-﻿const fs = require('fs');
+const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const vm = require('vm');
@@ -126,6 +126,7 @@ async function packSinglePlugin(pluginDirPath) {
     version: manifest.version,
     author: manifest.author || 'Community',
     description: manifest.description || '',
+    category: manifest.category || 'Utilities',
     extensions: manifest.extensions,
     entry: manifest.entry || 'index.html',
     icon: manifest.icon || 'file',
@@ -166,6 +167,7 @@ function updateRegistryFile(results) {
       version: res.version,
       author: res.author,
       description: res.description,
+      category: res.category || 'Utilities',
       extensions: res.extensions,
       entry: res.entry,
       min_peekit_version: '1.0.0',

@@ -7,6 +7,7 @@
   "extensions": [".docx", ".doc"],
   "entry": "index.html",
   "default_view": "window",
+  "category": "Documents",
   "icon": "file-text",
   "permissions": []
 }

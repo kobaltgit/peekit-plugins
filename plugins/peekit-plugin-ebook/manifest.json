@@ -11,6 +11,6 @@
   "entry": "index.html",
   "min_peekit_version": "1.0.0",
   "icon": "book-open",
-  "category": "Office",
+  "category": "Documents",
   "homepage": "https://github.com/kobaltgit/peekit-plugins"
 }

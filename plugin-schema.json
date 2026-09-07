@@ -95,6 +95,10 @@
         }
       },
       "description": "Рекомендуемые начальные размеры окна"
+    },
+    "category": {
+      "type": "string",
+      "description": "Категория плагина в каталоге (например: 3D, Documents, Spreadsheets, Fonts, Presentations, Graphics, Utilities)"
     }
   },
   "additionalProperties": false

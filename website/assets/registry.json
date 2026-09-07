@@ -1,7 +1,7 @@
 {
   "$schema": "./plugin-schema.json",
   "version": 1,
-  "updated_at": "2026-09-06T21:30:13.242Z",
+  "updated_at": "2026-09-07T00:50:27.694Z",
   "plugins": [
     {
       "id": "com.peekit.3d-viewer",
@@ -9,6 +9,7 @@
       "version": "1.0.0",
       "author": "Kobalt",
       "description": "Interactive 3D model previewer for STL, OBJ, GLTF, GLB, and PLY files with WebGL rendering, orbit controls, turntable and wireframe modes",
+      "category": "3D",
       "extensions": [
         ".stl",
         ".obj",
@@ -21,7 +22,7 @@
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.3d-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.3d-viewer-1.0.0.pkit",
       "size_kb": "368.8",
-      "sha256": "8b9d72896348c2db47512ca12fdfa45d15b604a3c501261be58688010fb98bbd",
+      "sha256": "b231d3b81221a616334d333609316bb14254f1c34358e0c9040465b3a42cef4d",
       "icon": "file",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     },
@@ -31,6 +32,7 @@
       "version": "1.0.0",
       "author": "PeekIt Team",
       "description": "Fast offline viewer for Word documents (DOCX, DOC) with realistic page layout, styles, and tables",
+      "category": "Documents",
       "extensions": [
         ".docx",
         ".doc"
@@ -40,7 +42,7 @@
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.docx-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.docx-viewer-1.0.0.pkit",
       "size_kb": "100.0",
-      "sha256": "405b0f732889493925c88f0ea0569382f5fa213a1b9dac1ed7fb8d2485ea1f2c",
+      "sha256": "6f7730fada632ee160ccda524a86b8aff6449dae5b7497115b96b69d52689636",
       "icon": "file-text",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     },
@@ -50,6 +52,7 @@
       "version": "1.0.0",
       "author": "Kobalt",
       "description": "Interactive typography and glyph previewer for TTF, OTF, WOFF, and WOFF2 files",
+      "category": "Fonts",
       "extensions": [
         ".ttf",
         ".otf",
@@ -61,7 +64,7 @@
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.font-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.font-viewer-1.0.0.pkit",
       "size_kb": "101.5",
-      "sha256": "4df7e2c11316d27fb3823392b8b95c6448ddeb19f6b8ababe1c6c60b2887b264",
+      "sha256": "f9af0b7953f07cef3a4de57b4f09ca8ef7b1e9239635d37f14cd31e49c415d20",
       "icon": "file",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     },
@@ -71,6 +74,7 @@
       "version": "1.0.0",
       "author": "PeekIt Team",
       "description": "Fast offline viewer for Excel spreadsheets (XLSX, XLS), CSV, TSV and OpenDocument sheets",
+      "category": "Spreadsheets",
       "extensions": [
         ".xlsx",
         ".xls",
@@ -83,7 +87,7 @@
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.sheet-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.sheet-viewer-1.0.0.pkit",
       "size_kb": "659.8",
-      "sha256": "a53fecada8984aeb2550ada44417ddd51edd616201a1ffce85610d34363ffd06",
+      "sha256": "a9cea260919713014c71f01fb9ae3ceff5278682ca90e3fdbf9303341f14b648",
       "icon": "table",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     },
@@ -93,6 +97,7 @@
       "version": "1.0.0",
       "author": "PeekIt Team",
       "description": "Fast offline viewer for PowerPoint presentations (PPTX, PPT) with slide thumbnails, keyboard navigation, and zoom",
+      "category": "Presentations",
       "extensions": [
         ".pptx",
         ".ppt"
@@ -102,7 +107,7 @@
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.slides-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.slides-viewer-1.0.0.pkit",
       "size_kb": "67.5",
-      "sha256": "b6902d21efc174fca09b0520738c3d15e21c0af2a40cae6369b80adad2574f6f",
+      "sha256": "f5521fed6faf37929557c6d549ee060b5094b0f979f572392f34fe702d626831",
       "icon": "tv",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     },
@@ -112,6 +117,7 @@
       "version": "1.0.0",
       "author": "Kobalt",
       "description": "High-fidelity vector previewer for Adobe Illustrator (.ai) files with multi-artboard navigation, zoom controls, and metadata inspection",
+      "category": "Graphics",
       "extensions": [
         ".ai"
       ],
@@ -120,7 +126,7 @@
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.ai-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.ai-viewer-1.0.0.pkit",
       "size_kb": "523.3",
-      "sha256": "c0cca3051116e972e7903da012ebb1df4249c581877caf94512ec57695f7b2e1",
+      "sha256": "f71627507cf1d612e59753f3c9038ffad1e78a2d68853cbd4a49a80b34932825",
       "icon": "image",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     },
@@ -130,6 +136,7 @@
       "version": "1.0.0",
       "author": "Kobalt",
       "description": "High-fidelity previewer for Adobe Photoshop (.psd) files with layer inspection, metadata display, and zoom/pan controls",
+      "category": "Graphics",
       "extensions": [
         ".psd"
       ],
@@ -148,6 +155,7 @@
       "version": "1.0.0",
       "author": "Kobalt",
       "description": "High-fidelity previewer for Encapsulated PostScript (.eps) files with embedded TIFF extraction, vector PostScript rendering, and pan/zoom controls",
+      "category": "Graphics",
       "extensions": [
         ".eps"
       ],
@@ -166,6 +174,7 @@
       "version": "1.0.0",
       "author": "Kobalt",
       "description": "Fast and elegant offline reader for EPUB and FB2 e-books with chapter navigation, typography settings, and dark/sepia/light themes",
+      "category": "Documents",
       "extensions": [
         ".epub",
         ".fb2"
@@ -175,7 +184,7 @@
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.ebook-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.ebook-viewer-1.0.0.pkit",
       "size_kb": "23.6",
-      "sha256": "7631721a023ea8cfd986f52f2f098dc653635dfc46a20ad0464ebf02c4ec8765",
+      "sha256": "798fec412b3fb002fe8fcb609fc4cbafbc3fd45d5aebbb969efe8d67cc06d322",
       "icon": "book-open",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     },
@@ -185,6 +194,7 @@
       "version": "1.0.0",
       "author": "Kobalt",
       "description": "Fast offline previewer for Android packages (APK, XAPK) with icon extraction, SDK compatibility, permissions analysis, and package metrics",
+      "category": "Utilities",
       "extensions": [
         ".apk",
         ".xapk"
@@ -194,7 +204,7 @@
       "download_url": "https://kobaltgit.github.io/peekit-plugins/plugins/com.peekit.apk-viewer-1.0.0.pkit",
       "github_release_url": "https://github.com/kobaltgit/peekit-plugins/releases/download/v1.0.0/com.peekit.apk-viewer-1.0.0.pkit",
       "size_kb": "71.8",
-      "sha256": "5edc460ed4d3a106a163f2840ade03b1c2682a44572ef6c4db41c80ceaed3a08",
+      "sha256": "ec011bcc3ae619a96ac205b6a3e8e11083098f4040dca8b8a3845321785068ac",
       "icon": "icon.svg",
       "homepage": "https://github.com/kobaltgit/peekit-plugins"
     },
@@ -204,6 +214,7 @@
       "version": "1.0.0",
       "author": "Kobalt",
       "description": "Fast offline previewer for DirectDraw Surface (.dds) textures with DXT1/3/5, BC4/5, uncompressed formats, mipmap explorer, and channel inspector",
+      "category": "Graphics",
       "extensions": [
         ".dds"
       ],
@@ -222,6 +233,7 @@
       "version": "1.0.0",
       "author": "Kobalt",
       "description": "Fast offline database explorer for SQLite (.db, .sqlite, .sqlite3) with table browser, data pagination, search, schema inspector, and SQL query sandbox",
+      "category": "Utilities",
       "extensions": [
         ".db",
         ".sqlite",
