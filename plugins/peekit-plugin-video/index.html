@@ -1032,35 +1032,79 @@
       let originalFileDir = '';
       let autoHideTimer = null;
 
-      // Helper to save file to source video folder
-      function saveExportedFile(blob, defaultFileName, formatTitle) {
+      // Helper to save file with native Save Picker dialog or clear download notification
+      async function saveExportedFile(blob, defaultFileName, formatTitle) {
+        // 1. Попытка через File System Access API (открывает системный диалог проводника "Сохранить как...",
+        // где пользователь сразу видит папку и может сохранить файл рядом с видео)
+        if (window.showSaveFilePicker) {
+          try {
+            const extMatch = defaultFileName.match(/\.[^.]+$/);
+            const ext = extMatch ? extMatch[0] : '';
+            const mime = blob.type || 'application/octet-stream';
+            const handle = await window.showSaveFilePicker({
+              suggestedName: defaultFileName,
+              types: [{
+                description: formatTitle,
+                accept: { [mime]: [ext] }
+              }]
+            });
+            const writable = await handle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            showToast(`✅ ${formatTitle} успешно сохранён!`);
+            return true;
+          } catch (e) {
+            if (e.name === 'AbortError') {
+              // Пользователь сам нажал "Отмена" в проводнике
+              return false;
+            }
+            console.warn('[VideoPlayer] showSaveFilePicker fallback:', e);
+          }
+        }
+
+        // 2. Отправка команды хосту PeekIt
         const destPath = originalFileDir
           ? (originalFileDir + (originalFileDir.includes('/') ? '/' : '\\') + defaultFileName)
           : defaultFileName;
 
-        // Try reading base64 and requesting Host IPC save to destination path
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const res = reader.result ? String(reader.result) : '';
-          const base64Data = res.includes(',') ? res.split(',')[1] : res;
-          sendToHost('PEEKIT_SAVE_FILE', {
-            path: destPath,
-            filePath: destPath,
-            dir: originalFileDir,
-            fileName: defaultFileName,
-            data: base64Data,
-            mimeType: blob.type
-          });
-        };
-        reader.readAsDataURL(blob);
+        try {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const res = reader.result ? String(reader.result) : '';
+            const base64Data = res.includes(',') ? res.split(',')[1] : res;
+            sendToHost('PEEKIT_SAVE_FILE', {
+              path: destPath,
+              filePath: destPath,
+              dir: originalFileDir,
+              fileName: defaultFileName,
+              data: base64Data,
+              mimeType: blob.type
+            });
+          };
+          reader.readAsDataURL(blob);
+        } catch (e) {}
 
-        // Standard browser download trigger (respects native WebView2 download routing)
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = defaultFileName;
-        a.click();
+        // 3. Скачивание через браузер (файл попадает в системную папку Загрузки/Downloads)
+        try {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          a.download = defaultFileName;
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }, 2000);
 
-        showToast(`💾 ${formatTitle} сохранён в папку с видео!`);
+          showToast(`💾 Сохранено в "Загрузки": ${defaultFileName}`);
+          return true;
+        } catch (err) {
+          console.error('[VideoPlayer] Download error:', err);
+          showToast(`❌ Ошибка сохранения: ${err.message}`);
+          return false;
+        }
       }
 
       // Formatting helper
@@ -1228,9 +1272,13 @@
 
         // A-B Loop Range Check
         if (trimMode && outPoint > inPoint) {
-          if (cur >= outPoint) {
+          if (cur >= outPoint - 0.05) {
             if (loopMode === 'range' || loopMode === 'all') {
               video.currentTime = inPoint;
+              if (video.paused) {
+                const p = video.play();
+                if (p !== undefined) p.catch(() => {});
+              }
             } else {
               video.pause();
               video.currentTime = outPoint;
@@ -1435,14 +1483,33 @@
         isDraggingOutHandle = false;
       });
 
+      // Native Loop & Ended Handlers
+      video.addEventListener('ended', () => {
+        if (loopMode === 'all' || loopMode === 'range') {
+          video.currentTime = trimMode ? inPoint : 0;
+          const p = video.play();
+          if (p !== undefined) p.catch(() => {});
+        } else {
+          svgPlay.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+        }
+      });
+
       // Loop Mode Toggle
       btnLoop.addEventListener('click', () => {
         if (loopMode === 'none') {
           loopMode = trimMode ? 'range' : 'all';
+          video.loop = !trimMode;
           btnLoop.classList.add(trimMode ? 'trim-active' : 'active');
-          showToast(trimMode ? '🔁 Зацикливание фрагмента вкл' : '🔁 Повтор всего видео вкл');
+          showToast(trimMode ? '🔁 Зацикливание фрагмента [In - Out] вкл' : '🔁 Повтор всего видео вкл');
+        } else if (loopMode === 'all' && trimMode) {
+          loopMode = 'range';
+          video.loop = false;
+          btnLoop.classList.remove('active');
+          btnLoop.classList.add('trim-active');
+          showToast('🔁 Зацикливание фрагмента [In - Out] вкл');
         } else {
           loopMode = 'none';
+          video.loop = false;
           btnLoop.classList.remove('active', 'trim-active');
           showToast('🔁 Зацикливание выкл');
         }
@@ -1539,17 +1606,19 @@
           const timeStr = formatTime(curSec).replace(/:/g, '-').replace('.', '_');
           const snapName = `${fileNameBase}_snapshot_${timeStr}.png`;
 
-          // 1. Всегда сохраняем в папку рядом с исходным файлом видео
-          saveExportedFile(blob, snapName, 'Снапшот кадра');
-
-          // 2. Дополнительно копируем в буфер обмена для мгновенной вставки
+          // 1. Копируем в буфер обмена для мгновенной вставки
+          let clipboardOk = false;
           try {
             await navigator.clipboard.write([
               new ClipboardItem({ 'image/png': blob })
             ]);
-            showToast(`📷 Снапшот сохранён рядом с видео (+ скопирован в буфер)!`);
-          } catch (e) {
-            // Если буфер недоступен, тост от saveExportedFile уже показан
+            clipboardOk = true;
+          } catch (e) {}
+
+          // 2. Сохраняем в файл через системный диалог проводника "Сохранить как..."
+          const saved = await saveExportedFile(blob, snapName, 'Снапшот кадра');
+          if (!saved && clipboardOk) {
+            showToast('📷 Кадр скопирован в буфер обмена!');
           }
         }, 'image/png');
       }
@@ -1579,34 +1648,67 @@
         }
       }
 
-      function toggleFullscreen() {
-        isFullscreen = !isFullscreen;
-
-        // 1. Отправляем хосту PeekIt запрос на переключение полноэкранного режима
+      async function toggleFullscreen() {
         sendToHost('PEEKIT_TOGGLE_FULLSCREEN');
-        sendToHost('PEEKIT_FULLSCREEN', { enabled: isFullscreen });
+        sendToHost('PEEKIT_ACTION', { action: 'toggle_fullscreen' });
+        sendToHost('PEEKIT_ACTION', { action: 'maximize' });
 
-        // 2. Пробуем стандартный browser Fullscreen API
-        try {
-          if (isFullscreen) {
-            if (document.documentElement.requestFullscreen) {
-              document.documentElement.requestFullscreen().catch(() => {});
-            }
+        const isCurrentlyFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+
+        if (!isCurrentlyFs) {
+          let fsSuccess = false;
+          // 1. Пробуем нативный video.requestFullscreen
+          if (video.requestFullscreen) {
+            try {
+              await video.requestFullscreen();
+              fsSuccess = true;
+            } catch (err) {}
+          } else if (video.webkitRequestFullscreen) {
+            try {
+              video.webkitRequestFullscreen();
+              fsSuccess = true;
+            } catch (err) {}
+          }
+
+          // 2. Пробуем document requestFullscreen
+          if (!fsSuccess && document.documentElement.requestFullscreen) {
+            try {
+              await document.documentElement.requestFullscreen();
+              fsSuccess = true;
+            } catch (err) {}
+          }
+
+          if (fsSuccess) {
+            isFullscreen = true;
           } else {
-            if (document.fullscreenElement && document.exitFullscreen) {
-              document.exitFullscreen().catch(() => {});
+            // Если движок заблокировал fullscreen в iframe
+            isFullscreen = !isFullscreen;
+            if (isFullscreen) {
+              showToast('💡 Для полного экрана разверните окно PeekIt (кнопка 🗖)');
             }
           }
-        } catch (e) {}
+        } else {
+          try {
+            if (document.exitFullscreen) {
+              await document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+              await document.webkitExitFullscreen();
+            }
+          } catch (err) {}
+          isFullscreen = false;
+        }
 
-        // 3. Переключаем иммерсивный вид плагина
         updateFullscreenUI();
       }
 
-      document.addEventListener('fullscreenchange', () => {
-        isFullscreen = !!document.fullscreenElement;
+      const onFullscreenChanged = () => {
+        isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
         updateFullscreenUI();
-      });
+      };
+      document.addEventListener('fullscreenchange', onFullscreenChanged);
+      document.addEventListener('webkitfullscreenchange', onFullscreenChanged);
+      video.addEventListener('fullscreenchange', onFullscreenChanged);
+      video.addEventListener('webkitfullscreenchange', onFullscreenChanged);
 
       btnFullscreen.addEventListener('click', toggleFullscreen);
 
