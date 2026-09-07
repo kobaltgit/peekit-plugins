@@ -1598,7 +1598,7 @@ canvas#profileCanvas {
           el.valWaypoints.textContent = waypoints.length;
           el.chipWaypoints.style.display = 'inline-flex';
 
-          waypointsLayer = L.layerGroup();
+          waypointsLayer = L.featureGroup();
           const wpIcon = L.divIcon({
             className: 'map-marker-pin marker-waypoint',
             html: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>',
@@ -1772,13 +1772,21 @@ canvas#profileCanvas {
 
         // Fit map bounds to encompass all active layers
         map.invalidateSize();
-        const boundsGroup = [];
-        if (trackLayer) boundsGroup.push(trackLayer);
-        if (waypointsLayer && waypoints.length > 0) boundsGroup.push(waypointsLayer);
+        let bounds = null;
+        if (trackLayer) {
+          bounds = trackLayer.getBounds();
+        }
+        if (waypointsLayer && waypoints.length > 0) {
+          const wpBounds = waypointsLayer.getBounds();
+          if (bounds && bounds.isValid()) {
+            bounds.extend(wpBounds);
+          } else {
+            bounds = wpBounds;
+          }
+        }
 
-        if (boundsGroup.length > 0) {
-          const combined = L.featureGroup(boundsGroup);
-          map.fitBounds(combined.getBounds(), {
+        if (bounds && bounds.isValid()) {
+          map.fitBounds(bounds, {
             padding: [50, 50],
             maxZoom: 16
           });
@@ -1899,12 +1907,20 @@ canvas#profileCanvas {
       el.btnLayerSat?.addEventListener('click', () => setTileLayer('sat'));
 
       el.btnFitBounds?.addEventListener('click', () => {
-        const boundsGroup = [];
-        if (trackLayer) boundsGroup.push(trackLayer);
-        if (waypointsLayer && trackWaypoints.length > 0) boundsGroup.push(waypointsLayer);
-        if (boundsGroup.length > 0 && map) {
-          const combined = L.featureGroup(boundsGroup);
-          map.fitBounds(combined.getBounds(), { padding: [50, 50] });
+        let bounds = null;
+        if (trackLayer) {
+          bounds = trackLayer.getBounds();
+        }
+        if (waypointsLayer && trackWaypoints.length > 0) {
+          const wpBounds = waypointsLayer.getBounds();
+          if (bounds && bounds.isValid()) {
+            bounds.extend(wpBounds);
+          } else {
+            bounds = wpBounds;
+          }
+        }
+        if (bounds && bounds.isValid() && map) {
+          map.fitBounds(bounds, { padding: [50, 50] });
         }
       });
 
