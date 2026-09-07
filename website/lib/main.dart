@@ -3,10 +3,9 @@ import 'theme.dart';
 import 'widgets/catalog_section.dart';
 import 'widgets/dev_guide_section.dart';
 import 'widgets/faq_section.dart';
-import 'widgets/footer.dart';
 import 'widgets/hero_section.dart';
 import 'widgets/interactive_demo.dart';
-import 'widgets/navbar.dart';
+import 'package:kobalt_ui/kobalt_ui.dart';
 
 void main() {
   runApp(const PeekItPluginsApp());
@@ -85,30 +84,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _onNavigate(String section) {
-    switch (section) {
-      case 'hero':
-        _scrollController.animateTo(
-          0,
-          duration: const Duration(milliseconds: 600),
-          curve: Curves.easeInOutCubic,
-        );
-        break;
-      case 'catalog':
-        _scrollToKey(_catalogKey);
-        break;
-      case 'demo':
-        _scrollToKey(_demoKey);
-        break;
-      case 'dev':
-        _scrollToKey(_devKey);
-        break;
-      case 'faq':
-        _scrollToKey(_faqKey);
-        break;
-    }
-  }
-
   @override
   void dispose() {
     _scrollController.dispose();
@@ -156,56 +131,100 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
-          // Main scrollable content
-          CustomScrollView(
-            controller: _scrollController,
-            slivers: [
-              // Sticky Navbar
-              SliverToBoxAdapter(
-                child: Navbar(
-                  locale: widget.locale,
-                  isDark: widget.isDark,
-                  onToggleTheme: widget.onToggleTheme,
-                  onToggleLocale: widget.onToggleLocale,
-                  onNavigate: _onNavigate,
+          // Main scrollable content with sticky KobaltNavBar
+          Column(
+            children: [
+              KobaltNavBar(
+                project: KobaltProjectId.peekItPlugins,
+                version: 'v1.0.0',
+                isRussian: widget.locale == 'ru',
+                onLanguageToggle: widget.onToggleLocale,
+                accentColor: AppTheme.primary,
+                navLinks: [
+                  KobaltNavLink(
+                    label: widget.locale == 'ru' ? 'Каталог' : 'Catalog',
+                    onTap: () => _scrollToKey(_catalogKey),
+                  ),
+                  KobaltNavLink(
+                    label: widget.locale == 'ru' ? 'Демо' : 'Demo',
+                    onTap: () => _scrollToKey(_demoKey),
+                  ),
+                  KobaltNavLink(
+                    label: widget.locale == 'ru' ? 'Разработка' : 'Dev Guide',
+                    onTap: () => _scrollToKey(_devKey),
+                  ),
+                  KobaltNavLink(
+                    label: widget.locale == 'ru' ? 'FAQ' : 'FAQ',
+                    onTap: () => _scrollToKey(_faqKey),
+                  ),
+                ],
+                onDownloadTap: () => _scrollToKey(_catalogKey),
+                extraActions: [
+                  IconButton(
+                    icon: Icon(
+                      widget.isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                      size: 18,
+                      color: widget.isDark ? AppTheme.darkTextMuted : AppTheme.lightTextMuted,
+                    ),
+                    onPressed: widget.onToggleTheme,
+                    tooltip: widget.locale == 'ru' ? 'Переключить тему' : 'Toggle theme',
+                  ),
+                ],
+              ),
+              Expanded(
+                child: CustomScrollView(
+                  controller: _scrollController,
+                  slivers: [
+                    // Hero Section
+                    SliverToBoxAdapter(
+                      child: HeroSection(
+                        locale: widget.locale,
+                        onExplore: () => _scrollToKey(_catalogKey),
+                      ),
+                    ),
+
+                    // Catalog Section
+                    SliverToBoxAdapter(
+                      key: _catalogKey,
+                      child: CatalogSection(locale: widget.locale),
+                    ),
+
+                    // Interactive Demo Section
+                    SliverToBoxAdapter(
+                      key: _demoKey,
+                      child: InteractiveDemoSection(locale: widget.locale),
+                    ),
+
+                    // Developer Guide Section
+                    SliverToBoxAdapter(
+                      key: _devKey,
+                      child: DevGuideSection(locale: widget.locale),
+                    ),
+
+                    // FAQ Section
+                    SliverToBoxAdapter(
+                      key: _faqKey,
+                      child: FaqSection(locale: widget.locale),
+                    ),
+
+                    // Footer
+                    SliverToBoxAdapter(
+                      child: KobaltFooter(
+                        project: KobaltProjectId.peekItPlugins,
+                        version: 'v1.0.0',
+                        isRussian: widget.locale == 'ru',
+                        accentColor: AppTheme.primary,
+                        onBackToTop: () {
+                          _scrollController.animateTo(
+                            0,
+                            duration: const Duration(milliseconds: 600),
+                            curve: Curves.easeInOutCubic,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-
-              // Hero Section
-              SliverToBoxAdapter(
-                child: HeroSection(
-                  locale: widget.locale,
-                  onExplore: () => _scrollToKey(_catalogKey),
-                ),
-              ),
-
-              // Catalog Section
-              SliverToBoxAdapter(
-                key: _catalogKey,
-                child: CatalogSection(locale: widget.locale),
-              ),
-
-              // Interactive Demo Section
-              SliverToBoxAdapter(
-                key: _demoKey,
-                child: InteractiveDemoSection(locale: widget.locale),
-              ),
-
-              // Developer Guide Section
-              SliverToBoxAdapter(
-                key: _devKey,
-                child: DevGuideSection(locale: widget.locale),
-              ),
-
-              // FAQ Section
-              SliverToBoxAdapter(
-                key: _faqKey,
-                child: FaqSection(locale: widget.locale),
-              ),
-
-              // Footer
-              SliverToBoxAdapter(
-                child: Footer(locale: widget.locale),
               ),
             ],
           ),
