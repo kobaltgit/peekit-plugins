@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="website/web/icons/Icon-192.png" width="96" height="96" alt="PeekIt Plugins Logo" />
+  <img src="icon.png" width="96" height="96" alt="PeekIt Plugins Logo" />
   <h1 align="center">🧩 PeekIt Plugins Ecosystem</h1>
   <strong>Официальный реестр, маркетплейс и SDK плагинов предварительного просмотра для PeekIt</strong><br/>
   <em>Official plugin registry, marketplace, and SDK for PeekIt quick preview</em>
