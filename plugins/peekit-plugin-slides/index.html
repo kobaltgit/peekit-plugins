@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -319,6 +319,7 @@
     </div>
 
     <div class="toolbar-right">
+      <button id="btnToggleLang" class="tool-btn" title="Переключить язык (RU / EN)" style="font-weight:600;font-size:11px;min-width:32px;display:inline-flex;align-items:center;justify-content:center;">RU</button>
       <button id="btnToggleSidebar" class="tool-btn" title="Скрыть/показать миниатюры">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -544,6 +545,89 @@
         }, '*');
       }
 
+      
+      // --- Theme Engine ---
+      function applyTheme(themeData) {
+        let isDark = true;
+        let accent = null;
+
+        if (typeof themeData === 'string') {
+          isDark = themeData.toLowerCase() !== 'light';
+        } else if (typeof themeData === 'boolean') {
+          isDark = themeData;
+        } else if (themeData && typeof themeData === 'object') {
+          if (typeof themeData.isDark === 'boolean') isDark = themeData.isDark;
+          else if (typeof themeData.theme === 'string') isDark = themeData.theme.toLowerCase() !== 'light';
+          else if (typeof themeData.mode === 'string') isDark = themeData.mode.toLowerCase() !== 'light';
+          if (themeData.accentColor) accent = themeData.accentColor;
+          else if (themeData.accent) accent = themeData.accent;
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+          isDark = false;
+        }
+
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        if (accent) {
+          document.documentElement.style.setProperty('--accent', accent);
+        }
+      }
+
+      if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+          applyTheme(e.matches ? 'dark' : 'light');
+        });
+      }
+
+      // --- Localization Engine ---
+      const I18N = {
+        ru: {
+          langBtn: 'RU',
+          langTitle: 'Переключить язык (RU / EN)',
+          prevSlide: 'Предыдущий слайд (←)',
+          nextSlide: 'Следующий слайд (→)',
+          toggleSidebar: 'Скрыть/показать миниатюры',
+          loading: 'Загрузка презентации...',
+          errRead: 'Ошибка чтения файла',
+          errUnsupported: 'Неподдерживаемый формат данных презентации'
+        },
+        en: {
+          langBtn: 'EN',
+          langTitle: 'Toggle Language (RU / EN)',
+          prevSlide: 'Previous slide (←)',
+          nextSlide: 'Next slide (→)',
+          toggleSidebar: 'Toggle thumbnails',
+          loading: 'Loading presentation...',
+          errRead: 'File read error',
+          errUnsupported: 'Unsupported presentation data format'
+        }
+      };
+
+      let currentLocale = localStorage.getItem('peekit_slides_lang') || 'ru';
+
+      function applyLocale(locale) {
+        if (!locale) return;
+        const normalized = String(locale).toLowerCase().startsWith('en') ? 'en' : 'ru';
+        currentLocale = normalized;
+        try { localStorage.setItem('peekit_slides_lang', currentLocale); } catch (_) {}
+
+        const dict = I18N[currentLocale] || I18N.ru;
+        const btnLang = document.getElementById('btnToggleLang');
+        if (btnLang) {
+          btnLang.textContent = dict.langBtn;
+          btnLang.title = dict.langTitle;
+        }
+
+        const btnPrev = document.getElementById('btnPrev');
+        if (btnPrev) btnPrev.title = dict.prevSlide;
+        const btnNext = document.getElementById('btnNext');
+        if (btnNext) btnNext.title = dict.nextSlide;
+        const btnToggleSidebar = document.getElementById('btnToggleSidebar');
+        if (btnToggleSidebar) btnToggleSidebar.title = dict.toggleSidebar;
+
+        if (docTitle && (docTitle.textContent.includes('Загрузка презентации') || docTitle.textContent.includes('Loading presentation'))) {
+          docTitle.textContent = dict.loading;
+        }
+      }
+
       // RPC Protocol with Host
       let readyInterval = null;
 
@@ -557,21 +641,37 @@
               clearInterval(readyInterval);
               readyInterval = null;
             }
-            const { fileName, extension, theme } = msg.payload || {};
+            const payload = msg.payload || {};
+            const { fileName, extension, theme, settings } = payload;
             if (fileName) docTitle.textContent = fileName;
             if (extension) fileBadge.textContent = extension.toUpperCase().replace('.', '');
-            if (theme) {
-              document.documentElement.setAttribute('data-theme', theme);
+
+            const langVal = payload.language || payload.locale || payload.lang || (settings && (settings.language || settings.locale));
+            if (langVal) {
+              applyLocale(langVal);
             }
+
+            const themeVal = theme || (settings && settings.theme) || payload.isDark;
+            applyTheme(themeVal !== undefined ? themeVal : payload);
+
             // Request PPTX data
             window.parent.postMessage({ type: 'PEEKIT_REQUEST_DATA' }, '*');
             break;
           }
 
-          case 'PEEKIT_THEME_CHANGED': {
-            if (msg.payload && msg.payload.theme) {
-              document.documentElement.setAttribute('data-theme', msg.payload.theme);
+          case 'PEEKIT_LANGUAGE_CHANGED':
+          case 'PEEKIT_LOCALE_CHANGED': {
+            const payload = msg.payload || msg;
+            const newLang = payload.language || payload.locale || payload.lang || payload;
+            if (newLang) {
+              applyLocale(newLang);
             }
+            break;
+          }
+
+          case 'PEEKIT_THEME_CHANGED': {
+            const payload = msg.payload || msg;
+            applyTheme(payload.theme !== undefined ? payload.theme : payload);
             break;
           }
 
@@ -605,6 +705,15 @@
       });
 
       // Send READY to Host
+      
+      const btnToggleLang = document.getElementById('btnToggleLang');
+      if (btnToggleLang) {
+        btnToggleLang.addEventListener('click', () => {
+          applyLocale(currentLocale === 'ru' ? 'en' : 'ru');
+        });
+      }
+      applyLocale(currentLocale);
+
       readyInterval = setInterval(() => {
         window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
       }, 100);

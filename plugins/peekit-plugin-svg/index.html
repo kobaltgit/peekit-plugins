@@ -19,6 +19,40 @@
       --accent-glow: rgba(56, 189, 248, 0.25);
       --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --code-bg: #020617;
+      --code-text: #cbd5e1;
+      --panel-hdr-bg: rgba(30, 41, 59, 0.45);
+    }
+
+    [data-theme="light"] {
+      --bg-base: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-surface-2: #f1f5f9;
+      --bg-surface-3: #e2e8f0;
+      --border-color: #e2e8f0;
+      --border-color-light: #cbd5e1;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --accent: #0284c7;
+      --accent-hover: #0369a1;
+      --accent-glow: rgba(2, 132, 199, 0.2);
+      --code-bg: #f8fafc;
+      --code-text: #0f172a;
+      --panel-hdr-bg: #f1f5f9;
+    }
+
+    [data-theme="light"] .bg-checkerboard {
+      background-color: #ffffff;
+      background-image:
+        linear-gradient(45deg, #f1f5f9 25%, transparent 25%),
+        linear-gradient(-45deg, #f1f5f9 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #f1f5f9 75%),
+        linear-gradient(-45deg, transparent 75%, #f1f5f9 75%);
+    }
+
+    [data-theme="light"] #code-editor {
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
     }
 
     * {
@@ -322,7 +356,7 @@
       font-size: 12px;
       font-weight: 600;
       color: var(--text-main);
-      background: rgba(30, 41, 59, 0.45);
+      background: var(--panel-hdr-bg);
     }
 
     .panel-header .actions {
@@ -510,8 +544,8 @@
     #code-editor {
       flex: 1;
       width: 100%;
-      background: #020617;
-      color: #cbd5e1;
+      background: var(--code-bg);
+      color: var(--code-text);
       font-family: var(--font-mono);
       font-size: 11px;
       line-height: 1.45;
@@ -759,7 +793,8 @@
       </button>
 
       <!-- Language Switcher -->
-      <button class="btn" id="btn-toggle-lang" style="padding: 0 4px; font-weight:700; font-family:var(--font-mono); font-size:10px;" title="Сменить язык / Switch Language">RU</button>
+      <button class="btn" id="btnToggleLang" data-alias="btn-toggle-lang" style="padding: 0 4px; font-weight:700; font-family:var(--font-mono); font-size:10px;" title="Сменить язык / Switch Language">RU</button>
+      <button class="btn btn-icon" id="btnThemeToggle" title="Сменить тему оформления" style="padding: 0 4px; font-size:11px;">🌓</button>
     </div>
   </header>
 
@@ -959,8 +994,12 @@
         exportBgCurrent: 'Текущий фон холста',
         cancel: 'Отмена',
         savePng: 'Сохранить PNG',
-        exportSuccess: 'PNG сохранён',
-        parseError: 'Ошибка при чтении SVG файла'
+        exportSuccess: 'PNG успешно сохранён',
+        parseError: 'Ошибка при разборе SVG файла',
+        langTitle: 'Переключить язык (RU / EN)',
+        metaBadgeTitle: 'Размеры · Элементы · Размер',
+        zoomValTitle: 'Масштаб',
+        done: 'Готово!'
       },
       en: {
         zoomOut: 'Zoom Out (-)',
@@ -1010,9 +1049,62 @@
         cancel: 'Cancel',
         savePng: 'Save PNG',
         exportSuccess: 'PNG saved successfully',
-        parseError: 'Error parsing SVG document'
+        parseError: 'Error parsing SVG document',
+        langTitle: 'Toggle Language (RU / EN)',
+        metaBadgeTitle: 'Dimensions · Elements · Size',
+        zoomValTitle: 'Zoom',
+        done: 'Done!',
+        themeTitle: 'Toggle theme'
       }
     };
+
+    
+    // --- Theme Engine ---
+    let currentThemeIsDark = true;
+
+    function applyTheme(themeData) {
+      let isDark = true;
+      let accent = null;
+
+      if (typeof themeData === 'string') {
+        isDark = themeData.toLowerCase() !== 'light';
+      } else if (typeof themeData === 'boolean') {
+        isDark = themeData;
+      } else if (themeData && typeof themeData === 'object') {
+        if (typeof themeData.isDark === 'boolean') isDark = themeData.isDark;
+        else if (typeof themeData.theme === 'string') isDark = themeData.theme.toLowerCase() !== 'light';
+        else if (typeof themeData.mode === 'string') isDark = themeData.mode.toLowerCase() !== 'light';
+        if (themeData.accentColor) accent = themeData.accentColor;
+        else if (themeData.accent) accent = themeData.accent;
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        isDark = false;
+      }
+
+      currentThemeIsDark = isDark;
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      if (accent) {
+        document.documentElement.style.setProperty('--accent', accent);
+      }
+    }
+
+    const btnThemeToggle = document.getElementById('btnThemeToggle');
+    if (btnThemeToggle) {
+      btnThemeToggle.addEventListener('click', () => {
+        applyTheme(!currentThemeIsDark);
+      });
+    }
+
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        applyTheme(e.matches ? 'dark' : 'light');
+      });
+    }
+
+    function applyLocale(locale) {
+      if (!locale) return;
+      const normalized = String(locale).toLowerCase().startsWith('en') ? 'en' : 'ru';
+      setLanguage(normalized);
+    }
 
     let currentLang = localStorage.getItem('peekit_svg_lang') || 'ru';
 
@@ -1020,7 +1112,7 @@
       currentLang = lang;
       localStorage.setItem('peekit_svg_lang', lang);
       document.documentElement.lang = lang;
-      document.getElementById('btn-toggle-lang').textContent = lang.toUpperCase();
+      document.getElementById('btnToggleLang').textContent = lang.toUpperCase();
 
       const dict = I18N[lang] || I18N.ru;
 
@@ -1039,10 +1131,32 @@
         if (dict[key]) el.placeholder = dict[key];
       });
 
+      const btnToggle = document.getElementById('btnToggleLang');
+      if (btnToggle) {
+        btnToggle.textContent = lang.toUpperCase();
+        btnToggle.title = dict.langTitle;
+      }
+      const btnTheme = document.getElementById('btnThemeToggle');
+      if (btnTheme) {
+        btnTheme.title = dict.themeTitle;
+      }
+      const metaBadge = document.getElementById('meta-badge');
+      if (metaBadge) metaBadge.title = dict.metaBadgeTitle;
+      const valSize = document.getElementById('val-size');
+      if (valSize && (valSize.textContent.includes('КБ') || valSize.textContent.includes('KB'))) {
+        valSize.textContent = lang === 'ru' ? '0 КБ' : '0 KB';
+      }
+      const btnZoomVal = document.getElementById('btn-zoom-val');
+      if (btnZoomVal) btnZoomVal.title = dict.zoomValTitle;
+      const toastMsg = document.getElementById('toast-msg');
+      if (toastMsg && (toastMsg.textContent === 'Готово!' || toastMsg.textContent === 'Done!')) {
+        toastMsg.textContent = dict.done;
+      }
+
       updateBadges();
     }
 
-    document.getElementById('btn-toggle-lang').addEventListener('click', () => {
+    document.getElementById('btnToggleLang').addEventListener('click', () => {
       setLanguage(currentLang === 'ru' ? 'en' : 'ru');
     });
 
@@ -1103,18 +1217,34 @@
             clearInterval(readyInterval);
             readyInterval = null;
           }
-          state.filePath = msg.payload?.filePath || null;
-          if (msg.payload?.theme) {
-            document.documentElement.setAttribute('data-theme', msg.payload.theme);
+          const payload = msg.payload || msg;
+          state.filePath = payload.filePath || null;
+
+          const langVal = payload.language || payload.locale || payload.lang || (payload.settings && (payload.settings.language || payload.settings.locale));
+          if (langVal) {
+            applyLocale(langVal);
           }
+
+          const themeVal = payload.theme || (payload.settings && payload.settings.theme) || payload.isDark;
+          applyTheme(themeVal !== undefined ? themeVal : payload);
+
           window.parent.postMessage({ type: 'PEEKIT_REQUEST_DATA' }, '*');
           break;
         }
 
-        case 'PEEKIT_THEME_CHANGED': {
-          if (msg.payload?.theme) {
-            document.documentElement.setAttribute('data-theme', msg.payload.theme);
+        case 'PEEKIT_LANGUAGE_CHANGED':
+        case 'PEEKIT_LOCALE_CHANGED': {
+          const payload = msg.payload || msg;
+          const newLang = payload.language || payload.locale || payload.lang || payload;
+          if (newLang) {
+            applyLocale(newLang);
           }
+          break;
+        }
+
+        case 'PEEKIT_THEME_CHANGED': {
+          const payload = msg.payload || msg;
+          applyTheme(payload.theme !== undefined ? payload.theme : payload);
           break;
         }
 
@@ -1234,7 +1364,8 @@
       const allNodes = svgContent.querySelectorAll('*');
       document.getElementById('val-nodes').textContent = `${allNodes.length} ${dict.elementsCount}`;
       const kb = (state.fileSize / 1024).toFixed(1);
-      document.getElementById('val-size').textContent = `${kb} КБ`;
+      const unitKb = currentLang === 'ru' ? 'КБ' : 'KB';
+      document.getElementById('val-size').textContent = `${kb} ${unitKb}`;
 
       const exportDims = document.getElementById('export-dims-preview');
       if (exportDims) {

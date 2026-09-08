@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/kobaltgit/peekit-plugins/main/plugin-schema.json",
   "id": "com.peekit.cert-inspector",
   "name": "Certificate & Security Key Inspector",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Kobalt",
   "description": "Fast offline inspector for X.509 SSL/TLS certificates, certificate chains, CSR requests, OpenSSH public keys, and private key metadata",
   "extensions": [
@@ -26,5 +26,14 @@
   "default_dimensions": {
     "width": 860,
     "height": 620
-  }
+  },
+  "supportedExtensions": [
+    ".crt",
+    ".cer",
+    ".pem",
+    ".der",
+    ".pub",
+    ".key",
+    ".csr"
+  ]
 }

@@ -20,6 +20,49 @@
       --danger: #ef4444;
     }
 
+    [data-theme="light"] {
+      --bg-dark: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-surface-hover: #f1f5f9;
+      --border-color: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --accent: #0284c7;
+      --accent-hover: #0369a1;
+      --accent-glow: rgba(2, 132, 199, 0.2);
+      --badge-bg: rgba(2, 132, 199, 0.1);
+      --badge-border: rgba(2, 132, 199, 0.25);
+      --danger: #dc2626;
+    }
+
+    [data-theme="light"] .toolbar {
+      background: rgba(255, 255, 255, 0.92);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    [data-theme="light"] .btn-group {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+
+    [data-theme="light"] select.select-input {
+      background: #ffffff;
+      color: #0f172a;
+      border-color: #cbd5e1;
+    }
+
+    [data-theme="light"] .statusbar {
+      background: rgba(255, 255, 255, 0.92);
+      border-top: 1px solid var(--border-color);
+      color: var(--text-muted);
+    }
+
+    [data-theme="light"] .bg-checkered {
+      background-image: 
+        linear-gradient(45deg, #f1f5f9 25%, transparent 25%, transparent 75%, #f1f5f9 75%, #f1f5f9),
+        linear-gradient(45deg, #f1f5f9 25%, #ffffff 25%, #ffffff 75%, #f1f5f9 75%, #f1f5f9);
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
@@ -303,6 +346,8 @@
           <button type="button" tabindex="-1" id="btnZoomIn" class="btn btn-icon" title="Zoom In">&plus;</button>
         </div>
 
+        <button type="button" tabindex="-1" id="btnToggleLang" class="btn" title="Переключить язык (RU / EN)" style="font-weight:600;min-width:34px;">RU</button>
+        <button type="button" tabindex="-1" id="btnThemeToggle" class="btn btn-icon" title="Сменить тему оформления" style="font-size:11px;padding:4px 7px;">🌓</button>
         <button type="button" tabindex="-1" id="btnBg" class="btn" title="Toggle Background (Checkered / Dark / Light)">&#9638;</button>
       </div>
     </header>
@@ -369,7 +414,121 @@
       }
     });
 
+    
+    // --- Theme Support ---
+    let isDarkTheme = true;
+
+    function applyTheme(themeData) {
+      let isDark = true;
+      let accent = null;
+
+      if (typeof themeData === 'string') {
+        isDark = themeData.toLowerCase() !== 'light';
+      } else if (typeof themeData === 'boolean') {
+        isDark = themeData;
+      } else if (themeData && typeof themeData === 'object') {
+        if (typeof themeData.isDark === 'boolean') isDark = themeData.isDark;
+        else if (typeof themeData.theme === 'string') isDark = themeData.theme.toLowerCase() !== 'light';
+        else if (typeof themeData.mode === 'string') isDark = themeData.mode.toLowerCase() !== 'light';
+        if (themeData.accentColor) accent = themeData.accentColor;
+        else if (themeData.accent) accent = themeData.accent;
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        isDark = false;
+      }
+
+      isDarkTheme = isDark;
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      if (accent) {
+        document.documentElement.style.setProperty('--accent', accent);
+      }
+    }
+
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        applyTheme(e.matches ? 'dark' : 'light');
+      });
+    }
+
+    // --- Localization Engine ---
+    const I18N = {
+      ru: {
+        langBtn: 'RU',
+        langTitle: 'Переключить язык (RU / EN)',
+        themeTitle: 'Сменить тему оформления',
+        fit: 'По размеру',
+        oneToOne: '1:1',
+        zoomIn: 'Увеличить',
+        zoomOut: 'Уменьшить',
+        bgTitle: 'Фон (Шахматка / Тёмный / Светлый)',
+        mipLabel: 'Уровень:',
+        errLoad: 'Ошибка загрузки',
+        errNoData: 'Данные файла не получены от приложения',
+        errDecode: 'Сбой декодирования DDS'
+      },
+      en: {
+        langBtn: 'EN',
+        langTitle: 'Toggle Language (RU / EN)',
+        themeTitle: 'Toggle Theme',
+        fit: 'Fit',
+        oneToOne: '1:1',
+        zoomIn: 'Zoom In',
+        zoomOut: 'Zoom Out',
+        bgTitle: 'Toggle Background (Checkered / Dark / Light)',
+        mipLabel: 'Mip:',
+        errLoad: 'Load Error',
+        errNoData: 'No data received from host',
+        errDecode: 'DDS Decoding Failed'
+      }
+    };
+
+    let currentLocale = localStorage.getItem('peekit_dds_lang') || 'ru';
+
+    function applyLocale(locale) {
+      if (!locale) return;
+      const normalized = String(locale).toLowerCase().startsWith('en') ? 'en' : 'ru';
+      currentLocale = normalized;
+      try { localStorage.setItem('peekit_dds_lang', currentLocale); } catch (_) {}
+
+      const dict = I18N[currentLocale] || I18N.ru;
+      const btnLang = document.getElementById('btnToggleLang');
+      if (btnLang) {
+        btnLang.textContent = dict.langBtn;
+        btnLang.title = dict.langTitle;
+      }
+      const btnTheme = document.getElementById('btnThemeToggle');
+      if (btnTheme) {
+        btnTheme.title = dict.themeTitle;
+      }
+      const btnFit = document.getElementById('btnFit');
+      if (btnFit) { btnFit.textContent = dict.fit; btnFit.title = dict.fit; }
+      const btnOriginal = document.getElementById('btnOriginal');
+      if (btnOriginal) btnOriginal.title = dict.oneToOne;
+      const btnZoomOut = document.getElementById('btnZoomOut');
+      if (btnZoomOut) btnZoomOut.title = dict.zoomOut;
+      const btnZoomIn = document.getElementById('btnZoomIn');
+      if (btnZoomIn) btnZoomIn.title = dict.zoomIn;
+      const btnBg = document.getElementById('btnBg');
+      if (btnBg) btnBg.title = dict.bgTitle;
+      const mipLabel = document.querySelector('label[for="mipSelect"]');
+      if (mipLabel) mipLabel.textContent = dict.mipLabel;
+    }
+
     // --- IPC Setup ---
+    
+    const btnToggleLang = document.getElementById('btnToggleLang');
+    if (btnToggleLang) {
+      btnToggleLang.addEventListener('click', () => {
+        applyLocale(currentLocale === 'ru' ? 'en' : 'ru');
+      });
+    }
+    const btnThemeToggle = document.getElementById('btnThemeToggle');
+    if (btnThemeToggle) {
+      btnThemeToggle.addEventListener('click', () => {
+        applyTheme(!isDarkTheme);
+      });
+    }
+    applyLocale(currentLocale);
+
     readyInterval = setInterval(() => {
       window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
     }, 100);
@@ -383,20 +542,30 @@
           clearInterval(readyInterval);
           readyInterval = null;
         }
-        const theme = msg.payload?.theme || msg.theme;
-        if (theme && theme.accentColor) {
-          document.documentElement.style.setProperty('--accent', theme.accentColor);
+        const payload = msg.payload || msg;
+        const langVal = payload.language || payload.locale || payload.lang || (payload.settings && (payload.settings.language || payload.settings.locale));
+        if (langVal) {
+          applyLocale(langVal);
         }
+        const themeVal = payload.theme || (payload.settings && payload.settings.theme) || payload.isDark;
+        applyTheme(themeVal !== undefined ? themeVal : payload);
         // Request binary data from PeekIt
         window.parent.postMessage({ type: 'PEEKIT_REQUEST_DATA' }, '*');
         return;
       }
 
-      if (msg.type === 'PEEKIT_THEME_CHANGED') {
-        const theme = msg.payload?.theme || msg.theme;
-        if (theme && theme.accentColor) {
-          document.documentElement.style.setProperty('--accent', theme.accentColor);
+      if (msg.type === 'PEEKIT_LANGUAGE_CHANGED' || msg.type === 'PEEKIT_LOCALE_CHANGED') {
+        const payload = msg.payload || msg;
+        const newLang = payload.language || payload.locale || payload.lang || payload;
+        if (newLang) {
+          applyLocale(newLang);
         }
+        return;
+      }
+
+      if (msg.type === 'PEEKIT_THEME_CHANGED') {
+        const payload = msg.payload || msg;
+        applyTheme(payload.theme !== undefined ? payload.theme : payload);
         return;
       }
 

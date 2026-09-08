@@ -784,6 +784,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         </button>
       </div>
 
+      <button id="btnToggleLang" class="tool-btn" title="Переключить язык (RU / EN)" style="font-weight:600;font-size:11px;min-width:32px;display:inline-flex;align-items:center;justify-content:center;">RU</button>
       <button id="btnThemeToggle" class="tool-btn" title="Переключить тему (Светлая / Тёмная)">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
@@ -1011,6 +1012,186 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       const btnClosePeek = document.getElementById('btnClosePeek');
       const btnCopyText = document.getElementById('btnCopyText');
 
+      
+      // --- Localization Engine ---
+      const I18N = {
+        ru: {
+          langBtn: 'RU',
+          langTitle: 'Переключить язык (RU / EN)',
+          themeTitle: 'Переключить тему (Светлая / Тёмная)',
+          viewTree: 'Дерево',
+          viewFlat: 'Все файлы',
+          searchPlaceholder: 'Поиск файлов в архиве...',
+          statItems: 'Элементов',
+          statFiles: 'Файлов',
+          statDirs: 'Папок',
+          statCompressed: 'Сжатый',
+          statOriginal: 'Исходный',
+          statRatio: 'Степень',
+          colName: 'Имя',
+          colSize: 'Размер',
+          colPacked: 'Сжатый',
+          colRatio: 'Степень',
+          colModified: 'Изменён',
+          emptyTitle: 'Файлы не найдены',
+          emptyHint: 'Попробуйте изменить поисковый запрос',
+          copyText: 'Копировать',
+          closeModal: 'Закрыть',
+          oversizedWarn: 'Архив слишком большой для распаковки в браузере',
+          loading: 'Загрузка архива...',
+          viewTreeTitle: 'Режим дерева папок',
+          viewFlatTitle: 'Плоский список всех файлов',
+          statElementsDefault: '0 файлов',
+          statFoldersDefault: '0 папок',
+          statCompressedSize: 'Сжатый размер',
+          statSpaceSaved: 'Экономия места',
+          clearSearch: 'Очистить поиск',
+          footerReady: 'Готово к работе',
+          copyContent: 'Скопировать содержимое',
+          closeEscape: 'Закрыть (Escape)',
+          readingStructure: 'Чтение структуры архива...',
+          errRead: 'Ошибка чтения архива',
+          errUnsupported: 'Неподдерживаемый формат данных архива'
+        },
+        en: {
+          langBtn: 'EN',
+          langTitle: 'Toggle Language (RU / EN)',
+          themeTitle: 'Toggle Theme (Light / Dark)',
+          viewTree: 'Tree',
+          viewFlat: 'Flat',
+          searchPlaceholder: 'Search files in archive...',
+          statItems: 'Items',
+          statFiles: 'Files',
+          statDirs: 'Folders',
+          statCompressed: 'Compressed',
+          statOriginal: 'Original',
+          statRatio: 'Ratio',
+          colName: 'Name',
+          colSize: 'Size',
+          colPacked: 'Packed',
+          colRatio: 'Ratio',
+          colModified: 'Modified',
+          emptyTitle: 'No files found',
+          emptyHint: 'Try changing your search query',
+          copyText: 'Copy',
+          closeModal: 'Close',
+          oversizedWarn: 'Archive is too large to unpack in browser',
+          loading: 'Loading archive...',
+          viewTreeTitle: 'Folder tree view',
+          viewFlatTitle: 'Flat file list',
+          statElementsDefault: '0 files',
+          statFoldersDefault: '0 folders',
+          statCompressedSize: 'Compressed size',
+          statSpaceSaved: 'Space saved',
+          clearSearch: 'Clear search',
+          footerReady: 'Ready',
+          copyContent: 'Copy content',
+          closeEscape: 'Close (Escape)',
+          readingStructure: 'Reading archive structure...',
+          errRead: 'Error reading archive',
+          errUnsupported: 'Unsupported archive data format'
+        }
+      };
+
+      let currentLocale = localStorage.getItem('peekit_archive_lang') || 'ru';
+
+      function applyLocale(locale) {
+        if (!locale) return;
+        const normalized = String(locale).toLowerCase().startsWith('en') ? 'en' : 'ru';
+        currentLocale = normalized;
+        try { localStorage.setItem('peekit_archive_lang', currentLocale); } catch (_) {}
+
+        const dict = I18N[currentLocale] || I18N.ru;
+        const btnLang = document.getElementById('btnToggleLang');
+        if (btnLang) {
+          btnLang.textContent = dict.langBtn;
+          btnLang.title = dict.langTitle;
+        }
+        if (btnThemeToggle) btnThemeToggle.title = dict.themeTitle;
+        if (searchInput) searchInput.placeholder = dict.searchPlaceholder;
+
+        const treeText = btnViewTree ? btnViewTree.querySelector('span') : null;
+        if (treeText) treeText.textContent = dict.viewTree;
+        const flatText = btnViewFlat ? btnViewFlat.querySelector('span') : null;
+        if (flatText) flatText.textContent = dict.viewFlat;
+
+        // Stat labels
+        const statLabels = document.querySelectorAll('.stat-label');
+        if (statLabels.length >= 6) {
+          statLabels[0].textContent = dict.statItems;
+          statLabels[1].textContent = dict.statFiles;
+          statLabels[2].textContent = dict.statDirs;
+          statLabels[3].textContent = dict.statCompressed;
+          statLabels[4].textContent = dict.statOriginal;
+          statLabels[5].textContent = dict.statRatio;
+        }
+
+        // Table headers
+        const ths = document.querySelectorAll('.file-table th');
+        if (ths.length >= 5) {
+          const sortIcon = ths[0].querySelector('.sort-icon')?.outerHTML || '';
+          ths[0].innerHTML = dict.colName + ' ' + sortIcon;
+          ths[1].textContent = dict.colSize;
+          ths[2].textContent = dict.colPacked;
+          ths[3].textContent = dict.colRatio;
+          ths[4].textContent = dict.colModified;
+        }
+
+        const emptyTitleEl = document.querySelector('.empty-state-title');
+        if (emptyTitleEl) emptyTitleEl.textContent = dict.emptyTitle;
+        const emptyHintEl = document.querySelector('.empty-state-hint');
+        if (emptyHintEl) emptyHintEl.textContent = dict.emptyHint;
+
+        if (btnCopyText) {
+          btnCopyText.textContent = dict.copyText;
+          btnCopyText.title = dict.copyContent;
+        }
+
+        if (btnViewTree) btnViewTree.title = dict.viewTreeTitle;
+        if (btnViewFlat) btnViewFlat.title = dict.viewFlatTitle;
+
+        const archiveTitle = document.getElementById('archiveTitle');
+        if (archiveTitle && (archiveTitle.textContent.includes('Загрузка архива') || archiveTitle.textContent.includes('Loading archive'))) {
+          archiveTitle.textContent = dict.loading;
+        }
+
+        const statElements = document.getElementById('statElements');
+        if (statElements && (statElements.textContent === '0 файлов' || statElements.textContent === '0 files')) {
+          statElements.textContent = dict.statElementsDefault;
+        }
+
+        const statFolders = document.getElementById('statFolders');
+        if (statFolders && (statFolders.textContent === '0 папок' || statFolders.textContent === '0 folders')) {
+          statFolders.textContent = dict.statFoldersDefault;
+        }
+
+        const statFormatDetails = document.getElementById('statFormatDetails');
+        if (statFormatDetails && (statFormatDetails.textContent === 'Сжатый размер' || statFormatDetails.textContent === 'Compressed size')) {
+          statFormatDetails.textContent = dict.statCompressedSize;
+        }
+
+        const statSaved = document.getElementById('statSaved');
+        if (statSaved && (statSaved.textContent === 'Экономия места' || statSaved.textContent === 'Space saved')) {
+          statSaved.textContent = dict.statSpaceSaved;
+        }
+
+        const searchClear = document.getElementById('searchClear');
+        if (searchClear) searchClear.title = dict.clearSearch;
+
+        const footerLocation = document.getElementById('footerLocation');
+        if (footerLocation && (footerLocation.textContent === 'Готово к работе' || footerLocation.textContent === 'Ready')) {
+          footerLocation.textContent = dict.footerReady;
+        }
+
+        const btnClosePeek = document.getElementById('btnClosePeek');
+        if (btnClosePeek) btnClosePeek.title = dict.closeEscape;
+
+        const loadingText = document.getElementById('loadingText');
+        if (loadingText && (loadingText.textContent.includes('Чтение структуры архива') || loadingText.textContent.includes('Reading archive structure'))) {
+          loadingText.textContent = dict.readingStructure;
+        }
+      }
+
       function applyTheme(themeData) {
         let isDark = true;
         let accent = null;
@@ -1043,6 +1224,15 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       }
 
       // Theme toggle button in header
+      
+      const btnToggleLang = document.getElementById('btnToggleLang');
+      if (btnToggleLang) {
+        btnToggleLang.addEventListener('click', () => {
+          applyLocale(currentLocale === 'ru' ? 'en' : 'ru');
+        });
+      }
+      applyLocale(currentLocale);
+
       btnThemeToggle.addEventListener('click', () => {
         applyTheme(!isDarkTheme);
       });
@@ -1694,18 +1884,42 @@ https://github.com/nodeca/pako/blob/main/LICENSE
               clearInterval(readyInterval);
               readyInterval = null;
             }
-            const { fileName, extension, theme, settings } = msg.payload || {};
-            if (fileName) archiveTitle.textContent = fileName;
-            if (extension) badgeFormatText.textContent = extension.toUpperCase().replace('.', '');
-            const themeVal = theme || settings?.theme || (msg.payload?.isDark !== undefined ? msg.payload.isDark : null);
-            if (themeVal !== null) {
-              applyTheme(themeVal);
+            try {
+              const payload = msg.payload || msg || {};
+              const { fileName, extension, theme, settings } = payload;
+              const langVal = payload.language || payload.locale || payload.lang || settings?.language || settings?.locale;
+              if (langVal) {
+                applyLocale(langVal);
+              }
+              if (fileName) archiveTitle.textContent = fileName;
+              if (extension) badgeFormatText.textContent = extension.toUpperCase().replace('.', '');
+              const themeVal = theme || settings?.theme || (payload.isDark !== undefined ? payload.isDark : null);
+              if (themeVal !== null) {
+                applyTheme(themeVal);
+              }
+            } catch (err) {
+              console.error('[ArchiveExplorer] Init error:', err);
             }
+
+            // Ensure loader is visible when switching files
+            loading.style.display = 'flex';
+            const curDict = I18N[currentLocale] || I18N.ru;
+            if (loadingText) loadingText.textContent = curDict.readingStructure || 'Чтение структуры архива...';
+
             // Request archive binary data
             window.parent.postMessage({ type: 'PEEKIT_REQUEST_DATA' }, '*');
             break;
           }
 
+          
+          case 'PEEKIT_LANGUAGE_CHANGED':
+          case 'PEEKIT_LOCALE_CHANGED': {
+            const newLang = msg.payload?.language || msg.payload?.locale || msg.payload?.lang || msg.payload;
+            if (newLang) {
+              applyLocale(newLang);
+            }
+            break;
+          }
           case 'PEEKIT_THEME_CHANGED': {
             const newTheme = msg.payload?.theme !== undefined ? msg.payload.theme : msg.payload;
             if (newTheme !== undefined && newTheme !== null) {

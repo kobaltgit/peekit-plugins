@@ -7,6 +7,7 @@
   <style>
     :root {
       --bg-base: #090d16;
+      --bg-surface: #0f172a;
       --bg-card: rgba(15, 23, 42, 0.82);
       --bg-card-border: rgba(255, 255, 255, 0.1);
       --bg-hover: rgba(255, 255, 255, 0.08);
@@ -19,6 +20,33 @@
       --trim-rgb: 245, 158, 11;
       --danger: #ef4444;
       --success: #10b981;
+      --header-bg: linear-gradient(180deg, rgba(9, 13, 22, 0.9) 0%, rgba(9, 13, 22, 0.4) 70%, transparent 100%);
+      --controls-bg: linear-gradient(0deg, rgba(9, 13, 22, 0.95) 0%, rgba(9, 13, 22, 0.6) 75%, transparent 100%);
+      --viewport-bg: #000000;
+      --timeline-track: rgba(255, 255, 255, 0.15);
+      --timeline-buffered: rgba(255, 255, 255, 0.25);
+    }
+
+    [data-theme="light"] {
+      --bg-base: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-card: rgba(255, 255, 255, 0.92);
+      --bg-card-border: rgba(0, 0, 0, 0.12);
+      --bg-hover: rgba(0, 0, 0, 0.06);
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #94a3b8;
+      --accent: #0284c7;
+      --accent-rgb: 2, 132, 199;
+      --trim-accent: #d97706;
+      --trim-rgb: 217, 119, 6;
+      --danger: #dc2626;
+      --success: #059669;
+      --header-bg: linear-gradient(180deg, rgba(248, 250, 252, 0.95) 0%, rgba(248, 250, 252, 0.55) 70%, transparent 100%);
+      --controls-bg: linear-gradient(0deg, rgba(248, 250, 252, 0.96) 0%, rgba(248, 250, 252, 0.65) 75%, transparent 100%);
+      --viewport-bg: #e2e8f0;
+      --timeline-track: rgba(0, 0, 0, 0.14);
+      --timeline-buffered: rgba(0, 0, 0, 0.24);
     }
 
     * {
@@ -52,7 +80,7 @@
       align-items: center;
       justify-content: space-between;
       padding: 0 16px;
-      background: linear-gradient(180deg, rgba(9, 13, 22, 0.9) 0%, rgba(9, 13, 22, 0.4) 70%, transparent 100%);
+      background: var(--header-bg);
       pointer-events: auto;
       transition: opacity 0.25s ease;
     }
@@ -181,7 +209,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #000000;
+      background: var(--viewport-bg);
       overflow: hidden;
       cursor: default;
     }
@@ -246,7 +274,7 @@
       display: flex;
       flex-direction: column;
       padding: 0 16px 14px 16px;
-      background: linear-gradient(0deg, rgba(9, 13, 22, 0.95) 0%, rgba(9, 13, 22, 0.6) 75%, transparent 100%);
+      background: var(--controls-bg);
       pointer-events: auto;
       transition: opacity 0.25s ease, transform 0.25s ease;
     }
@@ -272,7 +300,7 @@
       position: relative;
       width: 100%;
       height: 6px;
-      background: rgba(255, 255, 255, 0.15);
+      background: var(--timeline-track);
       border-radius: 3px;
       overflow: visible;
       transition: height 0.15s ease;
@@ -288,7 +316,7 @@
       top: 0;
       bottom: 0;
       width: 0%;
-      background: rgba(255, 255, 255, 0.25);
+      background: var(--timeline-buffered);
       border-radius: 3px;
       pointer-events: none;
     }
@@ -523,10 +551,10 @@
     .modal-box {
       width: 440px;
       max-width: 90vw;
-      background: #0f172a;
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: var(--bg-surface);
+      border: 1px solid var(--bg-card-border);
       border-radius: 12px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
       padding: 20px;
       display: flex;
       flex-direction: column;
@@ -563,12 +591,12 @@
     }
 
     .modal-close:hover {
-      color: #ffffff;
+      color: var(--text-main);
     }
 
     .export-preview-card {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--bg-hover);
+      border: 1px solid var(--bg-card-border);
       border-radius: 8px;
       padding: 12px;
       display: flex;
@@ -728,6 +756,8 @@
     </div>
 
     <div class="header-right">
+      <button class="btn-top" id="btnToggleLang" title="Переключить язык (RU / EN)" style="font-weight:600;font-size:11px;min-width:32px;display:inline-flex;align-items:center;justify-content:center;">RU</button>
+      <button class="btn-top" id="btnThemeToggle" title="Сменить тему оформления" style="font-size:12px;padding:0 8px;">🌓</button>
       <button class="btn-top" id="btnSnapshot" title="Скопировать кадр в буфер обмена (Ctrl+C)">
         📷 Снимок
       </button>
@@ -2087,6 +2117,216 @@
         }
       });
 
+      
+      // --- Theme Engine ---
+      let currentThemeIsDark = true;
+
+      function applyTheme(themeData) {
+        let isDark = true;
+        let accent = null;
+
+        if (typeof themeData === 'string') {
+          isDark = themeData.toLowerCase() !== 'light';
+        } else if (typeof themeData === 'boolean') {
+          isDark = themeData;
+        } else if (themeData && typeof themeData === 'object') {
+          if (typeof themeData.isDark === 'boolean') isDark = themeData.isDark;
+          else if (typeof themeData.theme === 'string') isDark = themeData.theme.toLowerCase() !== 'light';
+          else if (typeof themeData.mode === 'string') isDark = themeData.mode.toLowerCase() !== 'light';
+          if (themeData.accentColor) accent = themeData.accentColor;
+          else if (themeData.accent) accent = themeData.accent;
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+          isDark = false;
+        }
+
+        currentThemeIsDark = isDark;
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        if (accent) {
+          document.documentElement.style.setProperty('--accent', accent);
+        }
+      }
+
+      const btnThemeToggle = document.getElementById('btnThemeToggle');
+      if (btnThemeToggle) {
+        btnThemeToggle.addEventListener('click', () => {
+          applyTheme(!currentThemeIsDark);
+        });
+      }
+
+      if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+          applyTheme(e.matches ? 'dark' : 'light');
+        });
+      }
+
+      // --- Localization Engine ---
+      const I18N = {
+        ru: {
+          langBtn: 'RU',
+          langTitle: 'Переключить язык (RU / EN)',
+          btnSnapshot: '📷 Снимок',
+          btnSnapshotTitle: 'Скопировать кадр в буфер обмена (Ctrl+C)',
+          btnTrim: '✂️ Вырезать',
+          btnTrimTitle: 'Включить маркеры обрезки (I / O)',
+          chipTrim: '✂️ Выделен фрагмент',
+          rotateTitle: 'Повернуть видео на 90° (R)',
+          zoomOutTitle: 'Уменьшить масштаб (Колёсико вниз)',
+          zoomInTitle: 'Увеличить масштаб (Колёсико вверх)',
+          zoomResetTitle: 'Сбросить масштаб (100%)',
+          defaultTitle: 'Видеофайл',
+          loadingVideo: 'Загрузка видео...',
+          toastSnapshot: '📷 Кадр скопирован в буфер обмена',
+          handleInTitle: 'Начало фрагмента (I)',
+          handleOutTitle: 'Конец фрагмента (O)',
+          playPauseTitle: 'Воспроизведение / Пауза (Space)',
+          stepBackTitle: 'Шаг на 1 кадр назад (Запятая <)',
+          setInTitle: 'Установить начало фрагмента (I)',
+          setOutTitle: 'Установить конец фрагмента (O)',
+          loopTitle: 'Зацикливание (Все / Фрагмент / Выкл)',
+          exportDialogTitle: 'Экспортировать вырезанный фрагмент',
+          exportBtn: '✂️ Экспорт',
+          speedTitle: 'Скорость воспроизведения',
+          boostVolumeTitle: 'Усиление звука: 100% / 200%',
+          muteTitle: 'Отключить звук (M)',
+          unitSec: 'сек',
+          nearSource: 'Рядом с исходным файлом',
+          progressProcessing: 'Обработка фрагмента...',
+          errLoad: 'Ошибка загрузки видео',
+          themeTitle: 'Сменить тему оформления'
+        },
+        en: {
+          langBtn: 'EN',
+          langTitle: 'Toggle Language (RU / EN)',
+          btnSnapshot: '📷 Snapshot',
+          btnSnapshotTitle: 'Copy frame to clipboard (Ctrl+C)',
+          btnTrim: '✂️ Trim',
+          btnTrimTitle: 'Toggle trim markers (I / O)',
+          chipTrim: '✂️ Trim selected',
+          rotateTitle: 'Rotate video 90° (R)',
+          zoomOutTitle: 'Zoom out (Wheel down)',
+          zoomInTitle: 'Zoom in (Wheel up)',
+          zoomResetTitle: 'Reset zoom (100%)',
+          defaultTitle: 'Video file',
+          loadingVideo: 'Loading video...',
+          toastSnapshot: '📷 Frame copied to clipboard',
+          handleInTitle: 'Fragment start (I)',
+          handleOutTitle: 'Fragment end (O)',
+          playPauseTitle: 'Play / Pause (Space)',
+          stepBackTitle: 'Step 1 frame backward (Comma <)',
+          setInTitle: 'Set fragment start (I)',
+          setOutTitle: 'Set fragment end (O)',
+          loopTitle: 'Loop (All / Fragment / Off)',
+          exportDialogTitle: 'Export cut fragment',
+          exportBtn: '✂️ Export',
+          speedTitle: 'Playback speed',
+          boostVolumeTitle: 'Volume boost: 100% / 200%',
+          muteTitle: 'Mute audio (M)',
+          unitSec: 'sec',
+          nearSource: 'Next to source file',
+          progressProcessing: 'Processing fragment...',
+          errLoad: 'Video load error',
+          themeTitle: 'Toggle theme'
+        }
+      };
+
+      let currentLocale = localStorage.getItem('peekit_video_lang') || 'ru';
+
+      function applyLocale(locale) {
+        if (!locale) return;
+        const normalized = String(locale).toLowerCase().startsWith('en') ? 'en' : 'ru';
+        currentLocale = normalized;
+        try { localStorage.setItem('peekit_video_lang', currentLocale); } catch (_) {}
+
+        const dict = I18N[currentLocale] || I18N.ru;
+        const btnLang = document.getElementById('btnToggleLang');
+        if (btnLang) {
+          btnLang.textContent = dict.langBtn;
+          btnLang.title = dict.langTitle;
+        }
+        const btnTheme = document.getElementById('btnThemeToggle');
+        if (btnTheme) {
+          btnTheme.title = dict.themeTitle;
+        }
+
+        const btnSnap = document.getElementById('btnSnapshot');
+        if (btnSnap) { btnSnap.textContent = dict.btnSnapshot; btnSnap.title = dict.btnSnapshotTitle; }
+        const btnTrim = document.getElementById('btnToggleTrim');
+        if (btnTrim) { btnTrim.textContent = dict.btnTrim; btnTrim.title = dict.btnTrimTitle; }
+        const chipTrim = document.getElementById('chipTrim');
+        if (chipTrim) chipTrim.textContent = dict.chipTrim;
+
+        const btnRotate = document.getElementById('btnRotate');
+        if (btnRotate) btnRotate.title = dict.rotateTitle;
+        const btnZoomOut = document.getElementById('btnZoomOut');
+        if (btnZoomOut) btnZoomOut.title = dict.zoomOutTitle;
+        const btnZoomIn = document.getElementById('btnZoomIn');
+        if (btnZoomIn) btnZoomIn.title = dict.zoomInTitle;
+        const btnResetZoom = document.getElementById('btnResetZoom');
+        if (btnResetZoom) btnResetZoom.title = dict.zoomResetTitle;
+
+        const txtLoading = document.getElementById('txtLoading');
+        if (txtLoading && (txtLoading.textContent.includes('Загрузка видео') || txtLoading.textContent.includes('Loading video'))) {
+          txtLoading.textContent = dict.loadingVideo;
+        }
+        const toastPill = document.getElementById('toastPill');
+        if (toastPill && (toastPill.textContent.includes('Кадр скопирован') || toastPill.textContent.includes('Frame copied'))) {
+          toastPill.textContent = dict.toastSnapshot;
+        }
+        const videoTitle = document.getElementById('videoTitle');
+        if (videoTitle && (videoTitle.textContent === 'Видеофайл' || videoTitle.textContent === 'Video file')) {
+          videoTitle.textContent = dict.defaultTitle;
+        }
+
+        const handleIn = document.getElementById('handleIn');
+        if (handleIn) handleIn.title = dict.handleInTitle;
+        const handleOut = document.getElementById('handleOut');
+        if (handleOut) handleOut.title = dict.handleOutTitle;
+        const btnPlayPause = document.getElementById('btnPlayPause');
+        if (btnPlayPause) btnPlayPause.title = dict.playPauseTitle;
+        const btnStepBack = document.getElementById('btnStepBack');
+        if (btnStepBack) btnStepBack.title = dict.stepBackTitle;
+        const btnSetIn = document.getElementById('btnSetIn');
+        if (btnSetIn) btnSetIn.title = dict.setInTitle;
+        const btnSetOut = document.getElementById('btnSetOut');
+        if (btnSetOut) btnSetOut.title = dict.setOutTitle;
+        const btnLoop = document.getElementById('btnLoop');
+        if (btnLoop) btnLoop.title = dict.loopTitle;
+        const btnExportDialog = document.getElementById('btnExportDialog');
+        if (btnExportDialog) {
+          btnExportDialog.title = dict.exportDialogTitle;
+          btnExportDialog.textContent = dict.exportBtn;
+        }
+        const selSpeed = document.getElementById('selSpeed');
+        if (selSpeed) selSpeed.title = dict.speedTitle;
+        const btnBoostVolume = document.getElementById('btnBoostVolume');
+        if (btnBoostVolume) btnBoostVolume.title = dict.boostVolumeTitle;
+        const btnMute = document.getElementById('btnMute');
+        if (btnMute) btnMute.title = dict.muteTitle;
+
+        const lblExportDur = document.getElementById('lblExportDur');
+        if (lblExportDur && (lblExportDur.textContent.includes('сек') || lblExportDur.textContent.includes('sec'))) {
+          lblExportDur.textContent = `0.00 ${dict.unitSec}`;
+        }
+        const lblExportFolder = document.getElementById('lblExportFolder');
+        if (lblExportFolder) {
+          lblExportFolder.textContent = dict.nearSource;
+          lblExportFolder.title = dict.nearSource;
+        }
+        const progressStatus = document.getElementById('progressStatus');
+        if (progressStatus && (progressStatus.textContent.includes('Обработка фрагмента') || progressStatus.textContent.includes('Processing fragment'))) {
+          progressStatus.textContent = dict.progressProcessing;
+        }
+      }
+
+      const btnToggleLang = document.getElementById('btnToggleLang');
+      if (btnToggleLang) {
+        btnToggleLang.addEventListener('click', () => {
+          applyLocale(currentLocale === 'ru' ? 'en' : 'ru');
+        });
+      }
+      applyLocale(currentLocale);
+
+
       // IPC Listeners
       window.addEventListener('message', (event) => {
         const msg = event.data;
@@ -2104,11 +2344,34 @@
           case 'PEEKIT_DATA_RESPONSE':
             handleDataResponse(msg.payload);
             break;
+
+          case 'PEEKIT_THEME_CHANGED': {
+            const payload = msg.payload || msg;
+            applyTheme(payload.theme !== undefined ? payload.theme : payload);
+            break;
+          }
+
+          case 'PEEKIT_LANGUAGE_CHANGED':
+          case 'PEEKIT_LOCALE_CHANGED': {
+            const payload = msg.payload || msg;
+            const newLang = payload.language || payload.locale || payload.lang || payload;
+            if (newLang) {
+              applyLocale(newLang);
+            }
+            break;
+          }
         }
       });
 
       function handleInit(payload) {
         if (!payload) return;
+        const langVal = payload.language || payload.locale || payload.lang || (payload.settings && (payload.settings.language || payload.settings.locale));
+        if (langVal) {
+          applyLocale(langVal);
+        }
+
+        const themeVal = payload.theme || (payload.settings && payload.settings.theme) || payload.isDark;
+        applyTheme(themeVal !== undefined ? themeVal : payload);
         if (payload.filePath) {
           originalFilePath = payload.filePath;
           const sep = Math.max(originalFilePath.lastIndexOf('\\'), originalFilePath.lastIndexOf('/'));

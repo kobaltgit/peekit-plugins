@@ -652,7 +652,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       <div class="app-meta">
         <div class="app-title-row">
           <span class="app-name" id="hdr-app-name">App Name</span>
-          <span class="package-chip" id="btn-copy-pkg" title="Нажмите, чтобы скопировать Package Name">
+          <span class="package-chip" id="btn-copy-pkg" data-i18n-title="copyPkgTitle" title="Нажмите, чтобы скопировать Package Name">
             <span id="hdr-pkg-name">com.example.app</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -674,19 +674,20 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <!-- Tabs Nav -->
     <nav class="tabs-bar">
       <button type="button" tabindex="-1" class="tab-btn active" data-tab="tab-overview">
-        Обзор
+        <span data-i18n="tabOverview">Обзор</span>
       </button>
       <button type="button" tabindex="-1" class="tab-btn" data-tab="tab-permissions">
-        Разрешения
+        <span data-i18n="tabPermissions">Разрешения</span>
         <span class="tab-count-pill" id="pill-perm-count">0</span>
       </button>
       <button type="button" tabindex="-1" class="tab-btn" data-tab="tab-components">
-        Компоненты
+        <span data-i18n="tabComponents">Компоненты</span>
         <span class="tab-count-pill" id="pill-comp-count">0</span>
       </button>
       <button type="button" tabindex="-1" class="tab-btn" data-tab="tab-package">
-        Пакет и безопасность
+        <span data-i18n="tabPackage">Пакет и безопасность</span>
       </button>
+      <button type="button" class="btn-tool" id="btnToggleLang" style="margin-left:auto; background:var(--bg-subtle); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:4px 8px; font-weight:700; font-family:var(--font-mono); font-size:11px; cursor:pointer;" title="Switch Language / Сменить язык">RU</button>
     </nav>
 
     <!-- Tab Contents -->
@@ -778,7 +779,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       <!-- TAB 2: PERMISSIONS -->
       <section class="tab-pane" id="tab-permissions">
         <div class="filter-bar">
-          <input type="text" class="search-input" id="search-permissions" placeholder="Поиск по названию или описанию разрешения..." />
+          <input type="text" class="search-input" id="search-permissions" data-i18n-placeholder="searchPlaceholder" placeholder="Поиск по названию или описанию разрешения..." />
         </div>
         <div class="perm-list" id="permissions-container">
           <!-- Filled dynamically -->
@@ -878,7 +879,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     </main>
   </div>
 
-  <div class="toast" id="toast-msg">Package Name скопирован</div>
+  <div class="toast" id="toast-msg" data-i18n="copied">Package Name скопирован</div>
 
   <script>
     (function () {
@@ -1783,6 +1784,149 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
       // -------------------------------------------------------------
       // 7. IPC HANDSHAKE WITH PEEKIT HOST
+      // --- Localization Engine (i18n) ---
+      const I18N = {
+        ru: {
+          tabOverview: 'Обзор',
+          tabPermissions: 'Разрешения',
+          tabComponents: 'Компоненты',
+          tabPackage: 'Пакет и безопасность',
+          langToggleTitle: 'Сменить язык (EN / RU)',
+          loadingApk: 'Чтение пакета Android...',
+          loadingDesc: 'Распаковка манифеста и ресурсов APK',
+          copyPkgTitle: 'Нажмите, чтобы скопировать Package Name',
+          searchPlaceholder: 'Поиск по названию или описанию разрешения...',
+          copied: 'Package Name скопирован',
+          errFileRead: 'Ошибка чтения файла',
+          errNoData: 'Нет данных'
+        },
+        en: {
+          tabOverview: 'Overview',
+          tabPermissions: 'Permissions',
+          tabComponents: 'Components',
+          tabPackage: 'Package & Security',
+          langToggleTitle: 'Switch language (EN / RU)',
+          loadingApk: 'Reading Android package...',
+          loadingDesc: 'Extracting APK manifest and resources',
+          copyPkgTitle: 'Click to copy Package Name',
+          searchPlaceholder: 'Search by permission name or description...',
+          copied: 'Package Name copied to clipboard',
+          errFileRead: 'File read error',
+          errNoData: 'No data'
+        }
+      };
+
+      let currentLocale = localStorage.getItem('peekit_apk_lang') || 
+                          (navigator.language && navigator.language.startsWith('ru') ? 'ru' : 'en');
+
+      function t(key) {
+        return (I18N[currentLocale] || I18N.en)[key] || key;
+      }
+
+      function applyLocale(locale) {
+        if (!locale) return;
+        currentLocale = locale.slice(0, 2).toLowerCase();
+        if (!I18N[currentLocale]) currentLocale = 'en';
+
+        localStorage.setItem('peekit_apk_lang', currentLocale);
+        document.documentElement.setAttribute('lang', currentLocale);
+
+        const btnToggleLang = document.getElementById('btnToggleLang');
+        if (btnToggleLang) {
+          btnToggleLang.textContent = currentLocale.toUpperCase();
+          btnToggleLang.title = t('langToggleTitle');
+        }
+
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+          const key = el.getAttribute('data-i18n');
+          if (key && t(key)) el.textContent = t(key);
+        });
+
+        document.querySelectorAll('[data-i18n-title]').forEach(el => {
+          const key = el.getAttribute('data-i18n-title');
+          if (key && t(key)) el.title = t(key);
+        });
+
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+          const key = el.getAttribute('data-i18n-placeholder');
+          if (key && t(key)) el.placeholder = t(key);
+        });
+      }
+
+      applyLocale(currentLocale);
+
+      const btnToggleLang = document.getElementById('btnToggleLang');
+      if (btnToggleLang) {
+        btnToggleLang.addEventListener('click', () => {
+          applyLocale(currentLocale === 'ru' ? 'en' : 'ru');
+        });
+      }
+
+      // --- Theme Engine ---
+      let isSystemTheme = false;
+
+      function applyTheme(themeInput) {
+        let isDark = true;
+        let accentColor = null;
+
+        if (themeInput && typeof themeInput === 'object') {
+          if (typeof themeInput.isDark === 'boolean') {
+            isDark = themeInput.isDark;
+          } else if (typeof themeInput.theme === 'string') {
+            const th = themeInput.theme.toLowerCase();
+            if (th === 'system') {
+              isSystemTheme = true;
+              isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            } else {
+              isSystemTheme = false;
+              isDark = th !== 'light';
+            }
+          } else if (typeof themeInput.mode === 'string') {
+            isDark = themeInput.mode.toLowerCase() !== 'light';
+          } else if (themeInput.settings && typeof themeInput.settings.theme === 'string') {
+            const th = themeInput.settings.theme.toLowerCase();
+            if (th === 'system') {
+              isSystemTheme = true;
+              isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            } else {
+              isSystemTheme = false;
+              isDark = th !== 'light';
+            }
+          }
+          accentColor = themeInput.accentColor || themeInput.settings?.accentColor;
+        } else if (typeof themeInput === 'string') {
+          const th = themeInput.toLowerCase();
+          if (th === 'system') {
+            isSystemTheme = true;
+            isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          } else {
+            isSystemTheme = false;
+            isDark = th !== 'light';
+          }
+        }
+
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        if (isDark) {
+          document.body.classList.remove('light-theme');
+          document.body.classList.add('dark-theme');
+        } else {
+          document.body.classList.remove('dark-theme');
+          document.body.classList.add('light-theme');
+        }
+
+        if (accentColor) {
+          document.documentElement.style.setProperty('--accent', accentColor);
+        }
+      }
+
+      if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+          if (isSystemTheme) {
+            applyTheme(e.matches ? 'dark' : 'light');
+          }
+        });
+      }
+
       // -------------------------------------------------------------
       let readyInterval = null;
       let activeFileName = '';
@@ -1798,22 +1942,35 @@ https://github.com/nodeca/pako/blob/main/LICENSE
               readyInterval = null;
             }
 
-            const { fileName, theme } = msg.payload || {};
-            if (fileName) {
-              activeFileName = fileName;
+            const payload = msg.payload || msg;
+            if (payload.fileName) {
+              activeFileName = payload.fileName;
             }
-            if (theme) {
-              document.documentElement.setAttribute('data-theme', theme);
+
+            const langVal = payload.language || payload.locale || payload.lang || 
+                            payload.settings?.language || payload.settings?.locale || payload.settings?.lang;
+            if (langVal) {
+              applyLocale(langVal);
+            } else {
+              applyLocale(currentLocale);
             }
+
+            applyTheme(payload);
 
             window.parent.postMessage({ type: 'PEEKIT_REQUEST_DATA' }, '*');
             break;
           }
 
+          case 'PEEKIT_LANGUAGE_CHANGED':
+          case 'PEEKIT_LOCALE_CHANGED': {
+            const payload = msg.payload || msg;
+            const langVal = payload.language || payload.locale || payload.lang || (typeof payload === 'string' ? payload : null);
+            if (langVal) applyLocale(langVal);
+            break;
+          }
+
           case 'PEEKIT_THEME_CHANGED': {
-            if (msg.payload?.theme) {
-              document.documentElement.setAttribute('data-theme', msg.payload.theme);
-            }
+            applyTheme(msg.payload || msg);
             break;
           }
 

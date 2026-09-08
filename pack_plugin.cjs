@@ -85,8 +85,8 @@ async function packSinglePlugin(pluginDirPath) {
 
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
-  if (!manifest.id || !manifest.version || !manifest.name || !manifest.extensions) {
-    throw new Error(`Manifest is missing required fields (id, version, name, extensions) in ${pluginDirPath}`);
+  if (!manifest.id || !manifest.version || !manifest.name || (!manifest.supportedExtensions && !manifest.extensions)) {
+    throw new Error(`Manifest is missing required fields (id, version, name, supportedExtensions) in ${pluginDirPath}`);
   }
 
   const zip = new JSZip();
@@ -127,7 +127,7 @@ async function packSinglePlugin(pluginDirPath) {
     author: manifest.author || 'Community',
     description: manifest.description || '',
     category: manifest.category || 'Utilities',
-    extensions: manifest.extensions,
+    extensions: manifest.supportedExtensions || manifest.extensions,
     entry: manifest.entry || 'index.html',
     icon: manifest.icon || 'file',
     homepage: manifest.homepage || 'https://github.com/kobaltgit/peekit-plugins',

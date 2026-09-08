@@ -606,6 +606,7 @@
         <button class="search-clear" id="searchClearBtn" title="Очистить поиск (Esc)">×</button>
       </div>
 
+      <button class="icon-btn" id="btnToggleLang" title="Переключить язык (RU / EN)" style="font-weight:600;font-size:11px;min-width:32px;display:inline-flex;align-items:center;justify-content:center;">RU</button>
       <button class="icon-btn active" id="btnViewTable" title="Таблица">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="3" y1="6" x2="21" y2="6"></line>
@@ -737,7 +738,14 @@
           hintOpen: 'Открыть',
           hintNav: 'Навигация',
           hintEsc: 'Сброс',
-          limitBadge: '1000+ элементов'
+          limitBadge: '1000+ элементов',
+          revealFolderTitle: 'Показать папку в Проводнике',
+          copyPathTitle: 'Нажмите, чтобы скопировать путь',
+          searchClearTitle: 'Очистить поиск (Esc)',
+          viewTableTitle: 'Таблица',
+          viewGridTitle: 'Сетка',
+          openExplorerTitle: 'Открыть в Проводнике',
+          breakdownTitle: 'Распределение типов файлов'
         },
         en: {
           folderDefault: 'Folder',
@@ -760,7 +768,14 @@
           hintOpen: 'Open',
           hintNav: 'Navigate',
           hintEsc: 'Clear',
-          limitBadge: '1000+ items'
+          limitBadge: '1000+ items',
+          revealFolderTitle: 'Show folder in Explorer',
+          copyPathTitle: 'Click to copy path',
+          searchClearTitle: 'Clear search (Esc)',
+          viewTableTitle: 'Table',
+          viewGridTitle: 'Grid',
+          openExplorerTitle: 'Open in Explorer',
+          breakdownTitle: 'File type distribution'
         }
       };
 
@@ -819,6 +834,61 @@
         txtHintEsc: document.getElementById('txtHintEsc')
       };
 
+      
+      // --- Theme Engine ---
+      function applyTheme(themeData) {
+        let isDark = true;
+        let accent = null;
+
+        if (typeof themeData === 'string') {
+          isDark = themeData.toLowerCase() !== 'light';
+        } else if (typeof themeData === 'boolean') {
+          isDark = themeData;
+        } else if (themeData && typeof themeData === 'object') {
+          if (typeof themeData.isDark === 'boolean') isDark = themeData.isDark;
+          else if (typeof themeData.theme === 'string') isDark = themeData.theme.toLowerCase() !== 'light';
+          else if (typeof themeData.mode === 'string') isDark = themeData.mode.toLowerCase() !== 'light';
+          if (themeData.accentColor) accent = themeData.accentColor;
+          else if (themeData.accent) accent = themeData.accent;
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+          isDark = false;
+        }
+
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        if (accent) {
+          document.documentElement.style.setProperty('--accent', accent);
+        }
+      }
+
+      if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+          applyTheme(e.matches ? 'dark' : 'light');
+        });
+      }
+
+      function applyLocale(newLocale) {
+        if (!newLocale) return;
+        lang = String(newLocale).toLowerCase().startsWith('en') ? 'en' : 'ru';
+        try { localStorage.setItem('peekit_folder_lang', lang); } catch (_) {}
+
+        const btnLang = document.getElementById('btnToggleLang');
+        if (btnLang) {
+          btnLang.textContent = lang.toUpperCase();
+          btnLang.title = lang === 'ru' ? 'Переключить язык (RU / EN)' : 'Toggle Language (RU / EN)';
+        }
+
+        updateLocalization();
+        if (currentFolder) {
+          const stats = (currentFolder.extra && currentFolder.extra.folderStats) || {};
+          if (el.badgeFolders) el.badgeFolders.textContent = `${stats.folderCount || 0} ${t('folders')}`;
+          if (el.badgeFiles) el.badgeFiles.textContent = `${stats.fileCount || 0} ${t('files')}`;
+          if (allItems && allItems.length >= 1000 && el.badgeLimit) {
+            el.badgeLimit.textContent = t('limitBadge');
+          }
+          applyFilterAndSort();
+        }
+      }
+
       // IPC Setup
       function sendToHost(type, payload = {}) {
         window.parent.postMessage({ type, payload }, '*');
@@ -837,26 +907,47 @@
             handleInit(msg.payload);
             break;
 
-          case 'PEEKIT_THEME_CHANGED':
-            if (msg.payload?.theme) {
-              document.documentElement.setAttribute('data-theme', msg.payload.theme);
+          case 'PEEKIT_THEME_CHANGED': {
+            const payload = msg.payload || msg;
+            applyTheme(payload.theme !== undefined ? payload.theme : payload);
+            break;
+          }
+
+          case 'PEEKIT_LANGUAGE_CHANGED':
+          case 'PEEKIT_LOCALE_CHANGED': {
+            const payload = msg.payload || msg;
+            const newLang = payload.language || payload.locale || payload.lang || payload;
+            if (newLang) {
+              applyLocale(newLang);
             }
             break;
+          }
         }
       });
 
       // Signal ready until host responds
+      
+      const btnToggleLang = document.getElementById('btnToggleLang');
+      if (btnToggleLang) {
+        btnToggleLang.addEventListener('click', () => {
+          applyLocale(lang === 'ru' ? 'en' : 'ru');
+        });
+      }
+      applyLocale(lang);
+
       readyTimer = setInterval(() => sendToHost('PEEKIT_READY'), 100);
       sendToHost('PEEKIT_READY');
 
       function handleInit(payload) {
         if (!payload) return;
         currentFolder = payload;
-        lang = (payload.language === 'ru' || payload.language === 'en') ? payload.language : 'ru';
-
-        if (payload.theme) {
-          document.documentElement.setAttribute('data-theme', payload.theme);
+        const langVal = payload.language || payload.locale || payload.lang || (payload.settings && (payload.settings.language || payload.settings.locale));
+        if (langVal) {
+          applyLocale(langVal);
         }
+
+        const themeVal = payload.theme || (payload.settings && payload.settings.theme) || payload.isDark;
+        applyTheme(themeVal !== undefined ? themeVal : payload);
 
         updateLocalization();
 
@@ -884,14 +975,28 @@
       }
 
       function updateLocalization() {
-        el.searchInput.placeholder = t('searchPlaceholder');
-        el.txtColName.textContent = t('colName');
-        el.txtColType.textContent = t('colType');
-        el.txtColSize.textContent = t('colSize');
-        el.txtColDate.textContent = t('colDate');
-        el.txtHintOpen.textContent = t('hintOpen');
-        el.txtHintNav.textContent = t('hintNav');
-        el.txtHintEsc.textContent = t('hintEsc');
+        if (el.searchInput) el.searchInput.placeholder = t('searchPlaceholder');
+        if (el.txtColName) el.txtColName.textContent = t('colName');
+        if (el.txtColType) el.txtColType.textContent = t('colType');
+        if (el.txtColSize) el.txtColSize.textContent = t('colSize');
+        if (el.txtColDate) el.txtColDate.textContent = t('colDate');
+        if (el.txtHintOpen) el.txtHintOpen.textContent = t('hintOpen');
+        if (el.txtHintNav) el.txtHintNav.textContent = t('hintNav');
+        if (el.txtHintEsc) el.txtHintEsc.textContent = t('hintEsc');
+
+        if (el.folderName && (el.folderName.textContent === 'Папка' || el.folderName.textContent === 'Folder')) {
+          el.folderName.textContent = t('folderDefault');
+        }
+        if (el.btnRevealFolder) el.btnRevealFolder.title = t('revealFolderTitle');
+        if (el.folderPath) el.folderPath.title = t('copyPathTitle');
+        if (el.badgeLimit && (el.badgeLimit.textContent.includes('1000+') || el.badgeLimit.textContent.includes('1000+'))) {
+          el.badgeLimit.textContent = t('limitBadge');
+        }
+        if (el.searchClearBtn) el.searchClearBtn.title = t('searchClearTitle');
+        if (el.btnViewTable) el.btnViewTable.title = t('viewTableTitle');
+        if (el.btnViewGrid) el.btnViewGrid.title = t('viewGridTitle');
+        if (el.btnOpenExplorer) el.btnOpenExplorer.title = t('openExplorerTitle');
+        if (el.breakdownBar) el.breakdownBar.title = t('breakdownTitle');
       }
 
       function renderBreakdown(items) {

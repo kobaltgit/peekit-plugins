@@ -27,7 +27,7 @@
       --shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
     }
 
-    body.light {
+    [data-theme="light"], body.light {
       --bg-color: #f3f3f6;
       --panel-bg: rgba(255, 255, 255, 0.9);
       --panel-border: rgba(0, 0, 0, 0.08);
@@ -96,7 +96,7 @@
       letter-spacing: 0.5px;
     }
 
-    body.light .eps-badge {
+    [data-theme="light"] .eps-badge, body.light .eps-badge {
       background: linear-gradient(135deg, #fbe9e7, #ffccbc);
       color: #d84315;
       border-color: rgba(216, 67, 21, 0.3);
@@ -301,6 +301,8 @@
       </div>
 
       <div class="tool-section">
+        <button class="icon-btn" id="btnToggleLang" title="Переключить язык (RU / EN)" style="font-weight:600;font-size:11px;min-width:32px;">RU</button>
+        <button class="icon-btn" id="btnThemeToggle" title="Сменить тему оформления" style="font-size:12px;">🌓</button>
         <div class="btn-group">
           <button class="icon-btn" id="btn-zoom-out" title="Уменьшить (Ctrl -)">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -3429,6 +3431,140 @@ X.B(E,Y);return E}return J}())
         }
       }
 
+      // --- Theme Engine ---
+      function applyTheme(themeData) {
+        let isDark = true;
+        let accent = null;
+
+        if (typeof themeData === 'string') {
+          isDark = themeData.toLowerCase() !== 'light';
+        } else if (typeof themeData === 'boolean') {
+          isDark = themeData;
+        } else if (themeData && typeof themeData === 'object') {
+          if (typeof themeData.isDark === 'boolean') isDark = themeData.isDark;
+          else if (typeof themeData.theme === 'string') isDark = themeData.theme.toLowerCase() !== 'light';
+          else if (typeof themeData.mode === 'string') isDark = themeData.mode.toLowerCase() !== 'light';
+          if (themeData.accentColor) accent = themeData.accentColor;
+          else if (themeData.accent) accent = themeData.accent;
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+          isDark = false;
+        }
+
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        document.body.classList.toggle('light', !isDark);
+        checkerPattern = null;
+        if (typeof scheduleRender === 'function') scheduleRender();
+        if (accent) {
+          document.documentElement.style.setProperty('--accent', accent);
+        }
+      }
+
+      if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+          applyTheme(e.matches ? 'dark' : 'light');
+        });
+      }
+
+      // --- Localization Engine ---
+      const I18N = {
+        ru: {
+          langBtn: 'RU',
+          langTitle: 'Переключить язык (RU / EN)',
+          themeTitle: 'Сменить тему оформления',
+          zoomIn: 'Увеличить (Ctrl +)',
+          zoomOut: 'Уменьшить (Ctrl -)',
+          fit: 'Вписать в окно (Пробел)',
+          actual: '100% масштаб',
+          engineVector: 'Вектор',
+          engineRaster: 'Растр',
+          loading: 'Чтение PostScript файла...',
+          errTitle: 'Ошибка чтения EPS',
+          errMsg: 'Не удалось декодировать структуру PostScript.'
+        },
+        en: {
+          langBtn: 'EN',
+          langTitle: 'Toggle Language (RU / EN)',
+          themeTitle: 'Toggle Theme',
+          zoomIn: 'Zoom In (Ctrl +)',
+          zoomOut: 'Zoom Out (Ctrl -)',
+          fit: 'Fit to Window (Space)',
+          actual: '100% Scale',
+          engineVector: 'Vector',
+          engineRaster: 'Raster',
+          loading: 'Reading PostScript file...',
+          errTitle: 'EPS Read Error',
+          errMsg: 'Failed to decode PostScript structure.'
+        }
+      };
+
+      let currentLocale = localStorage.getItem('peekit_eps_lang') || 'ru';
+
+      function applyLocale(locale) {
+        if (!locale) return;
+        const normalized = String(locale).toLowerCase().startsWith('en') ? 'en' : 'ru';
+        currentLocale = normalized;
+        try { localStorage.setItem('peekit_eps_lang', currentLocale); } catch (_) {}
+
+        const dict = I18N[currentLocale] || I18N.ru;
+        const btnLang = document.getElementById('btnToggleLang');
+        if (btnLang) {
+          btnLang.textContent = dict.langBtn;
+          btnLang.title = dict.langTitle;
+        }
+        const btnTheme = document.getElementById('btnThemeToggle');
+        if (btnTheme) {
+          btnTheme.title = dict.themeTitle;
+        }
+
+        const btnZoomIn = document.getElementById('btn-zoom-in');
+        if (btnZoomIn) btnZoomIn.title = dict.zoomIn;
+        const btnZoomOut = document.getElementById('btn-zoom-out');
+        if (btnZoomOut) btnZoomOut.title = dict.zoomOut;
+        const btnFit = document.getElementById('btn-fit');
+        if (btnFit) btnFit.title = dict.fit;
+        const btnActual = document.getElementById('btn-actual');
+        if (btnActual) btnActual.title = dict.actual;
+
+        const metaEngine = document.getElementById('meta-engine');
+        if (metaEngine) {
+          const isRaster = metaEngine.classList.contains('engine-raster');
+          metaEngine.textContent = isRaster ? dict.engineRaster : dict.engineVector;
+        }
+
+        const loaderText = document.querySelector('.loader-text');
+        if (loaderText) loaderText.textContent = dict.loading;
+        const errorTitle = document.querySelector('.error-title');
+        if (errorTitle) errorTitle.textContent = dict.errTitle;
+        const errorMsg = document.getElementById('error-msg');
+        if (errorMsg) errorMsg.textContent = dict.errMsg;
+      }
+
+      // Initialize UI controls
+      const btnToggleLang = document.getElementById('btnToggleLang');
+      if (btnToggleLang) {
+        btnToggleLang.addEventListener('click', (e) => {
+          if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+          const nextLocale = currentLocale === 'ru' ? 'en' : 'ru';
+          applyLocale(nextLocale);
+          window.parent.postMessage({ type: 'PEEKIT_LANGUAGE_CHANGED', payload: { language: nextLocale } }, '*');
+        });
+      }
+      const btnThemeToggle = document.getElementById('btnThemeToggle');
+      if (btnThemeToggle) {
+        btnThemeToggle.addEventListener('click', (e) => {
+          if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+          const isCurrentDark = document.documentElement.getAttribute('data-theme') !== 'light';
+          applyTheme(isCurrentDark ? 'light' : 'dark');
+        });
+      }
+      applyLocale(currentLocale);
+
       // Send PEEKIT_READY (max 3 attempts, 300ms apart)
       let readyAttempts = 0;
       const readyInterval = setInterval(() => {
@@ -3452,12 +3588,13 @@ X.B(E,Y);return E}return J}())
             clearInterval(readyInterval);
 
             const payload = msg.payload || msg;
-            if (payload.theme) {
-              const isLight = payload.theme === 'light' || (typeof payload.theme === 'object' && payload.theme.isDark === false);
-              document.body.classList.toggle('light', isLight);
-              checkerPattern = null;
-              scheduleRender();
+            const langVal = payload.language || payload.locale || payload.lang || (payload.settings && (payload.settings.language || payload.settings.locale));
+            if (langVal) {
+              applyLocale(langVal);
             }
+
+            const themeVal = payload.theme || (payload.settings && payload.settings.theme) || payload.isDark;
+            applyTheme(themeVal !== undefined ? themeVal : payload);
 
             // Deduplicate data requests
             const currentPath = payload.filePath || payload.fileName;
@@ -3476,12 +3613,17 @@ X.B(E,Y);return E}return J}())
           }
 
           case 'PEEKIT_THEME_CHANGED': {
-            const theme = msg.payload?.theme || msg.theme;
-            if (theme) {
-              const isLight = theme === 'light' || (typeof theme === 'object' && theme.isDark === false);
-              document.body.classList.toggle('light', isLight);
-              checkerPattern = null;
-              scheduleRender();
+            const payload = msg.payload || msg;
+            applyTheme(payload.theme !== undefined ? payload.theme : payload);
+            break;
+          }
+
+          case 'PEEKIT_LANGUAGE_CHANGED':
+          case 'PEEKIT_LOCALE_CHANGED': {
+            const payload = msg.payload || msg;
+            const newLang = payload.language || payload.locale || payload.lang || payload;
+            if (newLang) {
+              applyLocale(newLang);
             }
             break;
           }

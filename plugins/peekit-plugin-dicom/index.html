@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DICOM Medical Viewer</title>
   <style>
-    :root {
+    :root, [data-theme="dark"] {
       --bg-base: #090d16;
       --bg-surface: #0f172a;
       --bg-card: rgba(30, 41, 59, 0.7);
@@ -18,6 +18,29 @@
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
       --hud-text: #38bdf8;
+      --header-bg: rgba(15, 23, 42, 0.92);
+      --drawer-bg: #0b1120;
+      --bottom-bg: rgba(15, 23, 42, 0.94);
+      --input-bg: rgba(255, 255, 255, 0.05);
+    }
+
+    [data-theme="light"] {
+      --bg-base: #0b1120;
+      --bg-surface: #ffffff;
+      --bg-card: rgba(241, 245, 249, 0.92);
+      --bg-card-border: rgba(0, 0, 0, 0.12);
+      --bg-hover: rgba(0, 0, 0, 0.06);
+      --accent: #0284c7;
+      --accent-glow: rgba(2, 132, 199, 0.25);
+      --accent-active: #0369a1;
+      --measure-color: #d97706;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --hud-text: #38bdf8;
+      --header-bg: rgba(248, 250, 252, 0.95);
+      --drawer-bg: #ffffff;
+      --bottom-bg: rgba(248, 250, 252, 0.95);
+      --input-bg: rgba(0, 0, 0, 0.05);
     }
 
     * {
@@ -42,7 +65,7 @@
     /* Top Navigation Bar */
     .header-bar {
       height: 48px;
-      background: rgba(15, 23, 42, 0.92);
+      background: var(--header-bg);
       border-bottom: 1px solid var(--bg-card-border);
       backdrop-filter: blur(12px);
       display: flex;
@@ -262,7 +285,7 @@
       left: 50%;
       transform: translateX(-50%);
       z-index: 60;
-      background: rgba(15, 23, 42, 0.94);
+      background: var(--bottom-bg);
       border: 1px solid var(--bg-card-border);
       backdrop-filter: blur(14px);
       border-radius: 10px;
@@ -285,7 +308,7 @@
 
     .wl-input {
       width: 60px;
-      background: rgba(0, 0, 0, 0.4);
+      background: var(--input-bg);
       border: 1px solid var(--bg-card-border);
       border-radius: 4px;
       color: var(--text-main);
@@ -317,7 +340,7 @@
       width: 480px;
       max-width: 90vw;
       height: 100%;
-      background: #0b1120;
+      background: var(--drawer-bg);
       border-left: 1px solid var(--bg-card-border);
       display: flex;
       flex-direction: column;
@@ -362,7 +385,7 @@
 
     .search-input {
       width: 100%;
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--input-bg);
       border: 1px solid var(--bg-card-border);
       border-radius: 6px;
       padding: 6px 10px;
@@ -394,7 +417,7 @@
       border-bottom: 1px solid var(--bg-card-border);
       position: sticky;
       top: 0;
-      background: #0b1120;
+      background: var(--drawer-bg);
       z-index: 2;
     }
 
@@ -411,7 +434,7 @@
 
     .tag-id { color: var(--accent); }
     .tag-name { color: var(--text-muted); }
-    .tag-val { color: #ffffff; }
+    .tag-val { color: var(--text-main); }
 
     /* Toast Pill */
     .toast-pill {
@@ -495,15 +518,16 @@
     <!-- Center Hounsfield Window Presets -->
     <div class="header-center">
       <div class="preset-group">
-        <button class="btn-top btn-preset" id="preBone" title="Костное окно (W:2000, L:300)">🦴 <span class="btn-lbl">Кости</span></button>
-        <button class="btn-top btn-preset" id="preLung" title="Лёгочное окно (W:1500, L:-600)">🫁 <span class="btn-lbl">Лёгкие</span></button>
-        <button class="btn-top btn-preset" id="preBrain" title="Мозг / Мягкие ткани (W:80, L:40)">🧠 <span class="btn-lbl">Мозг</span></button>
-        <button class="btn-top btn-preset" id="preSoft" title="Брюшная полость / Ткани (W:400, L:50)">🥩 <span class="btn-lbl">Ткани</span></button>
-        <button class="btn-top btn-preset" id="preReset" title="Сбросить к окну из файла">🔄 <span class="btn-lbl">Сброс</span></button>
+        <button class="btn-top btn-preset" id="preBone" title="Костное окно (W:2000, L:300)">🦴 <span class="btn-lbl" id="lblBone">Кости</span></button>
+        <button class="btn-top btn-preset" id="preLung" title="Лёгочное окно (W:1500, L:-600)">🫁 <span class="btn-lbl" id="lblLung">Лёгкие</span></button>
+        <button class="btn-top btn-preset" id="preBrain" title="Мозг / Мягкие ткани (W:80, L:40)">🧠 <span class="btn-lbl" id="lblBrain">Мозг</span></button>
+        <button class="btn-top btn-preset" id="preSoft" title="Брюшная полость / Ткани (W:400, L:50)">🥩 <span class="btn-lbl" id="lblSoft">Ткани</span></button>
+        <button class="btn-top btn-preset" id="preReset" title="Сбросить к окну из файла">🔄 <span class="btn-lbl" id="lblReset">Сброс</span></button>
       </div>
     </div>
 
     <div class="header-right">
+      <button class="btn-top" id="btnToggleLang" title="Переключить язык (RU / EN)" style="font-weight:600;font-size:11px;min-width:32px;display:inline-flex;align-items:center;justify-content:center;">RU</button>
       <button class="btn-top" id="btnRuler" title="Инструмент линейки (измерение в мм)">
         📏 <span class="btn-lbl" id="lblRuler">Линейка</span>
       </button>
@@ -523,11 +547,11 @@
       </div>
 
       <button class="btn-top" id="btnSnapshot" title="Скопировать кадр / Сохранить в PNG (Ctrl+C)">
-        📷 <span class="btn-lbl">Снимок</span>
+        📷 <span class="btn-lbl" id="lblSnapshot">Снимок</span>
       </button>
 
       <button class="btn-top" id="btnTags" title="Инспектор всех тегов DICOM">
-        📋 <span class="btn-lbl">Теги</span>
+        📋 <span class="btn-lbl" id="lblTags">Теги</span>
       </button>
     </div>
   </header>
@@ -555,7 +579,7 @@
 
     <div class="hud-corner hud-bottom-left">
       <div class="hud-line" id="hudWindow">WL: 40  WW: 400</div>
-      <div class="hud-line" style="color: #64748b; font-size: 10px;">(ПКМ + движение: контраст/яркость)</div>
+      <div class="hud-line" id="hudWindowTip" style="color: #64748b; font-size: 10px;">(ПКМ + движение: контраст/яркость)</div>
     </div>
 
     <div class="hud-corner hud-bottom-right">
@@ -583,10 +607,10 @@
     <div class="drawer-content">
       <div class="drawer-header">
         <div class="drawer-title">
-          <span>📋 Метаданные DICOM</span>
+          <span id="drawerTitleText">📋 Метаданные DICOM</span>
           <span class="meta-chip" id="tagsCount">0 тегов</span>
         </div>
-        <button class="drawer-close" id="btnCloseDrawer">&times;</button>
+        <button class="drawer-close" id="btnCloseDrawer" title="Закрыть">&times;</button>
       </div>
       <div class="drawer-search">
         <input type="text" class="search-input" id="inputTagSearch" placeholder="Поиск тега по номеру или названию...">
@@ -595,9 +619,9 @@
         <table class="tags-table">
           <thead>
             <tr>
-              <th style="width: 80px;">Тег</th>
-              <th style="width: 140px;">Название</th>
-              <th>Значение</th>
+              <th id="thTag" style="width: 80px;">Тег</th>
+              <th id="thName" style="width: 140px;">Название</th>
+              <th id="thVal">Значение</th>
             </tr>
           </thead>
           <tbody id="tagsTableBody"></tbody>
@@ -897,9 +921,9 @@
       // Render DICOM Pixels to HTML5 Canvas (High Performance 60 FPS)
       let cachedImgData = null;
       let cachedData32 = null;
-      let fileMinHU = 0;
-      let fileMaxHU = 4000;
-      let isCT = false;
+      let fileMinHU = -1000;
+      let fileMaxHU = 3000;
+      let isCT = true;
 
       function renderDicom() {
         if (!dicomData || !pixelData) return;
@@ -1014,7 +1038,8 @@
         if (dicomData?.pixelSpacing) {
           const [rowSpacing, colSpacing] = dicomData.pixelSpacing;
           const distMm = Math.sqrt(Math.pow(dx * colSpacing, 2) + Math.pow(dy * rowSpacing, 2));
-          distText = `${distMm.toFixed(1)} мм`;
+          const dict = I18N[currentLocale] || I18N.ru;
+          distText = `${distMm.toFixed(1)} ${dict.mm}`;
         } else {
           const distPx = Math.sqrt(dx * dx + dy * dy);
           distText = `${distPx.toFixed(0)} px`;
@@ -1104,58 +1129,67 @@
         clearActivePreset();
         if (activeBtn) activeBtn.classList.add('active');
         renderDicom();
-        showToast(`Окно: ${presetName} (WL: ${windowCenter}, WW: ${windowWidth})`);
+        const dict = I18N[currentLocale] || I18N.ru;
+showToast(`${dict.windowToast} ${presetName} (WL: ${windowCenter}, WW: ${windowWidth})`);
       }
 
       preBone.addEventListener('click', (e) => {
         e.stopPropagation();
+        const dict = I18N[currentLocale] || I18N.ru;
         if (isCT) {
-          setWindow(300, 1500, 'Кости (Bone)', preBone);
+          setWindow(300, 1500, dict.bone, preBone);
         } else {
           const span = fileMaxHU - fileMinHU;
-          setWindow(fileMinHU + span * 0.75, span * 0.5, 'Плотные структуры', preBone);
+          setWindow(fileMinHU + span * 0.75, span * 0.5, dict.boneNonCT, preBone);
         }
       });
 
       preLung.addEventListener('click', (e) => {
         e.stopPropagation();
+        const dict = I18N[currentLocale] || I18N.ru;
         if (isCT) {
-          setWindow(-600, 1500, 'Лёгкие (Lung)', preLung);
+          setWindow(-600, 1500, dict.lung, preLung);
         } else {
           const span = fileMaxHU - fileMinHU;
-          setWindow(fileMinHU + span * 0.25, span * 0.5, 'Прозрачные структуры', preLung);
+          setWindow(fileMinHU + span * 0.25, span * 0.5, dict.lungNonCT, preLung);
         }
       });
 
       preBrain.addEventListener('click', (e) => {
         e.stopPropagation();
+        const dict = I18N[currentLocale] || I18N.ru;
         if (isCT) {
-          setWindow(40, 80, 'Мозг (Brain)', preBrain);
+          setWindow(40, 80, dict.brain, preBrain);
         } else {
           const span = fileMaxHU - fileMinHU;
-          setWindow(fileMinHU + span * 0.5, span * 0.35, 'Высокий контраст', preBrain);
+          setWindow(fileMinHU + span * 0.5, span * 0.35, dict.brainNonCT, preBrain);
         }
       });
 
       preSoft.addEventListener('click', (e) => {
         e.stopPropagation();
+        const dict = I18N[currentLocale] || I18N.ru;
         if (isCT) {
-          setWindow(50, 350, 'Мягкие ткани (Soft)', preSoft);
+          setWindow(50, 350, dict.soft, preSoft);
         } else {
           const span = fileMaxHU - fileMinHU;
-          setWindow(fileMinHU + span * 0.5, span * 0.9, 'Широкий диапазон', preSoft);
+          setWindow(fileMinHU + span * 0.5, span * 0.9, dict.softNonCT, preSoft);
         }
       });
 
       preReset.addEventListener('click', (e) => {
         e.stopPropagation();
-        setWindow(defaultWL, defaultWW, 'По умолчанию', preReset);
+        const dict = I18N[currentLocale] || I18N.ru;
+        setWindow(defaultWL, defaultWW, dict.reset, preReset);
       });
 
       // Bottom Bar Events (prevent drag/pan when interacting with sliders)
-      ['mousedown', 'pointerdown', 'touchstart', 'click', 'dblclick'].forEach(evt => {
-        bottomBar.addEventListener(evt, (e) => e.stopPropagation());
-      });
+      const bottomBarEl = document.getElementById('bottomBar');
+      if (bottomBarEl) {
+        ['mousedown', 'pointerdown', 'touchstart', 'click', 'dblclick'].forEach(evt => {
+          bottomBarEl.addEventListener(evt, (e) => e.stopPropagation());
+        });
+      }
 
       // Slider Handlers
       sliderWL.addEventListener('input', () => {
@@ -1203,7 +1237,8 @@
           isRulerDragging = false;
         }
         renderOverlay();
-        showToast(isMeasuring ? '📏 Линейка: зажмите и потяните или кликните две точки' : 'Линейка выключена');
+        const dict = I18N[currentLocale] || I18N.ru;
+showToast(isMeasuring ? dict.rulerToastOn : dict.rulerToastOff);
       });
 
       // Invert Colors
@@ -1212,7 +1247,8 @@
         isInverted = !isInverted;
         btnInvert.classList.toggle('active', isInverted);
         renderDicom();
-        showToast(isInverted ? 'Негатив (Инверсия)' : 'Позитив');
+        const dict = I18N[currentLocale] || I18N.ru;
+showToast(isInverted ? dict.negative : dict.positive);
       });
 
       // Rotate 90 deg
@@ -1339,14 +1375,15 @@
               const intercept = dicomData.rescaleIntercept || 0;
               const hu = Math.round(raw * slope + intercept);
 
+              const dict = I18N[currentLocale] || I18N.ru;
               let tissue = '';
               if (isCT) {
-                if (hu < -900) tissue = '(Воздух)';
-                else if (hu >= -100 && hu <= -50) tissue = '(Жир)';
-                else if (hu >= -10 && hu <= 15) tissue = '(Жидкость)';
-                else if (hu >= 20 && hu <= 60) tissue = '(Мягкие ткани)';
-                else if (hu >= 80 && hu <= 200) tissue = '(Кровь / Контраст)';
-                else if (hu > 250) tissue = '(Кость)';
+                if (hu < -900) tissue = `(${dict.tissueAir})`;
+                else if (hu >= -100 && hu <= -50) tissue = `(${dict.tissueFat})`;
+                else if (hu >= -10 && hu <= 15) tissue = `(${dict.tissueFluid})`;
+                else if (hu >= 20 && hu <= 60) tissue = `(${dict.tissueSoft})`;
+                else if (hu >= 80 && hu <= 200) tissue = `(${dict.tissueBlood})`;
+                else if (hu > 250) tissue = `(${dict.tissueBone})`;
               }
 
               hudCursorDensity.textContent = `X: ${px}  Y: ${py} | ${hu} ${isCT ? 'HU' : 'val'} ${tissue}`;
@@ -1416,7 +1453,8 @@
           t.value.toLowerCase().includes(q)
         );
 
-        tagsCount.textContent = `${list.length} тегов`;
+        const dict = I18N[currentLocale] || I18N.ru;
+tagsCount.textContent = `${list.length} ${currentLocale === 'ru' ? 'тегов' : 'tags'}`;
         tagsTableBody.innerHTML = list.map(t => `
           <tr>
             <td class="tag-id">${t.tag}</td>
@@ -1469,7 +1507,8 @@
             mimeType: 'image/png'
           });
 
-          showToast(clipOk ? '📷 Снимок сохранён и скопирован в буфер!' : '📷 Запрос сохранения отправлен');
+          const dict = I18N[currentLocale] || I18N.ru;
+showToast(clipOk ? dict.toastCopied : dict.toastSaved);
         }, 'image/png');
       }
 
@@ -1521,7 +1560,259 @@
         }
       });
 
+      
+      // --- Theme Engine ---
+      function applyTheme(themeData) {
+        let isDark = true;
+        let accent = null;
+
+        if (typeof themeData === 'string') {
+          isDark = themeData.toLowerCase() !== 'light';
+        } else if (typeof themeData === 'boolean') {
+          isDark = themeData;
+        } else if (themeData && typeof themeData === 'object') {
+          if (typeof themeData.isDark === 'boolean') isDark = themeData.isDark;
+          else if (typeof themeData.theme === 'string') isDark = themeData.theme.toLowerCase() !== 'light';
+          else if (typeof themeData.mode === 'string') isDark = themeData.mode.toLowerCase() !== 'light';
+          if (themeData.accentColor) accent = themeData.accentColor;
+          else if (themeData.accent) accent = themeData.accent;
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+          isDark = false;
+        }
+
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        document.body.classList.toggle('dark-theme', isDark);
+        document.body.classList.toggle('light-theme', !isDark);
+        if (accent) {
+          document.documentElement.style.setProperty('--accent', accent);
+        }
+      }
+
+      if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+          applyTheme(e.matches ? 'dark' : 'light');
+        });
+      }
+
+      // --- Localization Engine ---
+      const I18N = {
+        ru: {
+          langBtn: 'RU',
+          langTitle: 'Переключить язык (RU / EN)',
+          loading: 'Загрузка и парсинг DICOM...',
+          toastCopied: '📷 Снимок сохранён и скопирован в буфер!',
+          toastSaved: '📷 Запрос сохранения отправлен',
+          bone: 'Кости',
+          soft: 'Ткани',
+          lung: 'Лёгкие',
+          brain: 'Мозг',
+          reset: 'Сброс',
+          boneTitle: 'Костное окно (WL:300, WW:1500)',
+          lungTitle: 'Лёгочное окно (WL:-600, WW:1500)',
+          brainTitle: 'Мозг / Мягкие ткани (WL:40, WW:80)',
+          softTitle: 'Брюшная полость / Ткани (WL:50, WW:350)',
+          resetTitle: 'Сбросить к окну из файла',
+          boneNonCT: 'Плотные',
+          softNonCT: 'Широкий',
+          lungNonCT: 'Прозрачные',
+          brainNonCT: 'Контраст',
+          boneNonCTTitle: 'Плотные структуры (верхний диапазон)',
+          lungNonCTTitle: 'Прозрачные структуры (нижний диапазон)',
+          brainNonCTTitle: 'Узкое контрастное окно',
+          softNonCTTitle: 'Широкий динамический диапазон',
+          ruler: 'Линейка',
+          rulerTitle: 'Инструмент линейки (измерение в мм)',
+          closeTitle: 'Закрыть',
+          tagsCountZero: '0 тегов',
+          snapshot: 'Снимок',
+          snapshotTitle: 'Скопировать кадр / Сохранить в PNG (Ctrl+C)',
+          tags: 'Теги',
+          tagsTitle: 'Инспектор всех тегов DICOM',
+          invertTitle: 'Инвертировать цвета (I)',
+          rotateTitle: 'Повернуть на 90° (R)',
+          zoomInTitle: 'Увеличить (+)',
+          zoomOutTitle: 'Уменьшить (-)',
+          zoomResetTitle: 'Сбросить масштаб (100%)',
+          windowTip: '(ПКМ + движение: контраст/яркость)',
+          metadataTitle: '📋 Метаданные DICOM',
+          searchPlaceholder: 'Поиск тега по номеру или названию...',
+          thTag: 'Тег',
+          thName: 'Название',
+          thVal: 'Значение',
+          mm: 'мм',
+          anonymous: 'Аноним',
+          windowToast: 'Окно:',
+          rulerToastOn: '📏 Линейка: зажмите и потяните или кликните две точки',
+          rulerToastOff: 'Линейка выключена',
+          negative: 'Негатив (Инверсия)',
+          positive: 'Позитив',
+          tissueAir: 'Воздух',
+          tissueFat: 'Жир',
+          tissueFluid: 'Жидкость',
+          tissueSoft: 'Мягкие ткани',
+          tissueBlood: 'Кровь / Контраст',
+          tissueBone: 'Кость',
+          errRead: 'Ошибка чтения DICOM'
+        },
+        en: {
+          langBtn: 'EN',
+          langTitle: 'Switch Language (RU / EN)',
+          loading: 'Loading and parsing DICOM...',
+          toastCopied: '📷 Snapshot saved & copied to clipboard!',
+          toastSaved: '📷 Save request sent',
+          bone: 'Bone',
+          soft: 'Soft',
+          lung: 'Lung',
+          brain: 'Brain',
+          reset: 'Reset',
+          boneTitle: 'Bone window (WL:300, WW:1500)',
+          lungTitle: 'Lung window (WL:-600, WW:1500)',
+          brainTitle: 'Brain / Soft tissue (WL:40, WW:80)',
+          softTitle: 'Abdomen / Soft tissue (WL:50, WW:350)',
+          resetTitle: 'Reset to original file window',
+          boneNonCT: 'Dense',
+          softNonCT: 'Wide',
+          lungNonCT: 'Lucent',
+          brainNonCT: 'Contrast',
+          boneNonCTTitle: 'Dense structures (high range)',
+          lungNonCTTitle: 'Lucent structures (low range)',
+          brainNonCTTitle: 'Narrow contrast window',
+          softNonCTTitle: 'Wide dynamic range',
+          ruler: 'Ruler',
+          rulerTitle: 'Ruler tool (measure distance in mm)',
+          closeTitle: 'Close',
+          tagsCountZero: '0 tags',
+          snapshot: 'Snapshot',
+          snapshotTitle: 'Copy frame / Save to PNG (Ctrl+C)',
+          tags: 'Tags',
+          tagsTitle: 'Inspect all DICOM tags',
+          invertTitle: 'Invert colors (I)',
+          rotateTitle: 'Rotate 90° (R)',
+          zoomInTitle: 'Zoom in (+)',
+          zoomOutTitle: 'Zoom out (-)',
+          zoomResetTitle: 'Reset zoom (100%)',
+          windowTip: '(RMB + drag: contrast/brightness)',
+          metadataTitle: '📋 DICOM Metadata',
+          searchPlaceholder: 'Search tag by ID or name...',
+          thTag: 'Tag',
+          thName: 'Name',
+          thVal: 'Value',
+          mm: 'mm',
+          anonymous: 'Anonymous',
+          windowToast: 'Window:',
+          rulerToastOn: '📏 Ruler: drag or click two points to measure',
+          rulerToastOff: 'Ruler disabled',
+          negative: 'Inverted (Negative)',
+          positive: 'Positive',
+          tissueAir: 'Air',
+          tissueFat: 'Fat',
+          tissueFluid: 'Fluid',
+          tissueSoft: 'Soft Tissue',
+          tissueBlood: 'Blood / Contrast',
+          tissueBone: 'Bone',
+          errRead: 'DICOM read error'
+        }
+      };
+
+      let currentLocale = localStorage.getItem('peekit_dicom_lang') || 'ru';
+
+      function applyLocale(locale) {
+        if (!locale) return;
+        const normalized = String(locale).toLowerCase().startsWith('en') ? 'en' : 'ru';
+        currentLocale = normalized;
+        try { localStorage.setItem('peekit_dicom_lang', currentLocale); } catch (_) {}
+        document.documentElement.setAttribute('lang', currentLocale);
+
+        const dict = I18N[currentLocale] || I18N.ru;
+        const btnLang = document.getElementById('btnToggleLang');
+        if (btnLang) {
+          btnLang.textContent = dict.langBtn;
+          btnLang.title = dict.langTitle;
+        }
+
+        const txtLoading = document.getElementById('txtLoading');
+        if (txtLoading) txtLoading.textContent = dict.loading;
+
+        if (toastPill && !toastPill.classList.contains('show')) {
+          toastPill.textContent = dict.toastCopied;
+        }
+
+        const lblBone = document.getElementById('lblBone') || document.querySelector('#preBone .btn-lbl');
+        if (lblBone) lblBone.textContent = isCT ? dict.bone : dict.boneNonCT;
+        const lblSoft = document.getElementById('lblSoft') || document.querySelector('#preSoft .btn-lbl');
+        if (lblSoft) lblSoft.textContent = isCT ? dict.soft : dict.softNonCT;
+        const lblLung = document.getElementById('lblLung') || document.querySelector('#preLung .btn-lbl');
+        if (lblLung) lblLung.textContent = isCT ? dict.lung : dict.lungNonCT;
+        const lblBrain = document.getElementById('lblBrain') || document.querySelector('#preBrain .btn-lbl');
+        if (lblBrain) lblBrain.textContent = isCT ? dict.brain : dict.brainNonCT;
+        const lblReset = document.getElementById('lblReset') || document.querySelector('#preReset .btn-lbl');
+        if (lblReset) lblReset.textContent = dict.reset;
+
+        if (preBone) preBone.title = isCT ? dict.boneTitle : dict.boneNonCTTitle;
+        if (preLung) preLung.title = isCT ? dict.lungTitle : dict.lungNonCTTitle;
+        if (preBrain) preBrain.title = isCT ? dict.brainTitle : dict.brainNonCTTitle;
+        if (preSoft) preSoft.title = isCT ? dict.softTitle : dict.softNonCTTitle;
+        if (preReset) preReset.title = dict.resetTitle;
+
+        const lblRuler = document.getElementById('lblRuler');
+        if (lblRuler) lblRuler.textContent = dict.ruler;
+        if (btnRuler) btnRuler.title = dict.rulerTitle;
+
+        const lblSnapshot = document.getElementById('lblSnapshot');
+        if (lblSnapshot) lblSnapshot.textContent = dict.snapshot;
+        if (btnSnapshot) btnSnapshot.title = dict.snapshotTitle;
+
+        const lblTags = document.getElementById('lblTags');
+        if (lblTags) lblTags.textContent = dict.tags;
+        if (btnTags) btnTags.title = dict.tagsTitle;
+
+        if (btnInvert) btnInvert.title = dict.invertTitle;
+        if (btnRotate) btnRotate.title = dict.rotateTitle;
+        if (btnZoomOut) btnZoomOut.title = dict.zoomOutTitle;
+        if (btnZoomIn) btnZoomIn.title = dict.zoomInTitle;
+        if (btnZoomReset) btnZoomReset.title = dict.zoomResetTitle;
+
+        const hudWindowTip = document.getElementById('hudWindowTip');
+        if (hudWindowTip) hudWindowTip.textContent = dict.windowTip;
+
+        const drawerTitleText = document.getElementById('drawerTitleText');
+        if (drawerTitleText) drawerTitleText.textContent = dict.metadataTitle;
+
+        if (btnCloseDrawer) btnCloseDrawer.title = dict.closeTitle;
+
+        if (tagsCount && (!dicomData || !dicomData.allTags)) {
+          tagsCount.textContent = dict.tagsCountZero;
+        }
+
+        const inputTagSearch = document.getElementById('inputTagSearch');
+        if (inputTagSearch) inputTagSearch.placeholder = dict.searchPlaceholder;
+
+        const thTag = document.getElementById('thTag');
+        if (thTag) thTag.textContent = dict.thTag;
+        const thName = document.getElementById('thName');
+        if (thName) thName.textContent = dict.thName;
+        const thVal = document.getElementById('thVal');
+        if (thVal) thVal.textContent = dict.thVal;
+
+        if (dicomData && !dicomData.patientName) {
+          chipPatient.textContent = dict.anonymous;
+          hudPatientName.textContent = `PATIENT: ${dict.anonymous.toUpperCase()}`;
+        }
+
+        if (ruler) renderOverlay();
+      }
+
       // Host IPC Protocol Listeners
+      const btnToggleLang = document.getElementById('btnToggleLang');
+      if (btnToggleLang) {
+        btnToggleLang.addEventListener('click', () => {
+          const nextLocale = currentLocale === 'ru' ? 'en' : 'ru';
+          applyLocale(nextLocale);
+          sendToHost('PEEKIT_LANGUAGE_CHANGED', { locale: nextLocale, language: nextLocale });
+        });
+      }
+      applyLocale(currentLocale);
+
       let readyInterval = null;
 
       window.addEventListener('message', (event) => {
@@ -1537,6 +1828,22 @@
             handleInit(msg.payload);
             break;
 
+          case 'PEEKIT_THEME_CHANGED': {
+            const payload = msg.payload || msg;
+            applyTheme(payload.theme !== undefined ? payload.theme : payload);
+            break;
+          }
+
+          case 'PEEKIT_LANGUAGE_CHANGED':
+          case 'PEEKIT_LOCALE_CHANGED': {
+            const payload = msg.payload || msg;
+            const newLang = payload.language || payload.locale || payload.lang || payload;
+            if (newLang) {
+              applyLocale(newLang);
+            }
+            break;
+          }
+
           case 'PEEKIT_DATA_RESPONSE':
             if (readyInterval) {
               clearInterval(readyInterval);
@@ -1549,6 +1856,12 @@
 
       function handleInit(payload) {
         if (!payload) return;
+        const langVal = payload.language || payload.locale || payload.lang || (payload.settings && (payload.settings.language || payload.settings.locale));
+        if (langVal) {
+          applyLocale(langVal);
+        }
+        const themeVal = payload.theme || (payload.settings && payload.settings.theme) || payload.isDark;
+        applyTheme(themeVal !== undefined ? themeVal : payload);
         if (payload.filePath) {
           const sep = Math.max(payload.filePath.lastIndexOf('\\'), payload.filePath.lastIndexOf('/'));
           if (sep !== -1) originalFileDir = payload.filePath.substring(0, sep);
@@ -1610,11 +1923,12 @@
         }
 
         // Setup HUD & metadata chips
+        const dict = I18N[currentLocale] || I18N.ru;
         chipModality.textContent = dicomData.modality || 'DICOM';
         chipDim.textContent = `${dicomData.columns || 512}×${dicomData.rows || 512}`;
-        chipPatient.textContent = dicomData.patientName || 'Аноним';
+        chipPatient.textContent = dicomData.patientName || dict.anonymous;
 
-        hudPatientName.textContent = `PATIENT: ${dicomData.patientName || 'ANONYMOUS'}`;
+        hudPatientName.textContent = `PATIENT: ${dicomData.patientName || dict.anonymous.toUpperCase()}`;
         hudPatientId.textContent = `ID: ${dicomData.patientId || '--'}`;
         hudStudyDate.textContent = `DATE: ${dicomData.studyDate || '--'}`;
         hudInstitution.textContent = `INSTITUTION: ${dicomData.institutionName || 'PACS MEDICAL'}`;
@@ -1669,31 +1983,8 @@
         clearActivePreset();
         preReset.classList.add('active');
 
-        // Adapt preset titles in UI if non-CT
-        const lBone = preBone.querySelector('.btn-lbl');
-        const lLung = preLung.querySelector('.btn-lbl');
-        const lBrain = preBrain.querySelector('.btn-lbl');
-        const lSoft = preSoft.querySelector('.btn-lbl');
-
-        if (!isCT) {
-          if (lBone) lBone.textContent = 'Плотные';
-          preBone.title = 'Плотные структуры (верхний диапазон)';
-          if (lLung) lLung.textContent = 'Прозрачные';
-          preLung.title = 'Прозрачные структуры (нижний диапазон)';
-          if (lBrain) lBrain.textContent = 'Контраст';
-          preBrain.title = 'Узкое контрастное окно';
-          if (lSoft) lSoft.textContent = 'Широкий';
-          preSoft.title = 'Широкий динамический диапазон';
-        } else {
-          if (lBone) lBone.textContent = 'Кости';
-          preBone.title = 'Костное окно (WL:300, WW:1500)';
-          if (lLung) lLung.textContent = 'Лёгкие';
-          preLung.title = 'Лёгочное окно (WL:-600, WW:1500)';
-          if (lBrain) lBrain.textContent = 'Мозг';
-          preBrain.title = 'Мозг / Мягкие ткани (WL:40, WW:80)';
-          if (lSoft) lSoft.textContent = 'Ткани';
-          preSoft.title = 'Брюшная полость / Ткани (WL:50, WW:350)';
-        }
+        // Refresh UI preset labels and titles through applyLocale
+        applyLocale(currentLocale);
 
         loadingOverlay.style.display = 'none';
         fitToWindow();

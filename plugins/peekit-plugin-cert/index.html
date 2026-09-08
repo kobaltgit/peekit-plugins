@@ -711,6 +711,7 @@
     </div>
     <div class="header-actions">
       <div id="statusPillContainer"></div>
+      <button class="btn" id="btnToggleLang" title="Переключить язык (RU / EN)" style="font-weight:600;min-width:36px;justify-content:center;">RU</button>
       <button class="btn" id="btnCopyFingerprint" title="Копировать SHA-256 отпечаток">
         <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
         <span>SHA-256</span>
@@ -1938,6 +1939,81 @@
       }
     });
 
+    
+    // --- Localization Engine ---
+    const I18N = {
+      ru: {
+        langBtn: 'RU',
+        langTitle: 'Переключить язык (RU / EN)',
+        appTitle: 'Инспектор сертификатов и ключей',
+        tabOverview: 'Сводка',
+        tabRaw: 'Исходный текст',
+        copyRaw: 'Копировать',
+        copyRawTitle: 'Копировать исходный текст',
+        copyFp: 'SHA-256',
+        copyFpTitle: 'Копировать SHA-256 отпечаток',
+        copied: 'Скопировано в буфер обмена',
+        loading: 'Загрузка файла...',
+        errTitle: 'Не удалось прочитать сертификат',
+        errGeneric: 'Ошибка парсинга криптографических структур'
+      },
+      en: {
+        langBtn: 'EN',
+        langTitle: 'Toggle Language (RU / EN)',
+        appTitle: 'Certificate & Key Inspector',
+        tabOverview: 'Overview',
+        tabRaw: 'Raw Text',
+        copyRaw: 'Copy',
+        copyRawTitle: 'Copy raw text',
+        copyFp: 'SHA-256',
+        copyFpTitle: 'Copy SHA-256 fingerprint',
+        copied: 'Copied to clipboard',
+        loading: 'Loading file...',
+        errTitle: 'Failed to read certificate',
+        errGeneric: 'Cryptographic structure parsing error'
+      }
+    };
+
+    let currentLocale = localStorage.getItem('peekit_cert_lang') || 'ru';
+
+    function applyLocale(locale) {
+      if (!locale) return;
+      const normalized = String(locale).toLowerCase().startsWith('en') ? 'en' : 'ru';
+      currentLocale = normalized;
+      try { localStorage.setItem('peekit_cert_lang', currentLocale); } catch (_) {}
+
+      const dict = I18N[currentLocale] || I18N.ru;
+      const btnLang = document.getElementById('btnToggleLang');
+      if (btnLang) {
+        btnLang.textContent = dict.langBtn;
+        btnLang.title = dict.langTitle;
+      }
+      const headerTitle = document.getElementById('headerTitle');
+      if (headerTitle) headerTitle.textContent = dict.appTitle;
+
+      const tabOverview = document.querySelector('.nav-tab[data-tab="overview"] span');
+      if (tabOverview) tabOverview.textContent = dict.tabOverview;
+      const tabRaw = document.querySelector('.nav-tab[data-tab="raw"] span');
+      if (tabRaw) tabRaw.textContent = dict.tabRaw;
+
+      const btnCopyRawSpan = document.querySelector('#btnCopyRaw span');
+      if (btnCopyRawSpan) btnCopyRawSpan.textContent = dict.copyRaw;
+      const btnCopyRaw = document.getElementById('btnCopyRaw');
+      if (btnCopyRaw) btnCopyRaw.title = dict.copyRawTitle;
+
+      const btnCopyFp = document.getElementById('btnCopyFingerprint');
+      if (btnCopyFp) btnCopyFp.title = dict.copyFpTitle;
+
+      const headerSubtitle = document.getElementById('headerSubtitle');
+      if (headerSubtitle && (headerSubtitle.textContent.includes('Загрузка файла') || headerSubtitle.textContent.includes('Loading file'))) {
+        headerSubtitle.textContent = dict.loading;
+      }
+      const toastMsg = document.getElementById('toastMsg');
+      if (toastMsg && (toastMsg.textContent.includes('Скопировано в буфер') || toastMsg.textContent.includes('Copied to clipboard'))) {
+        toastMsg.textContent = dict.copied;
+      }
+    }
+
     // --- Theme & Appearance Engine ---
     let isSystemTheme = false;
 
@@ -2004,6 +2080,10 @@
           }
 
           const payload = msg.payload || msg;
+          const langVal = payload.language || payload.locale || payload.lang || (payload.settings && (payload.settings.language || payload.settings.locale));
+          if (langVal) {
+            applyLocale(langVal);
+          }
           if (payload.fileName) {
             currentFileName = payload.fileName;
           }
@@ -2015,6 +2095,16 @@
           break;
         }
 
+        
+        case 'PEEKIT_LANGUAGE_CHANGED':
+        case 'PEEKIT_LOCALE_CHANGED': {
+          const payload = msg.payload || msg;
+          const newLang = payload.language || payload.locale || payload.lang || payload;
+          if (newLang) {
+            applyLocale(newLang);
+          }
+          break;
+        }
         case 'PEEKIT_THEME_CHANGED': {
           const payload = msg.payload || msg;
           applyTheme(payload);
@@ -2080,6 +2170,15 @@
         }
       }
     });
+
+    
+    const btnToggleLang = document.getElementById('btnToggleLang');
+    if (btnToggleLang) {
+      btnToggleLang.addEventListener('click', () => {
+        applyLocale(currentLocale === 'ru' ? 'en' : 'ru');
+      });
+    }
+    applyLocale(currentLocale);
 
     // Send READY to Host until acknowledged with PEEKIT_INIT
     readyInterval = setInterval(() => {

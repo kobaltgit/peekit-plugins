@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PeekIt Plugin Dev Harness (Mock Host Pro)</title>
+  <style>
+    :root {
+      --panel-bg: #18181f;
+      --panel-header: #22222a;
+      --border-color: #343440;
+      --text-main: #f0f0f5;
+      --text-muted: #9494a8;
+      --accent: #0078d4;
+      --accent-hover: #1084d8;
+      --log-bg: #101014;
+      --log-text: #00e676;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --success: #10b981;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: var(--panel-bg);
+      color: var(--text-main);
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* Top Control Toolbar */
+    #toolbar {
+      background: var(--panel-header);
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      font-size: 13px;
+      z-index: 10;
+    }
+    .tool-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    label {
+      color: var(--text-muted);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+    }
+    input[type="text"], select {
+      background: #111116;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 5px 8px;
+      border-radius: 5px;
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="text"]:focus, select:focus {
+      border-color: var(--accent);
+    }
+    input[type="color"] {
+      -webkit-appearance: none;
+      border: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      cursor: pointer;
+      background: none;
+      padding: 0;
+    }
+    input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    input[type="color"]::-webkit-color-swatch { border: 1px solid var(--border-color); border-radius: 50%; }
+
+    button {
+      background: #2b2b36;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 5px 11px;
+      border-radius: 5px;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    button:hover {
+      background: #383848;
+      border-color: #525266;
+    }
+    button.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    /* Badges & Pills */
+    .pill {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: #24242e;
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--danger);
+      transition: background 0.2s;
+    }
+    .status-dot.connected {
+      background: var(--success);
+    }
+    #speedoBadge {
+      font-family: monospace;
+      color: var(--success);
+      font-weight: 600;
+    }
+    #keyTrapBadge {
+      display: none;
+      color: var(--warning);
+      border-color: rgba(245, 158, 11, 0.4);
+      background: rgba(245, 158, 11, 0.1);
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    /* Workspace */
+    #workspace {
+      flex: 1;
+      display: flex;
+      position: relative;
+      overflow: hidden;
+      background: #0d0d11;
+    }
+
+    /* Viewport Area with Window Frame Simulation */
+    #stage-container {
+      flex: 1;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: auto;
+      padding: 20px;
+    }
+    #window-mock {
+      background: #181818;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), height 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+    }
+    #window-header {
+      height: 32px;
+      background: #252528;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      font-size: 11px;
+      color: var(--text-muted);
+      justify-content: space-between;
+    }
+    .window-controls {
+      display: flex;
+      gap: 6px;
+    }
+    .win-btn {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #3e3e46;
+    }
+    #window-content {
+      flex: 1;
+      width: 100%;
+      position: relative;
+      background: #111;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: transparent;
+      display: block;
+    }
+
+    /* Drag & Drop Overlay */
+    #drop-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 120, 212, 0.15);
+      backdrop-filter: blur(8px);
+      border: 3px dashed var(--accent);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      z-index: 999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+    }
+    #drop-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .drop-icon {
+      font-size: 48px;
+    }
+    .drop-text {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Log Panel */
+    #log-panel {
+      width: 410px;
+      border-left: 1px solid var(--border-color);
+      background: var(--log-bg);
+      display: flex;
+      flex-direction: column;
+      font-family: "Cascadia Code", "Consolas", monospace;
+      font-size: 11px;
+      z-index: 5;
+    }
+    #log-header {
+      padding: 8px 12px;
+      background: #18181e;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--text-muted);
+      font-size: 11px;
+      gap: 6px;
+    }
+    #log-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 10px;
+      line-height: 1.45;
+    }
+    .log-line {
+      margin-bottom: 5px;
+      word-break: break-all;
+      border-left: 2px solid transparent;
+      padding-left: 6px;
+    }
+    .log-line.dir-in { border-color: #00bcd4; }
+    .log-line.dir-out { border-color: #ff9800; }
+    .log-line.dir-sys { border-color: #8b5cf6; }
+    .log-line.dir-err { border-color: #ef4444; background: rgba(239, 68, 68, 0.08); }
+    .log-time { color: #666; margin-right: 4px; }
+    .log-tag { font-weight: 700; margin-right: 6px; }
+    .log-tag-in { color: #00bcd4; }
+    .log-tag-out { color: #ff9800; }
+    .log-tag-sys { color: #a78bfa; }
+    .log-payload { color: #c9d1d9; font-size: 10.5px; }
+
+    /* Toast notification */
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      right: 440px;
+      background: #1f2937;
+      color: #fff;
+      border: 1px solid #374151;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 12px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.2s ease;
+      z-index: 1000;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Controls Toolbar -->
+  <div id="toolbar">
+    <!-- 1. Plugin Selection -->
+    <div class="tool-group">
+      <label title="Выберите плагин из списка">
+        Плагин:
+        <select id="pluginSelect" onchange="onPluginSelectChange(this.value)">
+          <option value="../plugins/peekit-plugin-svg/index.html">🎨 SVG Studio (.svg)</option>
+          <option value="../plugins/peekit-plugin-3d/index.html">🧊 3D Viewer (.stl, .obj, .gltf, .ply)</option>
+          <option value="../plugins/peekit-plugin-psd/index.html">🖼️ Photoshop PSD (.psd)</option>
+          <option value="../plugins/peekit-plugin-ai/index.html">🖌️ Illustrator AI (.ai)</option>
+          <option value="../plugins/peekit-plugin-docx/index.html">📄 Word Document (.docx)</option>
+          <option value="../plugins/peekit-plugin-sheet/index.html">📊 Spreadsheet (.xlsx, .csv)</option>
+          <option value="../plugins/peekit-plugin-slides/index.html">📽️ PowerPoint (.pptx)</option>
+          <option value="../plugins/peekit-plugin-font/index.html">🔤 Font Viewer (.ttf, .woff)</option>
+          <option value="../plugins/peekit-plugin-jupyter/index.html">📓 Jupyter (.ipynb)</option>
+          <option value="../plugins/peekit-plugin-sqlite/index.html">🗄️ SQLite (.db, .sqlite)</option>
+          <option value="../plugins/peekit-plugin-archive/index.html">📦 Archive (.zip, .tar)</option>
+          <option value="../plugins/peekit-plugin-video/index.html">🎬 Video Player (.mp4, .mkv)</option>
+          <option value="../plugins/peekit-plugin-geo/index.html">🗺️ Geo Viewer (.geojson, .kml)</option>
+          <option value="../plugins/peekit-plugin-ebook/index.html">📚 eBook (.epub, .fb2)</option>
+          <option value="../plugins/peekit-plugin-dds/index.html">🎮 DirectDraw Surface (.dds)</option>
+          <option value="../plugins/peekit-plugin-dicom/index.html">🏥 DICOM (.dcm)</option>
+          <option value="../plugins/peekit-plugin-eps/index.html">📐 EPS Vector (.eps)</option>
+          <option value="../plugins/peekit-plugin-cert/index.html">🔒 Certificate (.crt, .pem)</option>
+          <option value="../plugins/peekit-plugin-apk/index.html">📱 Android APK (.apk)</option>
+          <option value="../plugins/peekit-plugin-folder/index.html">📁 Folder Inspector</option>
+          <option value="custom">✏️ Свой путь к index.html...</option>
+        </select>
+      </label>
+      <input type="text" id="pluginUrl" value="../plugins/peekit-plugin-svg/index.html" style="width: 210px;" title="Относительный путь от mock-host.html к index.html плагина">
+      <button onclick="reloadPlugin(true)" title="Перезагрузить плагин">🔄</button>
+    </div>
+
+    <!-- 2. Test File Picker -->
+    <div class="tool-group">
+      <label title="Выберите тестовый файл или перетащите его прямо в окно мышкой">
+        Тестовый файл:
+        <input type="file" id="filePicker" style="max-width: 170px;">
+      </label>
+    </div>
+
+    <!-- 3. Viewport Size Preset -->
+    <div class="tool-group">
+      <label title="Эмуляция размера окна PeekIt">
+        Размер:
+        <select id="sizePreset" onchange="changeViewportPreset(this.value)">
+          <option value="standard" selected>Стандарт (960×680)</option>
+          <option value="compact">Компакт (800×560)</option>
+          <option value="hd">HD (1280×720)</option>
+          <option value="full">100% (Растянуть)</option>
+        </select>
+      </label>
+    </div>
+
+    <!-- 4. Theme, Accent & Language -->
+    <div class="tool-group">
+      <button onclick="toggleTheme()" id="btnTheme" title="Сменить тему оформления">🌙 Dark</button>
+      <input type="color" id="accentPicker" value="#0078d4" onchange="changeAccent(this.value)" title="Акцентный цвет Windows">
+      <button onclick="toggleLang()" id="btnLang" title="Сменить язык">🌐 RU</button>
+    </div>
+
+    <!-- 5. Chaos / Stress Tests -->
+    <div class="tool-group">
+      <select id="chaosSelect" onchange="runChaosTest(this.value)">
+        <option value="" disabled selected>🧪 Симуляция сбоев...</option>
+        <option value="corrupted">❌ Поврежденный файл (Error)</option>
+        <option value="empty">📄 Пустой буфер (0 байт)</option>
+        <option value="garbage">💣 Мусорные бинарные данные</option>
+      </select>
+    </div>
+
+    <!-- 6. Status, Speedo & Key Trap Warning -->
+    <div class="tool-group" style="margin-left: auto;">
+      <span id="keyTrapBadge">⚠️ Перехвачен Space/Esc!</span>
+      <span class="pill" title="Время от запуска iframe до готовности плагина">
+        ⚡ <span id="speedoBadge">— ms</span>
+      </span>
+      <div class="pill" id="statusPill">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Ожидание...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Workspace Area -->
+  <div id="workspace">
+    <div id="stage-container">
+      <!-- Simulated Window Frame -->
+      <div id="window-mock" style="width: 960px; height: 680px;">
+        <div id="window-header">
+          <span id="windowTitle">PeekIt Preview — Window Simulator</span>
+          <div class="window-controls">
+            <span class="win-btn"></span>
+            <span class="win-btn"></span>
+            <span class="win-btn"></span>
+          </div>
+        </div>
+        <div id="window-content">
+          <iframe id="pluginFrame" sandbox="allow-scripts allow-same-origin"></iframe>
+        </div>
+      </div>
+
+      <!-- Drag & Drop Visual Overlay -->
+      <div id="drop-overlay">
+        <div class="drop-icon">📥</div>
+        <div class="drop-text">Отпустите файл здесь для предпросмотра</div>
+        <div style="font-size: 12px; color: #a5d8ff;">(Файл моментально передастся в плагин через IPC)</div>
+      </div>
+    </div>
+
+    <!-- Right Side: IPC Logs -->
+    <div id="log-panel">
+      <div id="log-header">
+        <span>PeekIt IPC Log</span>
+        <div style="display: flex; gap: 4px; align-items: center;">
+          <select id="logFilter" onchange="filterLogs(this.value)" style="font-size: 10px; padding: 2px 4px;">
+            <option value="all">Все сообщения</option>
+            <option value="in">Только Plugin ➔ Host</option>
+            <option value="out">Только Host ➔ Plugin</option>
+            <option value="errors">Только Ошибки</option>
+          </select>
+          <button onclick="copyLogToClipboard()" style="padding: 2px 6px; font-size: 10px;" title="Скопировать лог в буфер">📋</button>
+          <button onclick="clearLog()" style="padding: 2px 6px; font-size: 10px;" title="Очистить лог">🗑️</button>
+        </div>
+      </div>
+      <div id="log-content"></div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast">Лог скопирован в буфер обмена!</div>
+
+  <script>
+    const iframe = document.getElementById('pluginFrame');
+    const logEl = document.getElementById('log-content');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const btnTheme = document.getElementById('btnTheme');
+    const btnLang = document.getElementById('btnLang');
+    const speedoBadge = document.getElementById('speedoBadge');
+    const keyTrapBadge = document.getElementById('keyTrapBadge');
+    const windowMock = document.getElementById('window-mock');
+    const windowTitle = document.getElementById('windowTitle');
+    const dropOverlay = document.getElementById('drop-overlay');
+    const toast = document.getElementById('toast');
+
+    let currentTheme = 'dark';
+    let currentLang = 'ru';
+    let currentAccent = '#0078d4';
+    let currentFile = null;
+    let isHandshakeComplete = false;
+    let loadStartTime = 0;
+    const logHistory = [];
+
+    // --- Logging & Filtering ---
+    function log(direction, type, payload) {
+      const time = new Date().toLocaleTimeString();
+      const entry = { time, direction, type, payload };
+      logHistory.push(entry);
+
+      const line = document.createElement('div');
+      line.className = `log-line dir-${direction.toLowerCase()}`;
+      line.dataset.dir = direction.toLowerCase();
+      line.dataset.type = type;
+
+      let tagClass = 'log-tag-in';
+      let dirLabel = 'PLUGIN ➔ HOST';
+      if (direction === 'OUT') { tagClass = 'log-tag-out'; dirLabel = 'HOST ➔ PLUGIN'; }
+      if (direction === 'SYS') { tagClass = 'log-tag-sys'; dirLabel = 'SYSTEM'; }
+      if (direction === 'ERR') { tagClass = 'log-tag-err'; dirLabel = 'ERROR'; }
+
+      const payloadStr = payload ? JSON.stringify(payload) : '';
+      line.innerHTML = `<span class="log-time">[${time}]</span> <span class="log-tag ${tagClass}">${dirLabel}</span> <b>${type}</b> <span class="log-payload">${escapeHtml(payloadStr)}</span>`;
+
+      logEl.appendChild(line);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function filterLogs(filter) {
+      const lines = logEl.querySelectorAll('.log-line');
+      lines.forEach(line => {
+        const dir = line.dataset.dir;
+        const type = line.dataset.type;
+        if (filter === 'all') line.style.display = 'block';
+        else if (filter === 'in' && dir === 'in') line.style.display = 'block';
+        else if (filter === 'out' && dir === 'out') line.style.display = 'block';
+        else if (filter === 'errors' && (dir === 'err' || type.includes('ERROR'))) line.style.display = 'block';
+        else line.style.display = 'none';
+      });
+    }
+
+    function clearLog() {
+      logEl.innerHTML = '';
+      logHistory.length = 0;
+    }
+
+    function copyLogToClipboard() {
+      const text = logHistory.map(e => `[${e.time}] ${e.direction}: ${e.type} ${e.payload ? JSON.stringify(e.payload) : ''}`).join('\n');
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('Лог сообщений скопирован в буфер!');
+      });
+    }
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // --- Workspace & Navigation ---
+    function resetWorkspace(clearFileInput = true) {
+      currentFile = null;
+      if (clearFileInput) {
+        const fp = document.getElementById('filePicker');
+        if (fp) fp.value = '';
+      }
+      isHandshakeComplete = false;
+      statusDot.classList.remove('connected');
+      statusText.textContent = 'Очистка...';
+      speedoBadge.textContent = '— ms';
+      keyTrapBadge.style.display = 'none';
+      windowTitle.textContent = 'PeekIt Preview — Window Simulator';
+    }
+
+    function onPluginSelectChange(val) {
+      resetWorkspace(true);
+      if (val !== 'custom') {
+        document.getElementById('pluginUrl').value = val;
+        reloadPlugin(true);
+      } else {
+        const input = document.getElementById('pluginUrl');
+        input.focus();
+        input.select();
+      }
+    }
+
+    function reloadPlugin(isNewPlugin = false) {
+      if (isNewPlugin) {
+        resetWorkspace(true);
+      } else {
+        isHandshakeComplete = false;
+        statusDot.classList.remove('connected');
+        statusText.textContent = 'Ожидание рукопожатия...';
+      }
+
+      const baseUrl = document.getElementById('pluginUrl').value;
+      const separator = baseUrl.includes('?') ? '&' : '?';
+      const cacheBustUrl = baseUrl + separator + '_nocache=' + Date.now();
+
+      loadStartTime = performance.now();
+      iframe.src = 'about:blank';
+      setTimeout(() => {
+        iframe.src = cacheBustUrl;
+        log('SYS', 'Loading plugin iframe', { url: baseUrl });
+      }, 40);
+    }
+
+    // --- Viewport Size Presets ---
+    function changeViewportPreset(preset) {
+      if (preset === 'compact') {
+        windowMock.style.width = '800px';
+        windowMock.style.height = '560px';
+      } else if (preset === 'standard') {
+        windowMock.style.width = '960px';
+        windowMock.style.height = '680px';
+      } else if (preset === 'hd') {
+        windowMock.style.width = '1280px';
+        windowMock.style.height = '720px';
+      } else if (preset === 'full') {
+        windowMock.style.width = '100%';
+        windowMock.style.height = '100%';
+      }
+      log('SYS', 'Window size preset changed', { preset, width: windowMock.style.width, height: windowMock.style.height });
+    }
+
+    // --- Theme & Language ---
+    function toggleTheme() {
+      currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      btnTheme.textContent = currentTheme === 'dark' ? '🌙 Dark' : '☀️ Light';
+      sendToPlugin({
+        type: 'PEEKIT_THEME_CHANGED',
+        payload: { theme: currentTheme, isDark: currentTheme === 'dark', accentColor: currentAccent }
+      });
+    }
+
+    function changeAccent(color) {
+      currentAccent = color;
+      sendToPlugin({
+        type: 'PEEKIT_THEME_CHANGED',
+        payload: { theme: currentTheme, isDark: currentTheme === 'dark', accentColor: currentAccent }
+      });
+      log('SYS', 'Accent color updated', { accentColor: currentAccent });
+    }
+
+    function toggleLang() {
+      currentLang = currentLang === 'ru' ? 'en' : 'ru';
+      btnLang.textContent = currentLang === 'ru' ? '🌐 RU' : '🌐 EN';
+      sendToPlugin({
+        type: 'PEEKIT_LANGUAGE_CHANGED',
+        payload: { language: currentLang, locale: currentLang }
+      });
+    }
+
+    function sendToPlugin(msg, transferables = []) {
+      if (iframe.contentWindow) {
+        log('OUT', msg.type, msg.payload);
+        iframe.contentWindow.postMessage(msg, '*', transferables);
+      }
+    }
+
+    // --- Drag and Drop Handling ---
+    window.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropOverlay.classList.add('active');
+    });
+
+    window.addEventListener('dragleave', (e) => {
+      if (e.clientX <= 0 || e.clientY <= 0 || e.clientX >= window.innerWidth || e.clientY >= window.innerHeight) {
+        dropOverlay.classList.remove('active');
+      }
+    });
+
+    dropOverlay.addEventListener('dragleave', () => {
+      dropOverlay.classList.remove('active');
+    });
+
+    window.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      dropOverlay.classList.remove('active');
+
+      const files = e.dataTransfer?.files;
+      if (!files || files.length === 0) return;
+
+      const file = files[0];
+      currentFile = file;
+      document.getElementById('filePicker').value = '';
+      statusText.textContent = `Файл перетащен: ${file.name}`;
+      log('SYS', 'File dropped into workspace', { name: file.name, size: file.size });
+
+      if (isHandshakeComplete) {
+        await sendFileData(file);
+      }
+    });
+
+    // --- Key Trap Inspector (Space & Esc) ---
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.key === ' ' || e.code === 'Escape' || e.key === 'Escape') {
+        if (e.defaultPrevented) {
+          keyTrapBadge.style.display = 'inline-flex';
+          log('ERR', 'KEY_TRAP_DETECTED', { key: e.code, warning: 'Клавиша была заблокирована через preventDefault()!' });
+        }
+      }
+    });
+
+    // --- Edge Cases / Failure Simulator ---
+    function runChaosTest(type) {
+      document.getElementById('chaosSelect').value = '';
+      if (!isHandshakeComplete) {
+        alert('Сначала дождитесь рукопожатия плагина!');
+        return;
+      }
+
+      if (type === 'corrupted') {
+        log('SYS', 'Simulating corrupted file error');
+        sendToPlugin({
+          type: 'PEEKIT_DATA_RESPONSE',
+          payload: { error: 'Файл поврежден, имеет неверный заголовок или заблокирован системой (Chaos Test)' }
+        });
+      } else if (type === 'empty') {
+        log('SYS', 'Simulating empty 0-byte file');
+        const emptyBuffer = new ArrayBuffer(0);
+        sendToPlugin({
+          type: 'PEEKIT_DATA_RESPONSE',
+          payload: {
+            name: 'empty-file.mock',
+            fileName: 'empty-file.mock',
+            size: 0,
+            mimeType: 'application/octet-stream',
+            data: emptyBuffer,
+            content: emptyBuffer
+          }
+        }, [emptyBuffer]);
+      } else if (type === 'garbage') {
+        log('SYS', 'Simulating garbage binary buffer');
+        const garbage = new Uint8Array([0xFF, 0xD8, 0x00, 0x12, 0xDE, 0xAD, 0xBE, 0xEF, 0x42, 0x69]);
+        sendToPlugin({
+          type: 'PEEKIT_DATA_RESPONSE',
+          payload: {
+            name: 'corrupted.bin',
+            fileName: 'corrupted.bin',
+            size: garbage.byteLength,
+            mimeType: 'application/octet-stream',
+            data: garbage.buffer,
+            content: garbage.buffer
+          }
+        }, [garbage.buffer]);
+      }
+    }
+
+    // --- IPC Listener ---
+    window.addEventListener('message', async (event) => {
+      if (event.source !== iframe.contentWindow) return;
+
+      const data = event.data;
+      if (!data || typeof data !== 'object') return;
+
+      log('IN', data.type, data.payload);
+
+      switch (data.type) {
+        case 'PEEKIT_READY':
+        case 'READY': {
+          statusDot.classList.add('connected');
+          isHandshakeComplete = true;
+
+          // Замер скорости ответа
+          if (loadStartTime > 0) {
+            const ms = Math.round(performance.now() - loadStartTime);
+            speedoBadge.textContent = `${ms} ms`;
+            if (ms < 100) speedoBadge.style.color = 'var(--success)';
+            else if (ms < 300) speedoBadge.style.color = 'var(--warning)';
+            else speedoBadge.style.color = 'var(--danger)';
+          }
+
+          const ext = currentFile && currentFile.name.includes('.') ? '.' + currentFile.name.split('.').pop() : '';
+          statusText.textContent = currentFile 
+            ? `Подключено · ${currentFile.name}`
+            : 'Подключено · Выберите файл';
+
+          // Отправляем PEEKIT_INIT
+          sendToPlugin({
+            type: 'PEEKIT_INIT',
+            payload: {
+              theme: currentTheme,
+              isDark: currentTheme === 'dark',
+              accentColor: currentAccent,
+              language: currentLang,
+              locale: currentLang,
+              version: '1.4.0-mock',
+              filePath: currentFile ? `C:\\MockPath\\${currentFile.name}` : 'sample-file.mock',
+              fileName: currentFile ? currentFile.name : '',
+              extension: ext
+            }
+          });
+          break;
+        }
+
+        case 'PEEKIT_REQUEST_DATA': {
+          if (currentFile) {
+            await sendFileData(currentFile);
+          } else {
+            statusText.textContent = 'Плагин готов к работе. Перетащите файл!';
+            log('SYS', 'Plugin requested data, waiting for file...');
+          }
+          break;
+        }
+
+        case 'PEEKIT_LANGUAGE_CHANGED': {
+          if (data.payload?.language) {
+            currentLang = data.payload.language;
+            btnLang.textContent = currentLang === 'ru' ? '🌐 RU' : '🌐 EN';
+          }
+          break;
+        }
+
+        case 'SET_TITLE': {
+          if (data.payload?.title) {
+            windowTitle.textContent = `PeekIt — ${data.payload.title}`;
+            document.title = `[Mock] ${data.payload.title}`;
+          }
+          break;
+        }
+
+        case 'PEEKIT_ERROR':
+        case 'ERROR': {
+          statusDot.classList.remove('connected');
+          statusText.textContent = 'Ошибка плагина: ' + (data.payload?.message || data.message || 'Unknown');
+          log('ERR', 'PLUGIN_THREW_ERROR', data.payload);
+          break;
+        }
+      }
+    });
+
+    document.getElementById('filePicker').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      currentFile = file;
+      statusText.textContent = `Файл выбран: ${file.name}`;
+      if (isHandshakeComplete) {
+        await sendFileData(file);
+      }
+    });
+
+    async function sendFileData(file) {
+      if (!file) return;
+      const buffer = await file.arrayBuffer();
+      const ext = file.name.includes('.') ? '.' + file.name.split('.').pop() : '';
+
+      const payload = {
+        name: file.name,
+        fileName: file.name,
+        extension: ext,
+        path: `C:\\MockPath\\${file.name}`,
+        size: file.size,
+        mimeType: file.type || 'application/octet-stream',
+        data: buffer,
+        content: buffer
+      };
+
+      sendToPlugin({
+        type: 'PEEKIT_DATA_RESPONSE',
+        payload: payload
+      }, [buffer]);
+
+      statusText.textContent = `Файл: ${file.name} (${(file.size / 1024).toFixed(1)} КБ)`;
+    }
+
+    // Первый старт при открытии страницы
+    setTimeout(reloadPlugin, 300);
+  </script>
+</body>
+</html>

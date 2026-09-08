@@ -1,7 +1,7 @@
 {
   "id": "com.peekit.ebook-viewer",
   "name": "E-Book Reader",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Kobalt",
   "description": "Fast and elegant offline reader for EPUB and FB2 e-books with chapter navigation, typography settings, and dark/sepia/light themes",
   "extensions": [
@@ -11,6 +11,10 @@
   "entry": "index.html",
   "min_peekit_version": "1.0.0",
   "icon": "book-open",
-  "category": "Documents",
-  "homepage": "https://github.com/kobaltgit/peekit-plugins"
+  "category": "Office",
+  "homepage": "https://github.com/kobaltgit/peekit-plugins",
+  "supportedExtensions": [
+    ".epub",
+    ".fb2"
+  ]
 }

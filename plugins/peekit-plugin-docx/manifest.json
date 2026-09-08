@@ -1,13 +1,18 @@
 {
   "id": "com.peekit.docx-viewer",
   "name": "Word Document Viewer",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "author": "PeekIt Team",
   "description": "Fast offline viewer for Word documents (DOCX) with realistic page layout, styles, and tables",
-  "extensions": [".docx"],
+  "extensions": [
+    ".docx"
+  ],
   "entry": "index.html",
   "default_view": "window",
-  "category": "Documents",
+  "category": "Office",
   "icon": "file-text",
-  "permissions": []
+  "permissions": [],
+  "supportedExtensions": [
+    ".docx"
+  ]
 }

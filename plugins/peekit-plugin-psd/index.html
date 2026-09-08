@@ -28,7 +28,7 @@
       --shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
     }
 
-    body.light {
+    [data-theme="light"], body.light {
       --bg-color: #f3f3f6;
       --panel-bg: rgba(255, 255, 255, 0.9);
       --panel-border: rgba(0, 0, 0, 0.08);
@@ -85,6 +85,28 @@
       display: flex;
       align-items: center;
       gap: 8px;
+    }
+
+    #btnToggleLang {
+      font-weight: 700;
+      font-size: 11px;
+      min-width: 36px;
+      height: 28px;
+      padding: 0 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      color: var(--text-color);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    #btnToggleLang:hover {
+      background: var(--btn-hover);
+      color: var(--text-bright);
+      border-color: var(--accent);
     }
 
     .psd-badge {
@@ -235,6 +257,7 @@
       border-radius: 3px;
     }
 
+    [data-theme="light"] .drawer-content::-webkit-scrollbar-thumb,
     body.light .drawer-content::-webkit-scrollbar-thumb {
       background: rgba(0, 0, 0, 0.15);
     }
@@ -386,6 +409,8 @@
       </div>
 
       <div class="tool-section">
+        <button id="btnToggleLang" class="tool-btn" title="Переключить язык (RU / EN)" style="font-weight:600;font-size:11px;min-width:32px;display:inline-flex;align-items:center;justify-content:center;">RU</button>
+        <button id="btnThemeToggle" class="tool-btn" title="Сменить тему оформления" style="font-size:12px;min-width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.08);border:1px solid var(--panel-border);border-radius:6px;color:var(--text-color);cursor:pointer;">🌓</button>
         <div class="btn-group">
           <button id="btn-zoom-out" title="Уменьшить (Ctrl + -)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -405,7 +430,7 @@
             <polyline points="2 17 12 22 22 17"></polyline>
             <polyline points="2 12 12 17 22 12"></polyline>
           </svg>
-          <span>Слои</span>
+          <span id="btn-layers-text">Слои</span>
         </button>
       </div>
     </div>
@@ -418,7 +443,7 @@
     <!-- Layers Side Drawer -->
     <div id="layers-drawer">
       <div class="drawer-header">
-        <span>Слои (<span id="drawer-layer-count">0</span>)</span>
+        <span><span id="drawer-title-text">Слои</span> (<span id="drawer-layer-count">0</span>)</span>
         <button id="btn-close-drawer" style="padding: 4px 6px;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
@@ -719,7 +744,9 @@
                 : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>') +
             '</div>';
 
-          const nameSpan = '<span class="layer-name" title="' + (layer.name || 'Слой') + '">' + (layer.name || 'Слой') + '</span>';
+          const defLayerName = (I18N[currentLocale] || I18N.ru).defaultLayerName;
+          const layerTitleName = layer.name || defLayerName;
+          const nameSpan = '<span class="layer-name" title="' + layerTitleName + '">' + layerTitleName + '</span>';
 
           const opacity = layer.opacity !== undefined ? Math.round(layer.opacity * 100) + '%' : '100%';
           const badge = '<span class="layer-badge">' + opacity + '</span>';
@@ -774,7 +801,7 @@
           metaMode.textContent = modeName + ' ' + depth;
 
           const totalLayers = countLayers(psd.children);
-          metaLayers.textContent = totalLayers + ' ' + (totalLayers === 1 ? 'слой' : (totalLayers < 5 ? 'слоя' : 'слоёв'));
+          updateMetaLayers(totalLayers);
           drawerLayerCount.textContent = totalLayers;
 
           // Extract lightweight layers metadata and discard heavy AST
@@ -803,6 +830,184 @@
         }
       }
 
+      // --- Theme Engine ---
+      function applyTheme(themeData) {
+        let isDark = true;
+        let accent = null;
+
+        if (typeof themeData === 'string') {
+          isDark = themeData.toLowerCase() !== 'light';
+        } else if (typeof themeData === 'boolean') {
+          isDark = themeData;
+        } else if (themeData && typeof themeData === 'object') {
+          if (typeof themeData.isDark === 'boolean') isDark = themeData.isDark;
+          else if (typeof themeData.theme === 'string') isDark = themeData.theme.toLowerCase() !== 'light';
+          else if (typeof themeData.mode === 'string') isDark = themeData.mode.toLowerCase() !== 'light';
+          if (themeData.accentColor) accent = themeData.accentColor;
+          else if (themeData.accent) accent = themeData.accent;
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+          isDark = false;
+        }
+
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        document.body.classList.toggle('light', !isDark);
+        checkerPattern = null;
+        if (typeof scheduleRender === 'function') scheduleRender();
+        if (accent) {
+          document.documentElement.style.setProperty('--accent', accent);
+        }
+      }
+
+      if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+          applyTheme(e.matches ? 'dark' : 'light');
+        });
+      }
+
+      // --- Localization Engine ---
+      const I18N = {
+        ru: {
+          langBtn: 'RU',
+          langTitle: 'Переключить язык (RU / EN)',
+          themeTitle: 'Сменить тему оформления',
+          zoomIn: 'Увеличить (Ctrl + +)',
+          zoomOut: 'Уменьшить (Ctrl + -)',
+          fit: 'Вписать',
+          fitTitle: 'Вписать в окно',
+          actual: '1:1',
+          actualTitle: '100% масштаб',
+          layers: 'Слои',
+          layersTitle: 'Показать/скрыть слои',
+          closeDrawerTitle: 'Закрыть панель (Esc)',
+          loading: 'Чтение PSD файла...',
+          errTitle: 'Ошибка чтения PSD',
+          errMsg: 'Не удалось загрузить или декодировать файл.',
+          layerSingle: 'слой',
+          layerFew: 'слоя',
+          layerMany: 'слоёв',
+          defaultLayerName: 'Слой'
+        },
+        en: {
+          langBtn: 'EN',
+          langTitle: 'Toggle Language (RU / EN)',
+          themeTitle: 'Toggle Theme',
+          zoomIn: 'Zoom In (Ctrl + +)',
+          zoomOut: 'Zoom Out (Ctrl -)',
+          fit: 'Fit',
+          fitTitle: 'Fit to window',
+          actual: '1:1',
+          actualTitle: '100% Scale',
+          layers: 'Layers',
+          layersTitle: 'Toggle layers',
+          closeDrawerTitle: 'Close panel (Esc)',
+          loading: 'Reading PSD file...',
+          errTitle: 'PSD Read Error',
+          errMsg: 'Failed to load or decode file.',
+          layerSingle: 'layer',
+          layerFew: 'layers',
+          layerMany: 'layers',
+          defaultLayerName: 'Layer'
+        }
+      };
+
+      let currentLocale = localStorage.getItem('peekit_psd_lang') || 'ru';
+      let lastTotalLayers = null;
+
+      function updateMetaLayers(count) {
+        if (count !== undefined && count !== null) lastTotalLayers = count;
+        if (lastTotalLayers === null) return;
+        const metaLayersEl = document.getElementById('meta-layers');
+        if (!metaLayersEl) return;
+        const dict = I18N[currentLocale] || I18N.ru;
+        if (currentLocale === 'ru') {
+          const mod10 = lastTotalLayers % 10;
+          const mod100 = lastTotalLayers % 100;
+          const word = lastTotalLayers === 1 ? dict.layerSingle : (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20) ? dict.layerFew : dict.layerMany);
+          metaLayersEl.textContent = `${lastTotalLayers} ${word}`;
+        } else {
+          metaLayersEl.textContent = `${lastTotalLayers} ${lastTotalLayers === 1 ? dict.layerSingle : dict.layerMany}`;
+        }
+      }
+
+      function applyLocale(locale) {
+        if (!locale) return;
+        const normalized = String(locale).toLowerCase().startsWith('en') ? 'en' : 'ru';
+        currentLocale = normalized;
+        try { localStorage.setItem('peekit_psd_lang', currentLocale); } catch (_) {}
+
+        const dict = I18N[currentLocale] || I18N.ru;
+        const btnLang = document.getElementById('btnToggleLang');
+        if (btnLang) {
+          btnLang.textContent = dict.langBtn;
+          btnLang.title = dict.langTitle;
+        }
+        const btnTheme = document.getElementById('btnThemeToggle');
+        if (btnTheme) {
+          btnTheme.title = dict.themeTitle;
+        }
+
+        const btnZoomIn = document.getElementById('btn-zoom-in');
+        if (btnZoomIn) btnZoomIn.title = dict.zoomIn;
+        const btnZoomOut = document.getElementById('btn-zoom-out');
+        if (btnZoomOut) btnZoomOut.title = dict.zoomOut;
+
+        const btnFit = document.getElementById('btn-fit');
+        if (btnFit) { btnFit.textContent = dict.fit; btnFit.title = dict.fitTitle; }
+        const btnActual = document.getElementById('btn-actual');
+        if (btnActual) { btnActual.textContent = dict.actual; btnActual.title = dict.actualTitle; }
+
+        const btnLayers = document.getElementById('btn-toggle-layers');
+        if (btnLayers) {
+          btnLayers.title = dict.layersTitle;
+          const span = btnLayers.querySelector('span');
+          if (span) span.textContent = dict.layers;
+        }
+        const btnLayersText = document.getElementById('btn-layers-text');
+        if (btnLayersText) btnLayersText.textContent = dict.layers;
+
+        const drawerTitle = document.getElementById('drawer-title-text');
+        if (drawerTitle) drawerTitle.textContent = dict.layers;
+
+        const btnCloseDrawer = document.getElementById('btn-close-drawer');
+        if (btnCloseDrawer) btnCloseDrawer.title = dict.closeDrawerTitle;
+
+        const loaderText = document.querySelector('.loader-text');
+        if (loaderText) loaderText.textContent = dict.loading;
+        const errorTitle = document.querySelector('.error-title');
+        if (errorTitle) errorTitle.textContent = dict.errTitle;
+        const errorMsg = document.querySelector('.error-msg');
+        if (errorMsg) errorMsg.textContent = dict.errMsg;
+
+        updateMetaLayers();
+      }
+
+      // Initialize UI controls
+      const btnToggleLang = document.getElementById('btnToggleLang');
+      if (btnToggleLang) {
+        btnToggleLang.addEventListener('click', (e) => {
+          if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+          const nextLocale = currentLocale === 'ru' ? 'en' : 'ru';
+          applyLocale(nextLocale);
+          window.parent.postMessage({ type: 'PEEKIT_LANGUAGE_CHANGED', payload: { language: nextLocale } }, '*');
+        });
+      }
+
+      const btnThemeToggle = document.getElementById('btnThemeToggle');
+      if (btnThemeToggle) {
+        btnThemeToggle.addEventListener('click', (e) => {
+          if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+          const isCurrentDark = document.documentElement.getAttribute('data-theme') !== 'light';
+          applyTheme(isCurrentDark ? 'light' : 'dark');
+        });
+      }
+      applyLocale(currentLocale);
+
       // Send PEEKIT_READY with strict debouncing (max 3 attempts, 300ms apart)
       let readyAttempts = 0;
       const readyInterval = setInterval(() => {
@@ -826,12 +1031,13 @@
             clearInterval(readyInterval);
 
             const payload = msg.payload || msg;
-            if (payload.theme) {
-              const isLight = payload.theme === 'light' || (typeof payload.theme === 'object' && payload.theme.isDark === false);
-              document.body.classList.toggle('light', isLight);
-              checkerPattern = null;
-              scheduleRender();
+            const langVal = payload.language || payload.locale || payload.lang || (payload.settings && (payload.settings.language || payload.settings.locale));
+            if (langVal) {
+              applyLocale(langVal);
             }
+
+            const themeVal = payload.theme || (payload.settings && payload.settings.theme) || payload.isDark;
+            applyTheme(themeVal !== undefined ? themeVal : payload);
 
             // Deduplicate data requests for the same file
             const currentPath = payload.filePath || payload.fileName;
@@ -850,12 +1056,17 @@
           }
 
           case 'PEEKIT_THEME_CHANGED': {
-            const theme = msg.payload?.theme || msg.theme;
-            if (theme) {
-              const isLight = theme === 'light' || (typeof theme === 'object' && theme.isDark === false);
-              document.body.classList.toggle('light', isLight);
-              checkerPattern = null;
-              scheduleRender();
+            const payload = msg.payload || msg;
+            applyTheme(payload.theme !== undefined ? payload.theme : payload);
+            break;
+          }
+
+          case 'PEEKIT_LANGUAGE_CHANGED':
+          case 'PEEKIT_LOCALE_CHANGED': {
+            const payload = msg.payload || msg;
+            const newLang = payload.language || payload.locale || payload.lang || payload;
+            if (newLang) {
+              applyLocale(newLang);
             }
             break;
           }

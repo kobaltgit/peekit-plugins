@@ -44,7 +44,7 @@
       --quote-border: rgba(141, 91, 45, 0.35);
     }
 
-    body.light {
+    [data-theme="light"], body.light {
       --bg-color: #f8f8fb;
       --card-bg: #ffffff;
       --panel-bg: rgba(255, 255, 255, 0.94);
@@ -521,6 +521,7 @@
         </div>
 
         <!-- Color Themes -->
+        <button class="icon-btn" id="btnToggleLang" title="Переключить язык (RU / EN)" style="font-weight:600;font-size:11px;min-width:32px;">RU</button>
         <div class="btn-group">
           <button class="icon-btn active" id="btn-theme-dark" title="Тёмная тема">🌙</button>
           <button class="icon-btn" id="btn-theme-sepia" title="Тема Сепия">📜</button>
@@ -628,21 +629,136 @@
         btnFontFamily.textContent = isSerif ? 'Serif' : 'Sans';
       }
 
-      function setTheme(theme) {
-        document.body.classList.remove('sepia', 'light');
-        btnThemeDark.classList.remove('active');
-        btnThemeSepia.classList.remove('active');
-        btnThemeLight.classList.remove('active');
-
-        if (theme === 'sepia') {
-          document.body.classList.add('sepia');
-          btnThemeSepia.classList.add('active');
-        } else if (theme === 'light') {
-          document.body.classList.add('light');
-          btnThemeLight.classList.add('active');
-        } else {
-          btnThemeDark.classList.add('active');
+      
+      // --- Localization Engine ---
+      const I18N = {
+        ru: {
+          langBtn: 'RU',
+          langTitle: 'Переключить язык (RU / EN)',
+          tocTitle: 'Оглавление (T)',
+          fontDec: 'Уменьшить шрифт (A-)',
+          fontFamily: 'Сменить шрифт (Serif/Sans)',
+          fontInc: 'Увеличить шрифт (A+)',
+          themeDark: 'Тёмная тема',
+          themeSepia: 'Тема Сепия',
+          themeLight: 'Светлая тема',
+          prevChap: 'Предыдущая глава (←)',
+          nextChap: 'Следующая глава (→)',
+          loading: 'Загрузка...',
+          errParse: 'Не удалось разобрать содержимое файла.'
+        },
+        en: {
+          langBtn: 'EN',
+          langTitle: 'Toggle Language (RU / EN)',
+          tocTitle: 'Table of Contents (T)',
+          fontDec: 'Decrease Font Size (A-)',
+          fontFamily: 'Change Font (Serif/Sans)',
+          fontInc: 'Increase Font Size (A+)',
+          themeDark: 'Dark Theme',
+          themeSepia: 'Sepia Theme',
+          themeLight: 'Light Theme',
+          prevChap: 'Previous Chapter (←)',
+          nextChap: 'Next Chapter (→)',
+          loading: 'Loading...',
+          errParse: 'Failed to parse file content.'
         }
+      };
+
+      let currentLocale = localStorage.getItem('peekit_ebook_lang') || 'ru';
+
+      function applyLocale(locale) {
+        if (!locale) return;
+        const normalized = String(locale).toLowerCase().startsWith('en') ? 'en' : 'ru';
+        currentLocale = normalized;
+        try { localStorage.setItem('peekit_ebook_lang', currentLocale); } catch (_) {}
+
+        const dict = I18N[currentLocale] || I18N.ru;
+        const btnLang = document.getElementById('btnToggleLang');
+        if (btnLang) {
+          btnLang.textContent = dict.langBtn;
+          btnLang.title = dict.langTitle;
+        }
+
+        const btnToc = document.getElementById('btn-toc');
+        if (btnToc) btnToc.title = dict.tocTitle;
+        const btnFontDec = document.getElementById('btn-font-dec');
+        if (btnFontDec) btnFontDec.title = dict.fontDec;
+        const btnFontFam = document.getElementById('btn-font-family');
+        if (btnFontFam) btnFontFam.title = dict.fontFamily;
+        const btnFontInc = document.getElementById('btn-font-inc');
+        if (btnFontInc) btnFontInc.title = dict.fontInc;
+
+        if (btnThemeDark) btnThemeDark.title = dict.themeDark;
+        if (btnThemeSepia) btnThemeSepia.title = dict.themeSepia;
+        if (btnThemeLight) btnThemeLight.title = dict.themeLight;
+
+        const btnPrevChap = document.getElementById('btn-prev-chap');
+        if (btnPrevChap) btnPrevChap.title = dict.prevChap;
+        const btnNextChap = document.getElementById('btn-next-chap');
+        if (btnNextChap) btnNextChap.title = dict.nextChap;
+
+        const bookTitleEl = document.getElementById('book-title');
+        if (bookTitleEl && (bookTitleEl.textContent === 'Загрузка...' || bookTitleEl.textContent === 'Loading...')) {
+          bookTitleEl.textContent = dict.loading;
+        }
+        const errorMsgEl = document.getElementById('error-msg');
+        if (errorMsgEl && (errorMsgEl.textContent.includes('Не удалось разобрать') || errorMsgEl.textContent.includes('Failed to parse'))) {
+          errorMsgEl.textContent = dict.errParse;
+        }
+      }
+
+      function applyTheme(themeData) {
+        let isDark = true;
+        let isSepia = false;
+        let accent = null;
+
+        if (typeof themeData === 'string') {
+          if (themeData.toLowerCase() === 'sepia') isSepia = true;
+          else isDark = themeData.toLowerCase() !== 'light';
+        } else if (typeof themeData === 'boolean') {
+          isDark = themeData;
+        } else if (themeData && typeof themeData === 'object') {
+          if (themeData.theme === 'sepia' || themeData.mode === 'sepia') isSepia = true;
+          else if (typeof themeData.isDark === 'boolean') isDark = themeData.isDark;
+          else if (typeof themeData.theme === 'string') isDark = themeData.theme.toLowerCase() !== 'light';
+          else if (typeof themeData.mode === 'string') isDark = themeData.mode.toLowerCase() !== 'light';
+          if (themeData.accentColor) accent = themeData.accentColor;
+          else if (themeData.accent) accent = themeData.accent;
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+          isDark = false;
+        }
+
+        document.body.classList.remove('sepia', 'light');
+        if (btnThemeDark) btnThemeDark.classList.remove('active');
+        if (btnThemeSepia) btnThemeSepia.classList.remove('active');
+        if (btnThemeLight) btnThemeLight.classList.remove('active');
+
+        if (isSepia) {
+          document.body.classList.add('sepia');
+          if (btnThemeSepia) btnThemeSepia.classList.add('active');
+          document.documentElement.setAttribute('data-theme', 'light');
+        } else if (!isDark) {
+          document.body.classList.add('light');
+          if (btnThemeLight) btnThemeLight.classList.add('active');
+          document.documentElement.setAttribute('data-theme', 'light');
+        } else {
+          if (btnThemeDark) btnThemeDark.classList.add('active');
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+
+        if (accent) {
+          document.documentElement.style.setProperty('--accent', accent);
+        }
+      }
+
+      function setTheme(theme) {
+        applyTheme(theme);
+      }
+
+      if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+          applyTheme(e.matches ? 'dark' : 'light');
+        });
       }
 
       function showError(msg) {
@@ -1092,6 +1208,14 @@
       // IPC HANDSHAKE
       // -------------------------------------------------------------
 
+      const btnToggleLang = document.getElementById('btnToggleLang');
+      if (btnToggleLang) {
+        btnToggleLang.addEventListener('click', () => {
+          applyLocale(currentLocale === 'ru' ? 'en' : 'ru');
+        });
+      }
+      applyLocale(currentLocale);
+
       let readyAttempts = 0;
       const readyInterval = setInterval(() => {
         if (initReceived || readyAttempts >= 3) {
@@ -1113,10 +1237,13 @@
             clearInterval(readyInterval);
 
             const payload = msg.payload || msg;
-            if (payload.theme) {
-              const isLight = payload.theme === 'light' || (typeof payload.theme === 'object' && payload.theme.isDark === false);
-              setTheme(isLight ? 'light' : 'dark');
+            const langVal = payload.language || payload.locale || payload.lang || (payload.settings && (payload.settings.language || payload.settings.locale));
+            if (langVal) {
+              applyLocale(langVal);
             }
+
+            const themeVal = payload.theme || (payload.settings && payload.settings.theme) || payload.isDark;
+            applyTheme(themeVal !== undefined ? themeVal : payload);
 
             const currentPath = payload.filePath || payload.fileName;
             if (currentPath && currentPath === lastLoadedPath && (isRequestPending || chapters.length)) {
@@ -1133,10 +1260,17 @@
           }
 
           case 'PEEKIT_THEME_CHANGED': {
-            const theme = msg.payload?.theme || msg.theme;
-            if (theme) {
-              const isLight = theme === 'light' || (typeof theme === 'object' && theme.isDark === false);
-              setTheme(isLight ? 'light' : 'dark');
+            const payload = msg.payload || msg;
+            applyTheme(payload.theme !== undefined ? payload.theme : payload);
+            break;
+          }
+
+          case 'PEEKIT_LANGUAGE_CHANGED':
+          case 'PEEKIT_LOCALE_CHANGED': {
+            const payload = msg.payload || msg;
+            const newLang = payload.language || payload.locale || payload.lang || payload;
+            if (newLang) {
+              applyLocale(newLang);
             }
             break;
           }

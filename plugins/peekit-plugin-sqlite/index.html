@@ -23,6 +23,94 @@
       --badge-pk-bg: rgba(245, 158, 11, 0.15);
       --danger: #ef4444;
       --success: #10b981;
+      --toolbar-bg: rgba(30, 41, 59, 0.85);
+      --th-bg: #192338;
+      --row-hover: rgba(56, 189, 248, 0.06);
+      --editor-wrap-bg: rgba(15, 23, 42, 0.5);
+    }
+
+    [data-theme="light"] {
+      --bg-dark: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-surface-hover: #f1f5f9;
+      --bg-subtle: #f1f5f9;
+      --border: #e2e8f0;
+      --border-subtle: rgba(0, 0, 0, 0.08);
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --accent: #0284c7;
+      --accent-hover: #0369a1;
+      --accent-glow: rgba(2, 132, 199, 0.2);
+      --badge-bg: rgba(2, 132, 199, 0.1);
+      --badge-border: rgba(2, 132, 199, 0.25);
+      --badge-pk: #d97706;
+      --badge-pk-bg: rgba(217, 119, 6, 0.12);
+      --danger: #dc2626;
+      --success: #059669;
+      --toolbar-bg: rgba(255, 255, 255, 0.92);
+      --th-bg: #f1f5f9;
+      --row-hover: rgba(2, 132, 199, 0.06);
+      --editor-wrap-bg: rgba(241, 245, 249, 0.7);
+    }
+
+    [data-theme="light"] .toolbar {
+      background: var(--toolbar-bg);
+      border-bottom: 1px solid var(--border);
+    }
+
+    [data-theme="light"] .btn-group {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+
+    [data-theme="light"] .search-input {
+      background: #ffffff;
+      border-color: #cbd5e1;
+      color: #0f172a;
+    }
+
+    [data-theme="light"] table.data-grid th {
+      background: var(--th-bg);
+      color: #0f172a;
+      border-bottom: 2px solid var(--border);
+      border-right: 1px solid var(--border-subtle);
+    }
+
+    [data-theme="light"] table.data-grid td {
+      border-bottom: 1px solid var(--border-subtle);
+      border-right: 1px solid var(--border-subtle);
+      color: #1e293b;
+    }
+
+    [data-theme="light"] table.data-grid tr:hover td {
+      background: var(--row-hover);
+    }
+
+    [data-theme="light"] .card-header {
+      background: #f8fafc;
+    }
+
+    [data-theme="light"] .ddl-code {
+      background: #f1f5f9;
+      color: #0369a1;
+    }
+
+    [data-theme="light"] .query-editor-wrap {
+      background: var(--editor-wrap-bg);
+    }
+
+    [data-theme="light"] textarea.query-editor {
+      background: #ffffff;
+      color: #0f172a;
+      border-color: #cbd5e1;
+    }
+
+    [data-theme="light"] .cell-blob {
+      color: #0284c7;
+    }
+
+    [data-theme="light"] .cell-null {
+      color: #94a3b8;
     }
 
     * {
@@ -745,6 +833,8 @@ if (typeof window !== "undefined") {
 
       <!-- Export Actions -->
       <div class="toolbar-group">
+        <button type="button" tabindex="-1" class="btn" id="btnToggleLang" title="Переключить язык (RU / EN)" style="font-weight:600;min-width:32px;">RU</button>
+        <button type="button" tabindex="-1" class="btn btn-icon" id="btnThemeToggle" title="Сменить тему оформления" style="font-size:11px;padding:4px 7px;">🌓</button>
         <button type="button" tabindex="-1" class="btn" id="btnExportCsv" title="Export Current Table / Query to CSV">Export CSV</button>
         <button type="button" tabindex="-1" class="btn" id="btnExportJson" title="Export to JSON">JSON</button>
       </div>
@@ -901,7 +991,117 @@ if (typeof window !== "undefined") {
     // Toast
     const toast = document.getElementById('toast');
 
+    let isDarkTheme = true;
+
+    function applyTheme(themeData) {
+      let isDark = true;
+      let accent = null;
+
+      if (typeof themeData === 'string') {
+        isDark = themeData.toLowerCase() !== 'light';
+      } else if (typeof themeData === 'boolean') {
+        isDark = themeData;
+      } else if (themeData && typeof themeData === 'object') {
+        if (typeof themeData.isDark === 'boolean') isDark = themeData.isDark;
+        else if (typeof themeData.theme === 'string') isDark = themeData.theme.toLowerCase() !== 'light';
+        else if (typeof themeData.mode === 'string') isDark = themeData.mode.toLowerCase() !== 'light';
+        if (themeData.accentColor) accent = themeData.accentColor;
+        else if (themeData.accent) accent = themeData.accent;
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        isDark = false;
+      }
+
+      isDarkTheme = isDark;
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      if (accent) {
+        document.documentElement.style.setProperty('--accent', accent);
+      }
+    }
+
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        applyTheme(e.matches ? 'dark' : 'light');
+      });
+    }
+
+    // --- Localization Engine ---
+    const I18N = {
+      ru: {
+        langBtn: 'RU',
+        langTitle: 'Переключить язык (RU / EN)',
+        themeTitle: 'Сменить тему оформления',
+        tabData: 'Данные',
+        tabSchema: 'Схема',
+        tabQuery: 'SQL консоль',
+        exportCsv: 'Экспорт CSV',
+        exportJson: 'JSON',
+        filterPlaceholder: 'Фильтр таблиц...',
+        errLoad: 'Ошибка загрузки',
+        errNoData: 'Данные файла не получены от приложения'
+      },
+      en: {
+        langBtn: 'EN',
+        langTitle: 'Toggle Language (RU / EN)',
+        themeTitle: 'Toggle Theme',
+        tabData: 'Data',
+        tabSchema: 'Schema',
+        tabQuery: 'SQL Console',
+        exportCsv: 'Export CSV',
+        exportJson: 'JSON',
+        filterPlaceholder: 'Filter tables...',
+        errLoad: 'Load Error',
+        errNoData: 'No data received from host'
+      }
+    };
+
+    let currentLocale = localStorage.getItem('peekit_sqlite_lang') || 'ru';
+
+    function applyLocale(locale) {
+      if (!locale) return;
+      const normalized = String(locale).toLowerCase().startsWith('en') ? 'en' : 'ru';
+      currentLocale = normalized;
+      try { localStorage.setItem('peekit_sqlite_lang', currentLocale); } catch (_) {}
+
+      const dict = I18N[currentLocale] || I18N.ru;
+      const btnLang = document.getElementById('btnToggleLang');
+      if (btnLang) {
+        btnLang.textContent = dict.langBtn;
+        btnLang.title = dict.langTitle;
+      }
+      const btnTheme = document.getElementById('btnThemeToggle');
+      if (btnTheme) {
+        btnTheme.title = dict.themeTitle;
+      }
+
+      const tabData = document.getElementById('tabData');
+      if (tabData) tabData.textContent = dict.tabData;
+      const tabSchema = document.getElementById('tabSchema');
+      if (tabSchema) tabSchema.textContent = dict.tabSchema;
+      const tabQuery = document.getElementById('tabQuery');
+      if (tabQuery) tabQuery.textContent = dict.tabQuery;
+
+      const btnExportCsv = document.getElementById('btnExportCsv');
+      if (btnExportCsv) btnExportCsv.textContent = dict.exportCsv;
+      const tableFilterInput = document.getElementById('tableFilterInput');
+      if (tableFilterInput) tableFilterInput.placeholder = dict.filterPlaceholder;
+    }
+
     // --- IPC Communication ---
+    
+    const btnToggleLang = document.getElementById('btnToggleLang');
+    if (btnToggleLang) {
+      btnToggleLang.addEventListener('click', () => {
+        applyLocale(currentLocale === 'ru' ? 'en' : 'ru');
+      });
+    }
+    const btnThemeToggle = document.getElementById('btnThemeToggle');
+    if (btnThemeToggle) {
+      btnThemeToggle.addEventListener('click', () => {
+        applyTheme(!isDarkTheme);
+      });
+    }
+    applyLocale(currentLocale);
+
     readyInterval = setInterval(() => {
       window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
     }, 100);
@@ -915,23 +1115,36 @@ if (typeof window !== "undefined") {
           clearInterval(readyInterval);
           readyInterval = null;
         }
-        const fileName = msg.payload?.fileName || msg.fileName;
+        const payload = msg.payload || msg;
+        const fileName = payload.fileName;
         if (fileName) {
           dbNameBadge.textContent = fileName;
         }
-        const theme = msg.payload?.theme || msg.theme;
-        if (theme && theme.accentColor) {
-          document.documentElement.style.setProperty('--accent', theme.accentColor);
+
+        const langVal = payload.language || payload.locale || payload.lang || (payload.settings && (payload.settings.language || payload.settings.locale));
+        if (langVal) {
+          applyLocale(langVal);
         }
+
+        const themeVal = payload.theme || (payload.settings && payload.settings.theme) || payload.isDark;
+        applyTheme(themeVal !== undefined ? themeVal : payload);
+
         window.parent.postMessage({ type: 'PEEKIT_REQUEST_DATA' }, '*');
         return;
       }
 
-      if (msg.type === 'PEEKIT_THEME_CHANGED') {
-        const theme = msg.payload?.theme || msg.theme;
-        if (theme && theme.accentColor) {
-          document.documentElement.style.setProperty('--accent', theme.accentColor);
+      if (msg.type === 'PEEKIT_LANGUAGE_CHANGED' || msg.type === 'PEEKIT_LOCALE_CHANGED') {
+        const payload = msg.payload || msg;
+        const newLang = payload.language || payload.locale || payload.lang || payload;
+        if (newLang) {
+          applyLocale(newLang);
         }
+        return;
+      }
+
+      if (msg.type === 'PEEKIT_THEME_CHANGED') {
+        const payload = msg.payload || msg;
+        applyTheme(payload.theme !== undefined ? payload.theme : payload);
         return;
       }
 

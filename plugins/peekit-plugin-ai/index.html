@@ -264,28 +264,31 @@
 
     <!-- Artboard Navigation -->
     <div class="toolbar-center">
-      <button class="btn-tool" id="btnPrevArtboard" title="Предыдущий артборд" disabled>
+      <button class="btn-tool" id="btnPrevArtboard" data-i18n-title="prevArtboardTitle" title="Предыдущий артборд" disabled>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <span class="artboard-indicator" id="artboardIndicator">1 / 1</span>
-      <button class="btn-tool" id="btnNextArtboard" title="Следующий артборд" disabled>
+      <button class="btn-tool" id="btnNextArtboard" data-i18n-title="nextArtboardTitle" title="Следующий артборд" disabled>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
     </div>
 
     <!-- Zoom & Canvas Controls -->
     <div class="toolbar-right">
-      <button class="btn-tool" id="btnZoomOut" title="Уменьшить (Ctrl -)">
+      <button class="btn-tool" id="btnZoomOut" data-i18n-title="zoomOutTitle" title="Уменьшить (Ctrl -)">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
       <span class="zoom-text" id="zoomText">100%</span>
-      <button class="btn-tool" id="btnZoomIn" title="Увеличить (Ctrl +)">
+      <button class="btn-tool" id="btnZoomIn" data-i18n-title="zoomInTitle" title="Увеличить (Ctrl +)">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
-      <button class="btn-tool" id="btnFit" title="Вписать в окно">Вписать</button>
-      <button class="btn-tool active" id="btnChecker" title="Сетка прозрачности (Checkerboard)">
+      <button class="btn-tool" id="btnFit" data-i18n-title="fitTitle" title="Вписать в окно"><span data-i18n="fit">Вписать</span></button>
+      <button class="btn-tool active" id="btnChecker" data-i18n-title="checkerTitle" title="Сетка прозрачности (Checkerboard)">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V3M3 15h18M15 21V3"/></svg>
       </button>
+
+      <!-- Language Toggle Switcher -->
+      <button class="btn-tool" id="btnToggleLang" style="font-weight:700; font-family:var(--font-mono); font-size:11px; padding: 4px 8px;" title="Switch Language / Сменить язык">RU</button>
     </div>
   </header>
 
@@ -602,19 +605,174 @@ startxref
         if (currentPdfDoc) fitToWindow();
       });
 
+      // --- Localization Engine (i18n) ---
+      const I18N = {
+        ru: {
+          prevArtboardTitle: 'Предыдущий артборд',
+          nextArtboardTitle: 'Следующий артборд',
+          zoomOutTitle: 'Уменьшить (Ctrl -)',
+          zoomInTitle: 'Увеличить (Ctrl +)',
+          fit: 'Вписать',
+          fitTitle: 'Вписать в окно',
+          checkerTitle: 'Сетка прозрачности (Checkerboard)',
+          langToggleTitle: 'Сменить язык (EN / RU)',
+          loadingDoc: 'Чтение векторного документа Adobe Illustrator...',
+          errParseAi: 'Не удалось прочитать векторный контент .ai файла',
+          errSavePdf: 'Убедитесь, что файл сохранён с включенной опцией «Create PDF Compatible File» в Illustrator'
+        },
+        en: {
+          prevArtboardTitle: 'Previous Artboard',
+          nextArtboardTitle: 'Next Artboard',
+          zoomOutTitle: 'Zoom Out (Ctrl -)',
+          zoomInTitle: 'Zoom In (Ctrl +)',
+          fit: 'Fit',
+          fitTitle: 'Fit to Window',
+          checkerTitle: 'Transparency Checkerboard',
+          langToggleTitle: 'Switch language (EN / RU)',
+          loadingDoc: 'Reading Adobe Illustrator vector document...',
+          errParseAi: 'Failed to read vector content of .ai file',
+          errSavePdf: 'Please make sure the file was saved with "Create PDF Compatible File" option enabled in Illustrator'
+        }
+      };
+
+      let currentLocale = localStorage.getItem('peekit_ai_lang') || 
+                          (navigator.language && navigator.language.startsWith('ru') ? 'ru' : 'en');
+
+      function t(key) {
+        return (I18N[currentLocale] || I18N.en)[key] || key;
+      }
+
+      function applyLocale(locale) {
+        if (!locale) return;
+        currentLocale = locale.slice(0, 2).toLowerCase();
+        if (!I18N[currentLocale]) currentLocale = 'en';
+
+        localStorage.setItem('peekit_ai_lang', currentLocale);
+        document.documentElement.setAttribute('lang', currentLocale);
+
+        const btnToggleLang = document.getElementById('btnToggleLang');
+        if (btnToggleLang) {
+          btnToggleLang.textContent = currentLocale.toUpperCase();
+          btnToggleLang.title = t('langToggleTitle');
+        }
+
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+          const key = el.getAttribute('data-i18n');
+          if (key && t(key)) el.textContent = t(key);
+        });
+
+        document.querySelectorAll('[data-i18n-title]').forEach(el => {
+          const key = el.getAttribute('data-i18n-title');
+          if (key && t(key)) el.title = t(key);
+        });
+
+        const loadingEl = document.getElementById('loadingText');
+        if (loadingEl) loadingEl.textContent = t('loadingDoc');
+      }
+
+      applyLocale(currentLocale);
+
+      const btnToggleLang = document.getElementById('btnToggleLang');
+      if (btnToggleLang) {
+        btnToggleLang.addEventListener('click', () => {
+          applyLocale(currentLocale === 'ru' ? 'en' : 'ru');
+        });
+      }
+
+      // --- Theme Engine ---
+      let isSystemTheme = false;
+
+      function applyTheme(themeInput) {
+        let isDark = true;
+        let accentColor = null;
+
+        if (themeInput && typeof themeInput === 'object') {
+          if (typeof themeInput.isDark === 'boolean') {
+            isDark = themeInput.isDark;
+          } else if (typeof themeInput.theme === 'string') {
+            const th = themeInput.theme.toLowerCase();
+            if (th === 'system') {
+              isSystemTheme = true;
+              isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            } else {
+              isSystemTheme = false;
+              isDark = th !== 'light';
+            }
+          } else if (typeof themeInput.mode === 'string') {
+            isDark = themeInput.mode.toLowerCase() !== 'light';
+          } else if (themeInput.settings && typeof themeInput.settings.theme === 'string') {
+            const th = themeInput.settings.theme.toLowerCase();
+            if (th === 'system') {
+              isSystemTheme = true;
+              isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            } else {
+              isSystemTheme = false;
+              isDark = th !== 'light';
+            }
+          }
+          accentColor = themeInput.accentColor || themeInput.settings?.accentColor;
+        } else if (typeof themeInput === 'string') {
+          const th = themeInput.toLowerCase();
+          if (th === 'system') {
+            isSystemTheme = true;
+            isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          } else {
+            isSystemTheme = false;
+            isDark = th !== 'light';
+          }
+        }
+
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        if (isDark) {
+          document.body.classList.remove('light-theme');
+          document.body.classList.add('dark-theme');
+        } else {
+          document.body.classList.remove('dark-theme');
+          document.body.classList.add('light-theme');
+        }
+
+        if (accentColor) {
+          document.documentElement.style.setProperty('--accent', accentColor);
+        }
+      }
+
+      if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+          if (isSystemTheme) {
+            applyTheme(e.matches ? 'dark' : 'light');
+          }
+        });
+      }
+
       // PeekIt IPC Handshake
+      let readyTimer = null;
+
       window.addEventListener('message', (event) => {
         const msg = event.data;
         if (!msg || typeof msg !== 'object') return;
 
         switch (msg.type) {
           case 'PEEKIT_INIT': {
-            if (msg.payload?.fileName) {
-              fileTitle.textContent = msg.payload.fileName;
+            if (readyTimer) {
+              clearInterval(readyTimer);
+              readyTimer = null;
             }
-            if (msg.payload?.theme) {
-              document.documentElement.setAttribute('data-theme', msg.payload.theme);
+
+            const payload = msg.payload || msg;
+            if (payload.fileName) {
+              fileTitle.textContent = payload.fileName;
             }
+
+            const langVal = payload.language || payload.locale || payload.lang || 
+                            payload.settings?.language || payload.settings?.locale || payload.settings?.lang;
+            if (langVal) {
+              applyLocale(langVal);
+            } else {
+              applyLocale(currentLocale);
+            }
+
+            applyTheme(payload);
+
             window.parent.postMessage({ type: 'PEEKIT_REQUEST_DATA' }, '*');
             break;
           }
@@ -632,16 +790,22 @@ startxref
           }
 
           case 'PEEKIT_THEME_CHANGED': {
-            if (msg.payload?.theme) {
-              document.documentElement.setAttribute('data-theme', msg.payload.theme);
-            }
+            applyTheme(msg.payload || msg);
+            break;
+          }
+
+          case 'PEEKIT_LANGUAGE_CHANGED':
+          case 'PEEKIT_LOCALE_CHANGED': {
+            const payload = msg.payload || msg;
+            const langVal = payload.language || payload.locale || payload.lang || (typeof payload === 'string' ? payload : null);
+            if (langVal) applyLocale(langVal);
             break;
           }
         }
       });
 
       // Announce ready to host
-      const readyTimer = setInterval(() => {
+      readyTimer = setInterval(() => {
         window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
       }, 100);
       window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');

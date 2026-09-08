@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/kobaltgit/peekit-plugins/main/plugin-schema.json",
   "id": "com.peekit.jupyter-viewer",
   "name": "Jupyter Notebook Viewer",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Kobalt",
   "description": "Fast offline viewer for Jupyter Notebooks (.ipynb) with Markdown, syntax-highlighted code, rendered plots, tables and cell execution outputs",
   "category": "Code",
@@ -17,5 +17,8 @@
   ],
   "icon": "icon.svg",
   "homepage": "https://github.com/kobaltgit/peekit-plugins",
-  "repository": "https://github.com/kobaltgit/peekit-plugins"
+  "repository": "https://github.com/kobaltgit/peekit-plugins",
+  "supportedExtensions": [
+    ".ipynb"
+  ]
 }

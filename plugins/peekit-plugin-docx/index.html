@@ -261,6 +261,7 @@
     </div>
 
     <div class="toolbar-right">
+      <button id="btnToggleLang" class="tool-btn" title="Переключить язык (RU / EN)" style="font-weight:600;font-size:11px;min-width:32px;display:inline-flex;align-items:center;justify-content:center;">RU</button>
       <button id="btnThemeToggle" class="tool-btn" title="Переключить фон страницы (Белый / Тёмный лист)">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
@@ -326,6 +327,120 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       const btnZoomIn = document.getElementById('btnZoomIn');
       const btnZoomOut = document.getElementById('btnZoomOut');
       const btnZoomFit = document.getElementById('btnZoomFit');
+      
+      // --- Theme Engine ---
+      function applyTheme(themeData) {
+        let isDark = true;
+        let accent = null;
+
+        if (typeof themeData === 'string') {
+          isDark = themeData.toLowerCase() !== 'light';
+        } else if (typeof themeData === 'boolean') {
+          isDark = themeData;
+        } else if (themeData && typeof themeData === 'object') {
+          if (typeof themeData.isDark === 'boolean') isDark = themeData.isDark;
+          else if (typeof themeData.theme === 'string') isDark = themeData.theme.toLowerCase() !== 'light';
+          else if (typeof themeData.mode === 'string') isDark = themeData.mode.toLowerCase() !== 'light';
+          if (themeData.accentColor) accent = themeData.accentColor;
+          else if (themeData.accent) accent = themeData.accent;
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+          isDark = false;
+        }
+
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        if (accent) {
+          document.documentElement.style.setProperty('--accent', accent);
+        }
+      }
+
+      if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+          applyTheme(e.matches ? 'dark' : 'light');
+        });
+      }
+
+      // --- Localization Engine ---
+      const I18N = {
+        ru: {
+          langBtn: 'RU',
+          langTitle: 'Переключить язык (RU / EN)',
+          zoomFit: 'По ширине',
+          zoomFitTitle: 'По ширине окна',
+          zoomIn: 'Увеличить',
+          zoomOut: 'Уменьшить',
+          paperTheme: 'Тема листа',
+          paperThemeTitle: 'Переключить фон страницы (Белый / Тёмный лист)',
+          loading: 'Загрузка документа...',
+          loadingPages: 'Загрузка страниц...',
+          errRead: 'Ошибка чтения файла',
+          errUnsupported: 'Неподдерживаемый формат данных документа'
+        },
+        en: {
+          langBtn: 'EN',
+          langTitle: 'Toggle Language (RU / EN)',
+          zoomFit: 'Fit Width',
+          zoomFitTitle: 'Fit to window width',
+          zoomIn: 'Zoom In',
+          zoomOut: 'Zoom Out',
+          paperTheme: 'Paper Theme',
+          paperThemeTitle: 'Toggle paper background (White / Dark page)',
+          loading: 'Loading document...',
+          loadingPages: 'Loading pages...',
+          errRead: 'Error reading file',
+          errUnsupported: 'Unsupported document data format'
+        }
+      };
+
+      let currentLocale = localStorage.getItem('peekit_docx_lang') || 'ru';
+
+      function applyLocale(locale) {
+        if (!locale) return;
+        const normalized = String(locale).toLowerCase().startsWith('en') ? 'en' : 'ru';
+        currentLocale = normalized;
+        try { localStorage.setItem('peekit_docx_lang', currentLocale); } catch (_) {}
+
+        const dict = I18N[currentLocale] || I18N.ru;
+        const btnLang = document.getElementById('btnToggleLang');
+        if (btnLang) {
+          btnLang.textContent = dict.langBtn;
+          btnLang.title = dict.langTitle;
+        }
+
+        const btnZoomFit = document.getElementById('btnZoomFit');
+        if (btnZoomFit) {
+          btnZoomFit.textContent = dict.zoomFit;
+          btnZoomFit.title = dict.zoomFitTitle;
+        }
+        const btnZoomIn = document.getElementById('btnZoomIn');
+        if (btnZoomIn) btnZoomIn.title = dict.zoomIn;
+        const btnZoomOut = document.getElementById('btnZoomOut');
+        if (btnZoomOut) btnZoomOut.title = dict.zoomOut;
+
+        const btnThemeToggle = document.getElementById('btnThemeToggle');
+        if (btnThemeToggle) {
+          const span = btnThemeToggle.querySelector('span');
+          if (span) span.textContent = dict.paperTheme;
+          btnThemeToggle.title = dict.paperThemeTitle;
+        }
+
+        if (docTitle && (docTitle.textContent.includes('Загрузка документа') || docTitle.textContent.includes('Loading document'))) {
+          docTitle.textContent = dict.loading;
+        }
+        const pageStatsEl = document.getElementById('pageStats');
+        if (pageStatsEl && (pageStatsEl.textContent.includes('Загрузка страниц') || pageStatsEl.textContent.includes('Loading pages'))) {
+          pageStatsEl.textContent = dict.loadingPages;
+        }
+      }
+
+      const btnToggleLang = document.getElementById('btnToggleLang');
+      if (btnToggleLang) {
+        btnToggleLang.addEventListener('click', () => {
+          applyLocale(currentLocale === 'ru' ? 'en' : 'ru');
+        });
+      }
+      applyLocale(currentLocale);
+
+
       const btnThemeToggle = document.getElementById('btnThemeToggle');
       const pageStats = document.getElementById('pageStats');
 
@@ -416,21 +531,37 @@ https://github.com/nodeca/pako/blob/main/LICENSE
               clearInterval(readyInterval);
               readyInterval = null;
             }
-            const { fileName, extension, theme } = msg.payload || {};
+            const payload = msg.payload || {};
+            const { fileName, extension, theme, settings } = payload;
             if (fileName) docTitle.textContent = fileName;
             if (extension) fileBadge.textContent = extension.toUpperCase().replace('.', '');
-            if (theme) {
-              document.documentElement.setAttribute('data-theme', theme);
+
+            const langVal = payload.language || payload.locale || payload.lang || (settings && (settings.language || settings.locale));
+            if (langVal) {
+              applyLocale(langVal);
             }
+
+            const themeVal = theme || (settings && settings.theme) || payload.isDark;
+            applyTheme(themeVal !== undefined ? themeVal : payload);
+
             // Request document data
             window.parent.postMessage({ type: 'PEEKIT_REQUEST_DATA' }, '*');
             break;
           }
 
-          case 'PEEKIT_THEME_CHANGED': {
-            if (msg.payload && msg.payload.theme) {
-              document.documentElement.setAttribute('data-theme', msg.payload.theme);
+          case 'PEEKIT_LANGUAGE_CHANGED':
+          case 'PEEKIT_LOCALE_CHANGED': {
+            const payload = msg.payload || msg;
+            const newLang = payload.language || payload.locale || payload.lang || payload;
+            if (newLang) {
+              applyLocale(newLang);
             }
+            break;
+          }
+
+          case 'PEEKIT_THEME_CHANGED': {
+            const payload = msg.payload || msg;
+            applyTheme(payload.theme !== undefined ? payload.theme : payload);
             break;
           }
 

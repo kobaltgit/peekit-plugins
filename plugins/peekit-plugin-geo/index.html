@@ -1139,6 +1139,7 @@ canvas#profileCanvas {
 
     <!-- Header Controls -->
     <div class="header-controls">
+      <button class="ctrl-btn" id="btnToggleLang" title="Переключить язык (RU / EN)" style="font-weight:600;font-size:11px;min-width:32px;display:inline-flex;align-items:center;justify-content:center;">RU</button>
       <button class="ctrl-btn active" id="btnLayerDark" title="Тёмная карта">🌙 Dark</button>
       <button class="ctrl-btn" id="btnLayerLight" title="Светлая карта">☀️ Light</button>
       <button class="ctrl-btn" id="btnLayerTopo" title="Топографическая карта">⛰️ Topo</button>
@@ -1942,6 +1943,205 @@ canvas#profileCanvas {
         el.btnToggleProfile.classList.toggle('active', !isCollapsed);
       });
 
+      
+      // --- Theme Engine ---
+      function applyTheme(themeData) {
+        let isDark = true;
+        let accent = null;
+
+        if (typeof themeData === 'string') {
+          isDark = themeData.toLowerCase() !== 'light';
+        } else if (typeof themeData === 'boolean') {
+          isDark = themeData;
+        } else if (themeData && typeof themeData === 'object') {
+          if (typeof themeData.isDark === 'boolean') isDark = themeData.isDark;
+          else if (typeof themeData.theme === 'string') isDark = themeData.theme.toLowerCase() !== 'light';
+          else if (typeof themeData.mode === 'string') isDark = themeData.mode.toLowerCase() !== 'light';
+          if (themeData.accentColor) accent = themeData.accentColor;
+          else if (themeData.accent) accent = themeData.accent;
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+          isDark = false;
+        }
+
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        if (typeof setTileLayer === 'function') {
+          setTileLayer(isDark ? 'dark' : 'light');
+        }
+        if (accent) {
+          document.documentElement.style.setProperty('--accent', accent);
+        }
+      }
+
+      if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+          applyTheme(e.matches ? 'dark' : 'light');
+        });
+      }
+
+      // --- Localization Engine ---
+      const I18N = {
+        ru: {
+          langBtn: 'RU',
+          langTitle: 'Переключить язык (RU / EN)',
+          layerDark: '🌙 Тёмная',
+          layerLight: '☀️ Светлая',
+          layerTopo: '⛰️ Топо',
+          layerSat: '🛰️ Спутник',
+          points: '📍 Точки',
+          fitBounds: 'Центрировать маршрут',
+          profile: 'Профиль высот',
+          lblDistance: '📏 Дистанция:',
+          lblAscent: '⛰️ Подъём:',
+          lblDuration: '⏱️ Время:',
+          lblSpeed: '⚡ Скорость:',
+          lblWaypoints: '📍 Точек:',
+          defaultTrack: 'Маршрут',
+          loadingTrack: 'Загрузка трека...',
+          layerDarkTitle: 'Тёмная карта',
+          layerLightTitle: 'Светлая карта',
+          layerTopoTitle: 'Топографическая карта',
+          layerSatTitle: 'Спутник',
+          pointsTitle: 'Показать/скрыть путевые точки и отметки',
+          unitKm: 'км',
+          unitM: 'м',
+          unitKmh: 'км/ч',
+          errLoad: 'Ошибка загрузки'
+        },
+        en: {
+          langBtn: 'EN',
+          langTitle: 'Toggle Language (RU / EN)',
+          layerDark: '🌙 Dark',
+          layerLight: '☀️ Light',
+          layerTopo: '⛰️ Topo',
+          layerSat: '🛰️ Sat',
+          points: '📍 Points',
+          fitBounds: 'Fit Bounds',
+          profile: 'Elevation Profile',
+          lblDistance: '📏 Distance:',
+          lblAscent: '⛰️ Ascent:',
+          lblDuration: '⏱️ Duration:',
+          lblSpeed: '⚡ Speed:',
+          lblWaypoints: '📍 Points:',
+          defaultTrack: 'Track',
+          loadingTrack: 'Loading track...',
+          layerDarkTitle: 'Dark map',
+          layerLightTitle: 'Light map',
+          layerTopoTitle: 'Topographic map',
+          layerSatTitle: 'Satellite',
+          pointsTitle: 'Show/hide waypoints and markers',
+          unitKm: 'km',
+          unitM: 'm',
+          unitKmh: 'km/h',
+          errLoad: 'Load Error'
+        }
+      };
+
+      let currentLocale = localStorage.getItem('peekit_geo_lang') || 'ru';
+
+      function applyLocale(locale) {
+        if (!locale) return;
+        const normalized = String(locale).toLowerCase().startsWith('en') ? 'en' : 'ru';
+        currentLocale = normalized;
+        try { localStorage.setItem('peekit_geo_lang', currentLocale); } catch (_) {}
+
+        const dict = I18N[currentLocale] || I18N.ru;
+        const btnLang = document.getElementById('btnToggleLang');
+        if (btnLang) {
+          btnLang.textContent = dict.langBtn;
+          btnLang.title = dict.langTitle;
+        }
+
+        const btnDark = document.getElementById('btnLayerDark');
+        if (btnDark) {
+          btnDark.textContent = dict.layerDark;
+          btnDark.title = dict.layerDarkTitle;
+        }
+        const btnLight = document.getElementById('btnLayerLight');
+        if (btnLight) {
+          btnLight.textContent = dict.layerLight;
+          btnLight.title = dict.layerLightTitle;
+        }
+        const btnTopo = document.getElementById('btnLayerTopo');
+        if (btnTopo) {
+          btnTopo.textContent = dict.layerTopo;
+          btnTopo.title = dict.layerTopoTitle;
+        }
+        const btnSat = document.getElementById('btnLayerSat');
+        if (btnSat) {
+          btnSat.textContent = dict.layerSat;
+          btnSat.title = dict.layerSatTitle;
+        }
+        const btnPts = document.getElementById('btnTogglePoints');
+        if (btnPts) {
+          btnPts.textContent = dict.points;
+          btnPts.title = dict.pointsTitle;
+        }
+
+        const btnFit = document.getElementById('btnFitBounds');
+        if (btnFit) btnFit.title = dict.fitBounds;
+        const btnProf = document.getElementById('btnToggleProfile');
+        if (btnProf) btnProf.title = dict.profile;
+
+        const chipDistLbl = document.querySelector('#chipDistance .metric-label');
+        if (chipDistLbl) chipDistLbl.textContent = dict.lblDistance;
+        const chipAscLbl = document.querySelector('#chipAscent .metric-label');
+        if (chipAscLbl) chipAscLbl.textContent = dict.lblAscent;
+        const chipDurLbl = document.querySelector('#chipDuration .metric-label');
+        if (chipDurLbl) chipDurLbl.textContent = dict.lblDuration;
+        const chipSpdLbl = document.querySelector('#chipSpeed .metric-label');
+        if (chipSpdLbl) chipSpdLbl.textContent = dict.lblSpeed;
+        const chipWptLbl = document.querySelector('#chipWaypoints .metric-label');
+        if (chipWptLbl) chipWptLbl.textContent = dict.lblWaypoints;
+
+        const txtLoading = document.getElementById('txtLoading');
+        if (txtLoading && (txtLoading.textContent.includes('Загрузка трека') || txtLoading.textContent.includes('Loading track'))) {
+          txtLoading.textContent = dict.loadingTrack;
+        }
+
+        const trackName = document.getElementById('trackName');
+        if (trackName && (trackName.textContent === 'Маршрут' || trackName.textContent === 'Track')) {
+          trackName.textContent = dict.defaultTrack;
+        }
+
+        const valDist = document.getElementById('valDistance');
+        if (valDist && (valDist.textContent.includes('км') || valDist.textContent.includes('km'))) {
+          valDist.textContent = `0.0 ${dict.unitKm}`;
+        }
+        const valAsc = document.getElementById('valAscent');
+        if (valAsc && (valAsc.textContent.includes('м') || valAsc.textContent.includes('m'))) {
+          valAsc.textContent = `+0 ${dict.unitM}`;
+        }
+        const valSpd = document.getElementById('valSpeed');
+        if (valSpd && (valSpd.textContent.includes('км/ч') || valSpd.textContent.includes('km/h'))) {
+          valSpd.textContent = `0 ${dict.unitKmh}`;
+        }
+        const valMin = document.getElementById('valMinEle');
+        if (valMin && (valMin.textContent.includes('м') || valMin.textContent.includes('m'))) {
+          valMin.textContent = `0 ${dict.unitM}`;
+        }
+        const valMax = document.getElementById('valMaxEle');
+        if (valMax && (valMax.textContent.includes('м') || valMax.textContent.includes('m'))) {
+          valMax.textContent = `0 ${dict.unitM}`;
+        }
+        const valDesc = document.getElementById('valDescent');
+        if (valDesc && (valDesc.textContent.includes('м') || valDesc.textContent.includes('m'))) {
+          valDesc.textContent = `-0 ${dict.unitM}`;
+        }
+        const profTip = document.getElementById('profileTooltip');
+        if (profTip && (profTip.textContent.includes('км') || profTip.textContent.includes('km'))) {
+          profTip.textContent = `0 ${dict.unitKm} • 0 ${dict.unitM}`;
+        }
+      }
+
+      const btnToggleLang = document.getElementById('btnToggleLang');
+      if (btnToggleLang) {
+        btnToggleLang.addEventListener('click', () => {
+          applyLocale(currentLocale === 'ru' ? 'en' : 'ru');
+        });
+      }
+      applyLocale(currentLocale);
+
+
       window.addEventListener('message', (event) => {
         const msg = event.data;
         if (!msg || typeof msg !== 'object') return;
@@ -1959,29 +2159,38 @@ canvas#profileCanvas {
             handleDataResponse(msg.payload);
             break;
 
-          case 'PEEKIT_THEME_CHANGED':
-            if (msg.payload?.theme) {
-              document.documentElement.setAttribute('data-theme', msg.payload.theme);
-              if (msg.payload.theme === 'light' && activeLayerType === 'dark') {
-                setTileLayer('light');
-              } else if (msg.payload.theme === 'dark' && activeLayerType === 'light') {
-                setTileLayer('dark');
-              }
+          case 'PEEKIT_THEME_CHANGED': {
+            const payload = msg.payload || msg;
+            applyTheme(payload.theme !== undefined ? payload.theme : payload);
+            break;
+          }
+
+          case 'PEEKIT_LANGUAGE_CHANGED':
+          case 'PEEKIT_LOCALE_CHANGED': {
+            const payload = msg.payload || msg;
+            const newLang = payload.language || payload.locale || payload.lang || payload;
+            if (newLang) {
+              applyLocale(newLang);
             }
             break;
+          }
         }
       });
 
       function handleInit(payload) {
         if (!payload) return;
-        if (el.trackName) el.trackName.textContent = payload.fileName || 'Маршрут';
+        const langVal = payload.language || payload.locale || payload.lang || (payload.settings && (payload.settings.language || payload.settings.locale));
+        if (langVal) {
+          applyLocale(langVal);
+        }
+
+        const dict = I18N[currentLocale] || I18N.ru;
+        if (el.trackName) el.trackName.textContent = payload.fileName || dict.defaultTrack;
         const ext = (payload.extension || '').replace('.', '').toUpperCase();
         if (el.formatPill) el.formatPill.textContent = ext || 'GPX';
 
-        if (payload.theme) {
-          document.documentElement.setAttribute('data-theme', payload.theme);
-          setTileLayer(payload.theme === 'light' ? 'light' : 'dark');
-        }
+        const themeVal = payload.theme || (payload.settings && payload.settings.theme) || payload.isDark;
+        applyTheme(themeVal !== undefined ? themeVal : payload);
 
         sendToHost('PEEKIT_REQUEST_DATA');
       }

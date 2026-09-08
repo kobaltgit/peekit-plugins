@@ -8,6 +8,9 @@
   "extensions": [
     ".sample"
   ],
+  "supportedExtensions": [
+    ".sample"
+  ],
   "entry": "index.html",
   "min_peekit_version": "1.0.0",
   "permissions": [

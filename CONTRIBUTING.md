@@ -48,16 +48,16 @@
    * Проверьте манифест на соответствие [plugin-schema.json](plugin-schema.json).
 3. **Разработайте функционал в `index.html`:**
    * Ознакомьтесь с [PLUGIN_DEVELOPMENT_GUIDE.md](PLUGIN_DEVELOPMENT_GUIDE.md) для деталей работы протокола сообщений.
-4. **Проверьте упаковку:**
+4. **Запустите автоматизированные тесты:**
    ```bash
-   # Упаковать и проверить ваш плагин
-   node pack_plugin.cjs plugins/peekit-plugin-<name>
-
-   # Проверить сборку всех плагинов репозитория
-   node pack_plugin.cjs --all
+   # Проверить манифесты, офлайн-режим, синтаксис V8, IPC-рукопожатие, темы и локализацию
+   npm test
    ```
-5. **Обновите [registry.json](registry.json):**
-   * Добавьте метаданные вашего плагина в массив `plugins`.
+5. **Соберите пакеты и обновите реестр:**
+   ```bash
+   # Упаковать плагины, обновить registry.json и скопировать на сайт
+   npm run pack
+   ```
 
 ---
 
@@ -71,7 +71,7 @@
    * `feat: add <name> plugin for .ext files`
    * `fix(3d): resolve webgl context loss on close`
    * `docs: update packaging guide`
-3. Убедитесь, что `node pack_plugin.cjs --all` отрабатывает без ошибок.
+3. Убедитесь, что `npm test` и `npm run pack` отрабатывают с кодом `0` без единой ошибки.
 4. Создайте Pull Request с подробным описанием возможностей плагина и тестовыми файлами для проверки.
 
 ---

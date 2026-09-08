@@ -117,6 +117,7 @@ peekit-plugins/
 ├── template/                    # Шаблон-заготовка для создания новых плагинов
 ├── pack_plugin.cjs              # Автоматический упаковщик плагинов в формат .pkit
 ├── plugin-schema.json           # JSON Schema для валидации манифестов
+├── docs/                       # Центр расширенной документации и гайдов (Quickstart, RPC, I18N, Style, Testing, FAQ)
 ├── registry.json                # Центральный каталог плагинов (метаданные, версии)
 ├── website/                     # Промо-сайт и веб-маркетплейс плагинов (Flutter Web)
 ├── PLUGIN_DEVELOPMENT_GUIDE.md  # Полное руководство разработчика плагинов
@@ -151,8 +152,8 @@ flutter pub get
 flutter run -d chrome
 ```
 
-Подробное руководство по созданию плагинов с нуля доступно в:  
-👉 **[PLUGIN_DEVELOPMENT_GUIDE.md](PLUGIN_DEVELOPMENT_GUIDE.md)**  
+Подробная документация и руководства доступны в:  
+👉 **[Центр документации (docs/)](docs/README.md)** • **[Быстрый старт за 10 минут](docs/QUICKSTART.md)** • **[PLUGIN_DEVELOPMENT_GUIDE.md](PLUGIN_DEVELOPMENT_GUIDE.md)**  
 Вопросы безопасности песочницы описаны в **[SECURITY.md](SECURITY.md)**, а правила контрибьюции — в **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 
 ---

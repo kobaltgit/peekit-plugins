@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -340,6 +340,7 @@
       <span class="doc-title" id="docTitle">Загрузка таблицы...</span>
     </div>
     <div class="toolbar-right">
+      <button id="btnToggleLang" class="tool-btn" title="Переключить язык (RU / EN)" style="font-weight:600;font-size:11px;min-width:32px;margin-right:8px;padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);cursor:pointer;">RU</button>
       <div class="search-box">
         <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2">
           <circle cx="11" cy="11" r="8"/>
@@ -588,6 +589,84 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       });
 
       // RPC Protocol with PeekIt Host
+      
+      // --- Theme Engine ---
+      function applyTheme(themeData) {
+        let isDark = true;
+        let accent = null;
+
+        if (typeof themeData === 'string') {
+          isDark = themeData.toLowerCase() !== 'light';
+        } else if (typeof themeData === 'boolean') {
+          isDark = themeData;
+        } else if (themeData && typeof themeData === 'object') {
+          if (typeof themeData.isDark === 'boolean') isDark = themeData.isDark;
+          else if (typeof themeData.theme === 'string') isDark = themeData.theme.toLowerCase() !== 'light';
+          else if (typeof themeData.mode === 'string') isDark = themeData.mode.toLowerCase() !== 'light';
+          if (themeData.accentColor) accent = themeData.accentColor;
+          else if (themeData.accent) accent = themeData.accent;
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+          isDark = false;
+        }
+
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        if (accent) {
+          document.documentElement.style.setProperty('--accent', accent);
+        }
+      }
+
+      if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+          applyTheme(e.matches ? 'dark' : 'light');
+        });
+      }
+
+      // --- Localization Engine ---
+      const I18N = {
+        ru: {
+          langBtn: 'RU',
+          langTitle: 'Переключить язык (RU / EN)',
+          searchPlaceholder: 'Поиск в таблице...',
+          selectCell: 'Выберите ячейку',
+          loading: 'Загрузка таблицы...',
+          errRead: 'Ошибка чтения файла',
+          errUnsupported: 'Неподдерживаемый формат данных таблицы'
+        },
+        en: {
+          langBtn: 'EN',
+          langTitle: 'Toggle Language (RU / EN)',
+          searchPlaceholder: 'Search table...',
+          selectCell: 'Select a cell',
+          loading: 'Loading table...',
+          errRead: 'File read error',
+          errUnsupported: 'Unsupported spreadsheet data format'
+        }
+      };
+
+      let currentLocale = localStorage.getItem('peekit_sheet_lang') || 'ru';
+
+      function applyLocale(locale) {
+        if (!locale) return;
+        const normalized = String(locale).toLowerCase().startsWith('en') ? 'en' : 'ru';
+        currentLocale = normalized;
+        try { localStorage.setItem('peekit_sheet_lang', currentLocale); } catch (_) {}
+
+        const dict = I18N[currentLocale] || I18N.ru;
+        const btnLang = document.getElementById('btnToggleLang');
+        if (btnLang) {
+          btnLang.textContent = dict.langBtn;
+          btnLang.title = dict.langTitle;
+        }
+
+        if (searchInput) searchInput.placeholder = dict.searchPlaceholder;
+        if (cellVal && (cellVal.textContent === 'Выберите ячейку' || cellVal.textContent === 'Select a cell')) {
+          cellVal.textContent = dict.selectCell;
+        }
+        if (docTitle && (docTitle.textContent.includes('Загрузка таблицы') || docTitle.textContent.includes('Loading table'))) {
+          docTitle.textContent = dict.loading;
+        }
+      }
+
       let readyInterval = null;
 
       window.addEventListener('message', async (event) => {
@@ -600,21 +679,37 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
               clearInterval(readyInterval);
               readyInterval = null;
             }
-            const { fileName, extension, theme } = msg.payload || {};
+            const payload = msg.payload || {};
+            const { fileName, extension, theme, settings } = payload;
             if (fileName) docTitle.textContent = fileName;
             if (extension) fileBadge.textContent = extension.toUpperCase().replace('.', '');
-            if (theme) {
-              document.documentElement.setAttribute('data-theme', theme);
+
+            const langVal = payload.language || payload.locale || payload.lang || (settings && (settings.language || settings.locale));
+            if (langVal) {
+              applyLocale(langVal);
             }
+
+            const themeVal = theme || (settings && settings.theme) || payload.isDark;
+            applyTheme(themeVal !== undefined ? themeVal : payload);
+
             // Request binary file content
             window.parent.postMessage({ type: 'PEEKIT_REQUEST_DATA' }, '*');
             break;
           }
 
-          case 'PEEKIT_THEME_CHANGED': {
-            if (msg.payload && msg.payload.theme) {
-              document.documentElement.setAttribute('data-theme', msg.payload.theme);
+          case 'PEEKIT_LANGUAGE_CHANGED':
+          case 'PEEKIT_LOCALE_CHANGED': {
+            const payload = msg.payload || msg;
+            const newLang = payload.language || payload.locale || payload.lang || payload;
+            if (newLang) {
+              applyLocale(newLang);
             }
+            break;
+          }
+
+          case 'PEEKIT_THEME_CHANGED': {
+            const payload = msg.payload || msg;
+            applyTheme(payload.theme !== undefined ? payload.theme : payload);
             break;
           }
 
@@ -648,6 +743,15 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       });
 
       // Send READY to Host
+      
+      const btnToggleLang = document.getElementById('btnToggleLang');
+      if (btnToggleLang) {
+        btnToggleLang.addEventListener('click', () => {
+          applyLocale(currentLocale === 'ru' ? 'en' : 'ru');
+        });
+      }
+      applyLocale(currentLocale);
+
       readyInterval = setInterval(() => {
         window.parent.postMessage({ type: 'PEEKIT_READY' }, '*');
       }, 100);

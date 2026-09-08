@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -137,6 +137,22 @@
       background: var(--accent);
       color: #fff;
       font-weight: 600;
+    }
+
+    /* Language toggle button — same look as tab-btn but NOT a tab */
+    .lang-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .lang-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.07);
     }
 
     /* Content Area */
@@ -304,6 +320,7 @@
     </div>
 
     <div class="toolbar-right">
+      <button id="btnToggleLang" class="lang-btn" title="Переключить язык (RU / EN)" style="font-weight:600;min-width:32px;">RU</button>
       <button class="tab-btn active" data-tab="preview">Превью</button>
       <button class="tab-btn" data-tab="waterfall">Каскад</button>
       <button class="tab-btn" data-tab="glyphs">Символы</button>
@@ -333,7 +350,7 @@
 
       <div class="sample-card">
         <div class="sample-header">
-          <span>Пользовательский текст (редактируемый)</span>
+          <span id="customLabel">Пользовательский текст (редактируемый)</span>
         </div>
         <textarea
           id="customInput"
@@ -400,6 +417,8 @@ window.opentype = window.opentype || opentype;
       // Tab navigation
       tabButtons.forEach((btn) => {
         btn.addEventListener('click', () => {
+          // Skip buttons without data-tab (e.g. lang toggle)
+          if (!btn.getAttribute('data-tab')) return;
           tabButtons.forEach((b) => b.classList.remove('active'));
           document.querySelectorAll('.view-pane').forEach((p) => p.classList.remove('active'));
           btn.classList.add('active');
@@ -439,7 +458,113 @@ window.opentype = window.opentype || opentype;
         )
         .join('');
 
-      // PostMessage RPC Handling
+      
+      // --- Theme Engine ---
+      function applyTheme(themeData) {
+        let isDark = true;
+        let accent = null;
+
+        if (typeof themeData === 'string') {
+          isDark = themeData.toLowerCase() !== 'light';
+        } else if (typeof themeData === 'boolean') {
+          isDark = themeData;
+        } else if (themeData && typeof themeData === 'object') {
+          if (typeof themeData.isDark === 'boolean') isDark = themeData.isDark;
+          else if (typeof themeData.theme === 'string') isDark = themeData.theme.toLowerCase() !== 'light';
+          else if (typeof themeData.mode === 'string') isDark = themeData.mode.toLowerCase() !== 'light';
+          if (themeData.accentColor) accent = themeData.accentColor;
+          else if (themeData.accent) accent = themeData.accent;
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+          isDark = false;
+        }
+
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        if (accent) {
+          document.documentElement.style.setProperty('--accent', accent);
+        }
+      }
+
+      if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+          applyTheme(e.matches ? 'dark' : 'light');
+        });
+      }
+
+      // --- Localization Engine ---
+      const I18N = {
+        ru: {
+          langBtn: 'RU',
+          langTitle: 'Переключить язык (RU / EN)',
+          tabPreview: 'Превью',
+          tabWaterfall: 'Каскад',
+          tabGlyphs: 'Символы',
+          sampleSentence: 'Съешь же ещё этих мягких французских булок, да выпей чаю. 1234567890 !@#$%^&*()',
+          customLabel: 'Пользовательский текст (редактируемый)',
+          loading: 'Загрузка шрифта...'
+        },
+        en: {
+          langBtn: 'EN',
+          langTitle: 'Toggle Language (RU / EN)',
+          tabPreview: 'Preview',
+          tabWaterfall: 'Waterfall',
+          tabGlyphs: 'Glyphs',
+          sampleSentence: 'The quick brown fox jumps over the lazy dog. 1234567890 !@#$%^&*()',
+          customLabel: 'Custom text (editable)',
+          loading: 'Loading font...'
+        }
+      };
+
+      let currentLocale = localStorage.getItem('peekit_font_lang') || 'ru';
+
+      function applyLocale(locale) {
+        if (!locale) return;
+        const normalized = String(locale).toLowerCase().startsWith('en') ? 'en' : 'ru';
+        currentLocale = normalized;
+        try { localStorage.setItem('peekit_font_lang', currentLocale); } catch (_) {}
+
+        const dict = I18N[currentLocale] || I18N.ru;
+        const btnLang = document.getElementById('btnToggleLang');
+        if (btnLang) {
+          btnLang.textContent = dict.langBtn;
+          btnLang.title = dict.langTitle;
+        }
+
+        const tabPrev = document.querySelector('.tab-btn[data-tab="preview"]');
+        if (tabPrev) tabPrev.textContent = dict.tabPreview;
+        const tabWater = document.querySelector('.tab-btn[data-tab="waterfall"]');
+        if (tabWater) tabWater.textContent = dict.tabWaterfall;
+        const tabGlyph = document.querySelector('.tab-btn[data-tab="glyphs"]');
+        if (tabGlyph) tabGlyph.textContent = dict.tabGlyphs;
+
+        const loadingDiv = document.querySelector('#loading div:last-child');
+        if (loadingDiv) loadingDiv.textContent = dict.loading;
+
+        // Update customInput label and value
+        const customLabelEl = document.getElementById('customLabel');
+        if (customLabelEl) customLabelEl.textContent = dict.customLabel;
+
+        const customInputEl = document.getElementById('customInput');
+        if (customInputEl) {
+          customInputEl.value = dict.sampleSentence;
+          customInputEl.textContent = dict.sampleSentence;
+        }
+
+        const previewTextEl = document.getElementById('previewText');
+        if (previewTextEl && (previewTextEl.value.includes('Съешь') || previewTextEl.value.includes('The quick brown'))) {
+          previewTextEl.value = dict.sampleSentence;
+        }
+      }
+
+      const btnToggleLang = document.getElementById('btnToggleLang');
+      if (btnToggleLang) {
+        btnToggleLang.addEventListener('click', () => {
+          applyLocale(currentLocale === 'ru' ? 'en' : 'ru');
+        });
+      }
+      applyLocale(currentLocale);
+
+
+      // IPC message handling
       let readyInterval = null;
 
       window.addEventListener('message', async (event) => {
@@ -452,21 +577,37 @@ window.opentype = window.opentype || opentype;
               clearInterval(readyInterval);
               readyInterval = null;
             }
-            const { fileName, extension, theme } = msg.payload || {};
+            const payload = msg.payload || {};
+            const { fileName, extension, theme, settings } = payload;
             if (fileName) fontTitle.textContent = fileName;
             if (extension) fontBadge.textContent = extension.toUpperCase().replace('.', '');
-            if (theme) {
-              document.documentElement.setAttribute('data-theme', theme);
+
+            const langVal = payload.language || payload.locale || payload.lang || (settings && (settings.language || settings.locale));
+            if (langVal) {
+              applyLocale(langVal);
             }
+
+            const themeVal = theme || (settings && settings.theme) || payload.isDark;
+            applyTheme(themeVal !== undefined ? themeVal : payload);
+
             // Request binary font data
             window.parent.postMessage({ type: 'PEEKIT_REQUEST_DATA' }, '*');
             break;
           }
 
-          case 'PEEKIT_THEME_CHANGED': {
-            if (msg.payload && msg.payload.theme) {
-              document.documentElement.setAttribute('data-theme', msg.payload.theme);
+          case 'PEEKIT_LANGUAGE_CHANGED':
+          case 'PEEKIT_LOCALE_CHANGED': {
+            const payload = msg.payload || msg;
+            const newLang = payload.language || payload.locale || payload.lang || payload;
+            if (newLang) {
+              applyLocale(newLang);
             }
+            break;
+          }
+
+          case 'PEEKIT_THEME_CHANGED': {
+            const payload = msg.payload || msg;
+            applyTheme(payload.theme !== undefined ? payload.theme : payload);
             break;
           }
 
